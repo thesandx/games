@@ -74,5 +74,8 @@ export default defineConfig([
     'coverage/**',
     'next-env.d.ts',
     'pnpm-lock.yaml',
+    // The source design canvas and its vendored design-system bundle. Read as
+    // reference, never built or shipped, and not ours to lint or reformat.
+    'games/**',
   ]),
 ]);

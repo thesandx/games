@@ -27,7 +27,9 @@ It exists because several things here look wrong but are correct. Several obviou
 
 ## What this is
 
-A production Next.js application deployed to Google Cloud Run, generated from a template. If the app still contains only the Hello World page at `app/page.tsx`, it has not been customised yet.
+A production Next.js application deployed to Google Cloud Run, generated from a template.
+
+The application is **Playroom** — party games played from a shared six-character room key. Bingo is playable, and it is turn-based: players claim numbers from 1 to 25 and every claim marks that number on every board. Scribble and Tic-tac-toe are in the catalogue but not yet implemented. Room state sits behind a transport interface so it can move from the browser to the rooms API without changing a screen. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
 
 The template's purpose is that **the path to production already works**: a container that runs on Cloud Run, a pipeline that deploys it without storing any credential, and documentation that explains each decision. The application is deliberately trivial. Everything else is the reusable part — do not degrade it.
 
@@ -79,6 +81,7 @@ This file is the index and the warnings. The detail lives in `.github/instructio
 | [`cloud/deployment.md`](./cloud/deployment.md)                                             | Deploying, rolling back, or setting up GCP.                    |
 | [`cloud/github-actions.md`](./cloud/github-actions.md)                                     | Debugging OIDC / Workload Identity Federation.                 |
 | [`cloud/environment-variables.md`](./cloud/environment-variables.md)                       | Adding or changing configuration.                              |
+| [`docs/backend-handover.md`](./docs/backend-handover.md)                                   | Building or changing the rooms API. The full server contract.  |
 | [`SECURITY.md`](./SECURITY.md)                                                             | The security model and the pre-production hardening checklist. |
 
 **Precedence when guidance conflicts** (later wins): your training defaults → general Next.js/GCP docs → `.github/instructions/` → this file → an explicit instruction from the human you are working with.
@@ -373,10 +376,12 @@ Full model in [`SECURITY.md`](./SECURITY.md).
 
 Recorded in [`docs/adr/`](./docs/adr/). Read before proposing a change to any of them.
 
-| ADR                                                         | Decision                                                     |
-| ----------------------------------------------------------- | ------------------------------------------------------------ |
-| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)        | Cloud Run for hosting — over Vercel, GKE, App Engine, a VM   |
-| [0002](./docs/adr/0002-use-workload-identity-federation.md) | Workload Identity Federation — no service account keys, ever |
+| ADR                                                               | Decision                                                         |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)              | Cloud Run for hosting — over Vercel, GKE, App Engine, a VM       |
+| [0002](./docs/adr/0002-use-workload-identity-federation.md)       | Workload Identity Federation — no service account keys, ever     |
+| [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md) | Room state behind a transport interface, with a browser fallback |
+| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)       | Turn-based Bingo on a 1-25 board — no host caller, no daubing    |
 
 Add an ADR when a decision is expensive to reverse, affects how everyone works, or rejects an obvious alternative. Never edit an accepted ADR to change its decision — write a new one that supersedes it, and link both ways.
 

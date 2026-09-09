@@ -21,8 +21,12 @@ type NodeEnv = 'development' | 'production' | 'test';
 
 const VALID_NODE_ENVS: readonly NodeEnv[] = ['development', 'production', 'test'];
 const VALID_LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+const VALID_TRANSPORTS = ['local', 'remote'] as const;
 
 export type LogLevel = (typeof VALID_LOG_LEVELS)[number];
+
+/** Where room state lives. See NEXT_PUBLIC_PLAYROOM_TRANSPORT in .env.example. */
+export type PlayroomTransport = (typeof VALID_TRANSPORTS)[number];
 
 class EnvValidationError extends Error {
   constructor(issues: readonly string[]) {
@@ -103,6 +107,29 @@ export const env = {
    * visible without opening GitHub.
    */
   deployedAt: optional(process.env.DEPLOYED_AT, ''),
+
+  /**
+   * Base URL of the Playroom rooms API. Every path in
+   * `services/playroom-api.ts` is appended to this, so it carries no trailing
+   * slash. Placeholder until the real service is live.
+   */
+  playroomApiUrl: optional(
+    process.env.NEXT_PUBLIC_PLAYROOM_API_URL,
+    'https://api.sandeep.app/games',
+  ).replace(/\/+$/, ''),
+
+  /**
+   * Which transport backs rooms. `local` keeps state in the browser so the app
+   * is playable before the API exists; `remote` calls `playroomApiUrl`.
+   * Defaults to `local` deliberately — pointing at an endpoint that does not
+   * answer yet would make every screen fail rather than degrade.
+   */
+  playroomTransport: oneOf(
+    'NEXT_PUBLIC_PLAYROOM_TRANSPORT',
+    process.env.NEXT_PUBLIC_PLAYROOM_TRANSPORT,
+    VALID_TRANSPORTS,
+    'local',
+  ),
 } as const;
 
 /**
