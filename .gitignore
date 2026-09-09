@@ -57,4 +57,6 @@ Thumbs.db
 # Vercel (unused here — this template deploys to Cloud Run)
 .vercel
 
-/games
+/games/*
+!/games/_ds/
+

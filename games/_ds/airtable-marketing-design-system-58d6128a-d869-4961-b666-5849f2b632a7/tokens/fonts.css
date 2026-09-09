@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Huninn&display=swap');
+/* SUBSTITUTION: Haas Grotesk / Haas Groot Disp are licensed and were not provided.
+   Huninn (justfont, via Google Fonts) is the requested stand-in for both.
+   Note: Huninn ships a single weight (400) — the 475 / 500 / 575 / 600 steps in
+   tokens/typography.css are synthesised by the browser. Replace the @import above
+   with real @font-face rules pointing at haas-*.woff2 in assets/fonts/ if the
+   licensed files arrive. */
+:root{
+--font-display:'Huninn',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+--font-text:'Huninn',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+--font-pricing:'Huninn',system-ui,sans-serif;
+--font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+--font-display-settings:normal;
+--font-text-settings:normal;
+}

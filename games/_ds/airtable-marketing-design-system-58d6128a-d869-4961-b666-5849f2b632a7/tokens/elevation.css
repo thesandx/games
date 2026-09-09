@@ -1,0 +1,12 @@
+:root{
+/* color-block first, shadow second. There is no heavy elevation language here. */
+--shadow-none:none;
+--shadow-button-rest:0 1px 2px rgba(27,97,201,0.10);
+--shadow-button-focus:0 0 0 2px rgba(69,143,255,0.55);
+--border-hairline-rule:var(--hairline) solid var(--border-hairline);
+/* motion — not documented in the source; these are the conservative defaults
+   used by this system's components. See readme.md > Visual Foundations. */
+--ease-standard:cubic-bezier(0.2,0,0.2,1); /* @kind other */
+--dur-fast:120ms; /* @kind other */
+--dur-base:180ms; /* @kind other */
+}

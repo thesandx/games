@@ -12,7 +12,7 @@ It exists because several things here look wrong but are correct. Several obviou
 2. [Verified state](#verified-state)
 3. [Documentation map](#documentation-map)
 4. [Commands](#commands)
-5. [The twelve rules](#the-twelve-rules)
+5. [The thirteen rules](#the-thirteen-rules)
 6. [Where files go](#where-files-go)
 7. [Architecture in brief](#architecture-in-brief)
 8. [Traps — things that look wrong and are not](#traps--things-that-look-wrong-and-are-not)
@@ -71,6 +71,7 @@ This file is the index and the warnings. The detail lives in `.github/instructio
 | [`.github/instructions/coding-rules.md`](./.github/instructions/coding-rules.md)           | Writing anything. The non-negotiables in full.                 |
 | [`.github/instructions/project-structure.md`](./.github/instructions/project-structure.md) | Creating any file — it decides where it goes.                  |
 | [`.github/instructions/coding-standards.md`](./.github/instructions/coding-standards.md)   | Writing TypeScript, React or CSS.                              |
+| [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md)             | Writing ANY user-facing UI. The design system, in full.        |
 | [`.github/instructions/architecture.md`](./.github/instructions/architecture.md)           | Adding a layer, dependency, or changing data flow.             |
 | [`.github/instructions/deployment.md`](./.github/instructions/deployment.md)               | Touching `Dockerfile`, env vars, or anything Cloud Run reads.  |
 | [`.github/instructions/github-workflows.md`](./.github/instructions/github-workflows.md)   | Touching `.github/workflows/`.                                 |
@@ -104,9 +105,10 @@ docker compose up --build   # run the real production image locally
 
 ---
 
-## The twelve rules
+## The thirteen rules
 
-Full reasoning in [`coding-rules.md`](./.github/instructions/coding-rules.md).
+Full reasoning in [`coding-rules.md`](./.github/instructions/coding-rules.md), and — for anything
+visual — in [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md).
 
 1. **Never break the folder structure.** The top-level folders are fixed. Do not invent `utils/`, `helpers/`, `src/`, or a root `api/`. Nest inside what exists.
 2. **Always TypeScript.** No `.js`/`.jsx` source. No `any` — use `unknown` and narrow. No `@ts-ignore`; `@ts-expect-error` only with a comment saying what would remove it. Never weaken `tsconfig.json`.
@@ -120,6 +122,7 @@ Full reasoning in [`coding-rules.md`](./.github/instructions/coding-rules.md).
 10. **Verify before claiming.** See [Verification protocol](#verification-protocol).
 11. **Design mobile-first.** Every UI works on a small screen first, then scales up. Unprefixed Tailwind utilities are the phone layout; add `sm:`/`md:`/`lg:` to enhance for wider screens — never the reverse. No fixed widths that overflow a phone, no horizontal scroll on the body, touch targets ≥44px. Responsiveness is a requirement, not a finishing touch.
 12. **Write docs in Simplified Technical English (ASD-STE100).** Every Markdown document — this file, `.github/instructions/`, `docs/`, `cloud/`, ADRs, READMEs — follows the standard. Short sentences (≤20 words for an instruction, ≤25 for a description), one instruction per sentence, active voice, present tense, one topic per paragraph, and one approved term per concept. Write for a non-native reader; choose the plain word over the clever one. Bring a document into compliance when you touch it.
+13. **Follow the design system.** [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md) is the rulebook for anything a user sees: tokens instead of raw hex, `ink-1` for the CTA fill and never the link blue, signature colours as whole-card surfaces, display type at 400/500, 2px ink borders, no shadows, no hover styling, no emoji. Reuse `components/ui/` before you build a new primitive.
 
 ---
 
@@ -279,6 +282,8 @@ Missing any step breaks somebody:
 
 ### Add a component
 
+0. Read [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md). It carries the
+   colour, type, shape, motion and copy rules, and the inventory of components that already exist.
 1. Decide the folder: `ui/` (generic) vs `layout/` vs `<feature>/`
 2. Server Component unless it needs state/effects/handlers/browser APIs
 3. Export the props interface; accept `className`
