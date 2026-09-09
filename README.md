@@ -55,6 +55,8 @@ The room screen covers the lobby, play, round results and the final scoreboard. 
 
 Each completed row, column or diagonal fills one letter of **B-I-N-G-O**. Lines share cells, so a single pick can fill two letters at once. **Five** completed lines win the round — one line is not a win, and filling the whole board is not required. The winner must press **Call Bingo**; the claim is validated against the board and the taken numbers, and only the first valid claim wins.
 
+**You see your own board and nobody else's.** That is enforced in the payload, not the interface: `scopeRoomForPlayer` in [`lib/room-engine.ts`](./lib/room-engine.ts) narrows `bingo.cards` to the caller before the transport returns it, so another player's grid is not merely hidden — it is never sent. The winner's board is revealed to the room when the round ends.
+
 Turn order, the taken-number set and bingo validation are all enforced in [`lib/room-engine.ts`](./lib/room-engine.ts), not in the UI. A client that picks out of turn, picks a number already gone, or claims bingo on an incomplete board is rejected.
 
 Scribble and Tic-tac-toe appear in the catalogue and say `In build — not playable yet`, which is deliberate: routing someone into a room for a game with no rules would strand them in a lobby that cannot start.

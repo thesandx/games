@@ -14,6 +14,7 @@ import {
   replaySession,
   ROOM_TTL_MS,
   RoomError,
+  scopeRoomForPlayer,
   selectNumber,
   startRound,
 } from '@/lib/room-engine';
@@ -64,6 +65,20 @@ function takeAll(room: Room, playerId: string, values: readonly number[]): Room 
 /** Takes exactly the numbers that put `playerId` on five completed lines. */
 function playToBingo(room: Room, playerId: string): Room {
   return takeAll(room, playerId, numbersAt(room, playerId, CELLS_5_LINES));
+}
+
+/**
+ * Plays the values through, each taken by whoever is on turn.
+ *
+ * Marking is global, so it does not matter who takes a number — it lands on
+ * every board. That is what lets one player's winning line be completed by
+ * picks the whole table made.
+ */
+function takeInTurn(room: Room, values: readonly number[]): Room {
+  return values.reduce((current, value) => {
+    const turnId = currentTurnPlayerId(current);
+    return turnId === null ? current : selectNumber(current, turnId, value);
+  }, room);
 }
 
 describe('startRound', () => {
@@ -339,5 +354,58 @@ describe('immutability', () => {
     lockRoom(room, 'host-1');
     joinRoom(room, { key: 'PLZ4K9', name: 'Dev', color: 'mint' }, 'p2');
     expect(JSON.stringify(room)).toBe(snapshot);
+  });
+});
+
+describe('scopeRoomForPlayer', () => {
+  function duoInPlay(): Room {
+    return startRound(
+      joinRoom(newRoom(), { key: 'PLZ4K9', name: 'Dev', color: 'mint' }, 'p2'),
+      'host-1',
+    );
+  }
+
+  it("shows a player their own board and nobody else's", () => {
+    const scoped = scopeRoomForPlayer(duoInPlay(), 'host-1');
+    expect(Object.keys(scoped.bingo?.cards ?? {})).toEqual(['host-1']);
+    expect(scoped.bingo?.cards['p2']).toBeUndefined();
+  });
+
+  it('shows a spectator no board at all during play', () => {
+    const scoped = scopeRoomForPlayer(duoInPlay(), null);
+    expect(scoped.bingo?.cards).toEqual({});
+  });
+
+  it('keeps the board itself intact — it narrows, it does not redact', () => {
+    const room = duoInPlay();
+    const scoped = scopeRoomForPlayer(room, 'p2');
+    expect(scoped.bingo?.cards['p2']).toEqual(room.bingo?.cards['p2']);
+  });
+
+  it('leaves everything else visible', () => {
+    const room = duoInPlay();
+    const scoped = scopeRoomForPlayer(selectNumber(room, 'host-1', 9), 'p2');
+    expect(scoped.bingo?.selected).toEqual([9]);
+    expect(scoped.bingo?.turnOrder).toEqual(['host-1', 'p2']);
+    expect(scoped.players).toHaveLength(2);
+  });
+
+  it("reveals the winner's board to everyone once the round is over", () => {
+    const started = duoInPlay();
+    const played = takeInTurn(started, numbersAt(started, 'host-1', CELLS_5_LINES));
+    const won = claimBingo(played, 'host-1');
+
+    // The loser now sees the winning board as well as their own.
+    const loserView = scopeRoomForPlayer(won, 'p2');
+    expect(Object.keys(loserView.bingo?.cards ?? {}).sort()).toEqual(['host-1', 'p2']);
+
+    // And so does a spectator, but still only the winner's.
+    const spectatorView = scopeRoomForPlayer(won, null);
+    expect(Object.keys(spectatorView.bingo?.cards ?? {})).toEqual(['host-1']);
+  });
+
+  it('does nothing to a room with no round in progress', () => {
+    const lobby = newRoom();
+    expect(scopeRoomForPlayer(lobby, 'host-1')).toEqual(lobby);
   });
 });

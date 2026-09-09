@@ -295,7 +295,9 @@ Every route below except `GET /v1/games` and `GET /health` requires `Authorizati
 | `GET`    | `/v1/games`                              | (new) catalogue              | none         |
 | `GET`    | `/health`                                | probes                       | none         |
 
-**Every mutating endpoint returns the full `Room` object**, exactly as `GET /v1/rooms/{key}` would. The client applies the returned room directly and skips a re-fetch. Do not return `204`.
+¹ Optional, but it changes the response. A request with a valid token gets that player's board in `bingo.cards`; a request without one gets no board at all. Both are valid — the second is a spectator view.
+
+**Every mutating endpoint returns the `Room` object scoped to the caller**, exactly as `GET /v1/rooms/{key}` would for that player. The client applies the returned room directly and skips a re-fetch. Do not return `204`.
 
 ### The action envelope
 
@@ -451,6 +453,8 @@ Neon also scales to zero. The first query after idle pays a cold start of a few 
 Port these from `lib/room-engine.ts` and `lib/bingo.ts`. The TypeScript is the reference implementation and it has 105 passing tests behind it.
 
 **Boards.** Each player gets the numbers 1 to 25 in a Fisher-Yates shuffle. Every number appears exactly once. There is no free square. Boards are fixed once the round starts.
+
+**Board visibility.** A player sees their own board only. Scope `bingo.cards` on the way out of every handler, using the caller's identity — `lib/room-engine.ts` has `scopeRoomForPlayer` as the reference. The winner's board becomes visible to the room when the round ends, and not before. This is why `GET /v1/rooms/{key}` reads the auth header even though it is otherwise optional.
 
 **Turns.** `turn_order` is seat order, fixed when the round is dealt. After a valid selection, advance by one and wrap. A player who joins mid-round is appended to `turn_order` and dealt a board; the running turn does not move.
 

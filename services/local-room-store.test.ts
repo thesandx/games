@@ -27,7 +27,7 @@ beforeEach(() => {
  */
 const CELLS_5_LINES = [...Array.from({ length: 15 }, (_, index) => index), 18, 24, 16, 20];
 
-/** The numbers at those cells on a player's board. */
+/** The numbers at those cells on a player's board. Needs that player's view. */
 function bingoNumbers(room: Room, playerId: string): number[] {
   const card = room.bingo?.cards[playerId] ?? [];
   return CELLS_5_LINES.map((cell) => card[cell] as number);
@@ -55,19 +55,58 @@ describe('localRoomStore', () => {
     expect(await localRoomStore.getRoom('ZZZZZZ')).toBeNull();
   });
 
-  it('gives every player a different full 1-25 board', async () => {
+  it('deals each player a full 1-25 board', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
-    await localRoomStore.joinRoom({ key: room.key, name: 'Dev', color: 'mint' });
-    const started = await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
+    const { playerId: guestId } = await localRoomStore.joinRoom({
+      key: room.key,
+      name: 'Dev',
+      color: 'mint',
+    });
+    await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
 
-    const cards = Object.values(started.bingo?.cards ?? {});
-    expect(cards).toHaveLength(2);
-    for (const card of cards) {
+    // Each player reads their own view, and each sees a complete board.
+    for (const id of [hostId, guestId]) {
+      const view = await localRoomStore.getRoom(room.key, id);
+      const card = view?.bingo?.cards[id] ?? [];
       expect([...card].sort((a, b) => a - b)).toEqual(
         Array.from({ length: CARD_SIZE }, (_, index) => index + 1),
       );
     }
-    expect(cards[0]).not.toEqual(cards[1]);
+  });
+
+  it('gives the two players different arrangements', async () => {
+    const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
+    const { playerId: guestId } = await localRoomStore.joinRoom({
+      key: room.key,
+      name: 'Dev',
+      color: 'mint',
+    });
+    await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
+
+    const hostCard = (await localRoomStore.getRoom(room.key, hostId))?.bingo?.cards[hostId];
+    const guestCard = (await localRoomStore.getRoom(room.key, guestId))?.bingo?.cards[guestId];
+    expect(hostCard).not.toEqual(guestCard);
+  });
+
+  it("never sends one player another player's board", async () => {
+    const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
+    const { playerId: guestId } = await localRoomStore.joinRoom({
+      key: room.key,
+      name: 'Dev',
+      color: 'mint',
+    });
+    const started = await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
+
+    // The host's own view, straight off a mutation.
+    expect(Object.keys(started.bingo?.cards ?? {})).toEqual([hostId]);
+
+    // And off a read.
+    const guestView = await localRoomStore.getRoom(room.key, guestId);
+    expect(Object.keys(guestView?.bingo?.cards ?? {})).toEqual([guestId]);
+
+    // A caller with no identity sees no board at all.
+    const spectatorView = await localRoomStore.getRoom(room.key);
+    expect(spectatorView?.bingo?.cards).toEqual({});
   });
 
   it('enforces turn order across two players', async () => {
@@ -126,17 +165,46 @@ describe('localRoomStore', () => {
     await expect(localRoomStore.selectNumber(identity, 99)).rejects.toThrow(/between 1 and 25/i);
   });
 
-  it('marks a taken number on every board at once', async () => {
+  it('marks a taken number for every player at once', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
-    await localRoomStore.joinRoom({ key: room.key, name: 'Dev', color: 'mint' });
+    const { playerId: guestId } = await localRoomStore.joinRoom({
+      key: room.key,
+      name: 'Dev',
+      color: 'mint',
+    });
     await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
-    const after = await localRoomStore.selectNumber({ roomKey: room.key, playerId: hostId }, 13);
+    await localRoomStore.selectNumber({ roomKey: room.key, playerId: hostId }, 13);
 
-    // Marking is derived from one shared list, so it cannot differ per board.
-    expect(after.bingo?.selected).toContain(13);
-    for (const card of Object.values(after.bingo?.cards ?? {})) {
-      expect(card).toContain(13);
+    // Marking is derived from one shared list, so it cannot differ per player.
+    for (const id of [hostId, guestId]) {
+      const view = await localRoomStore.getRoom(room.key, id);
+      expect(view?.bingo?.selected).toContain(13);
+      expect(view?.bingo?.cards[id]).toContain(13);
     }
+  });
+
+  it("reveals the winner's board to the other players once the round ends", async () => {
+    const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
+    const { playerId: guestId } = await localRoomStore.joinRoom({
+      key: room.key,
+      name: 'Dev',
+      color: 'mint',
+    });
+    const identity = { roomKey: room.key, playerId: hostId };
+    const started = await localRoomStore.startRound(identity);
+
+    // Two players, so turns alternate. Marking is global, so it does not
+    // matter who takes each number — it lands on the host's board either way.
+    let onTurn = hostId;
+    for (const value of bingoNumbers(started, hostId)) {
+      await localRoomStore.selectNumber({ roomKey: room.key, playerId: onTurn }, value);
+      onTurn = onTurn === hostId ? guestId : hostId;
+    }
+    await localRoomStore.claimBingo(identity);
+
+    const guestView = await localRoomStore.getRoom(room.key, guestId);
+    expect(Object.keys(guestView?.bingo?.cards ?? {}).sort()).toEqual([guestId, hostId].sort());
+    expect(guestView?.bingo?.winnerId).toBe(hostId);
   });
 
   it('rejects a bingo claim with no complete line', async () => {

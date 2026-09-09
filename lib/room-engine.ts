@@ -423,6 +423,40 @@ export function removePlayer(
   );
 }
 
+/**
+ * Strips boards the caller is not entitled to see.
+ *
+ * A player sees their own board and nobody else's. Hiding the other grids in
+ * the UI alone would be theatre: the boards would still be in the payload, one
+ * dev-tools tab away. So the room is narrowed here, and every transport applies
+ * it to what it returns.
+ *
+ * The winner's board is added back once the round is over, because the results
+ * screen has to show the lines that won it.
+ *
+ * `viewerId` is null for a spectator, who sees no board until the reveal.
+ */
+export function scopeRoomForPlayer(room: Room, viewerId: string | null): Room {
+  const bingo = room.bingo;
+  if (!bingo) return room;
+
+  const visible: Record<string, BingoCard> = {};
+
+  if (viewerId !== null) {
+    const own = bingo.cards[viewerId];
+    if (own) visible[viewerId] = own;
+  }
+
+  // The reveal: once somebody has won, their board is public so the room can
+  // see the winning lines.
+  if (bingo.winnerId !== null) {
+    const winning = bingo.cards[bingo.winnerId];
+    if (winning) visible[bingo.winnerId] = winning;
+  }
+
+  return { ...room, bingo: { ...bingo, cards: visible } };
+}
+
 /** True once the room has passed its two-hour window. */
 export function isExpired(room: Room, now: number = Date.now()): boolean {
   return new Date(room.expiresAt).getTime() < now;

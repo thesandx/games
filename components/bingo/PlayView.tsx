@@ -30,6 +30,11 @@ export interface PlayViewProps {
  * numbers, so a separate number pad would be the same 25 buttons twice. Free
  * cells are tappable on your turn; taken cells are filled and inert. That also
  * removes the need for a "taken" list — the board already shows what has gone.
+ *
+ * You see your own board and nobody else's. The other players' grids are not
+ * merely hidden here: the transport does not send them, so there is nothing to
+ * find in the payload either. The winner's board is revealed on the results
+ * screen once the round is over.
  */
 export function PlayView({
   room,
@@ -54,7 +59,6 @@ export function PlayView({
   // does — so the button only appears when a claim would actually be accepted.
   const myLines = findWinningLines(card, selected);
   const canCallBingo = myLines.length >= LINES_TO_WIN;
-  const others = room.players.filter((player) => player.id !== playerId);
 
   return (
     <div className="mx-auto max-w-[1120px]">
@@ -153,34 +157,6 @@ export function PlayView({
           </ButtonLink>
         </div>
       </div>
-
-      {others.length > 0 ? (
-        <section className="mt-8">
-          <h2 className="text-ink-1 mb-3 text-lg font-medium">Everyone else</h2>
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {others.map((player) => {
-              const theirCard = bingo?.cards[player.id] ?? [];
-              const theirLines = findWinningLines(theirCard, selected);
-              return (
-                <li key={player.id} className="flex flex-col gap-2">
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="text-ink-2 truncate text-sm font-medium">{player.name}</span>
-                    <span className="text-ink-3 text-sm">
-                      {Math.min(theirLines.length, LINES_TO_WIN)}/{LINES_TO_WIN}
-                    </span>
-                  </span>
-                  <BingoBoard
-                    card={theirCard}
-                    selected={selected}
-                    label={`${player.name}'s board`}
-                    compact
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : null}
     </div>
   );
 }

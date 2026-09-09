@@ -28,6 +28,7 @@ import {
   removePlayer as applyRemove,
   replaySession as applyReplay,
   RoomError,
+  scopeRoomForPlayer,
   selectNumber as applySelect,
   startRound as applyStart,
 } from '@/lib/room-engine';
@@ -112,6 +113,17 @@ function freeRoomKey(): string {
 }
 
 /**
+ * Persists the reducer's result, then returns it narrowed to the caller.
+ *
+ * The full room — every board — is what gets stored. What comes back is scoped,
+ * so a player only ever holds their own grid. A real server does the same on
+ * the way out of the handler.
+ */
+function mutateAndScope(roomKey: string, playerId: string, reducer: (room: Room) => Room): Room {
+  return scopeRoomForPlayer(mutate(roomKey, reducer), playerId);
+}
+
+/**
  * Applies a reducer to the stored room and persists the result.
  *
  * Read, reduce and write run in one synchronous block with no `await` between
@@ -139,48 +151,65 @@ export const localRoomStore: RoomTransport = {
   async createRoom(input: CreateRoomInput) {
     const playerId = newId();
     const room = write(applyCreate(input, freeRoomKey(), playerId));
-    return { room, playerId };
+    return { room: scopeRoomForPlayer(room, playerId), playerId };
   },
 
   async joinRoom(input: JoinRoomInput) {
     const playerId = newId();
     const room = mutate(input.key, (current) => applyJoin(current, input, playerId));
-    return { room, playerId };
+    return { room: scopeRoomForPlayer(room, playerId), playerId };
   },
 
-  async getRoom(key: string) {
-    return read(key);
+  async getRoom(key: string, playerId?: string) {
+    const room = read(key);
+    return room === null ? null : scopeRoomForPlayer(room, playerId ?? null);
   },
 
   async startRound(identity: PlayerIdentity) {
-    return mutate(identity.roomKey, (room) => applyStart(room, identity.playerId));
+    return mutateAndScope(identity.roomKey, identity.playerId, (room) =>
+      applyStart(room, identity.playerId),
+    );
   },
 
   async selectNumber(identity: PlayerIdentity, value: number) {
-    return mutate(identity.roomKey, (room) => applySelect(room, identity.playerId, value));
+    return mutateAndScope(identity.roomKey, identity.playerId, (room) =>
+      applySelect(room, identity.playerId, value),
+    );
   },
 
   async claimBingo(identity: PlayerIdentity) {
-    return mutate(identity.roomKey, (room) => applyClaim(room, identity.playerId));
+    return mutateAndScope(identity.roomKey, identity.playerId, (room) =>
+      applyClaim(room, identity.playerId),
+    );
   },
 
   async nextRound(identity: PlayerIdentity) {
-    return mutate(identity.roomKey, (room) => applyNextRound(room, identity.playerId));
+    return mutateAndScope(identity.roomKey, identity.playerId, (room) =>
+      applyNextRound(room, identity.playerId),
+    );
   },
 
   async lockRoom(identity: PlayerIdentity) {
-    return mutate(identity.roomKey, (room) => applyLock(room, identity.playerId));
+    return mutateAndScope(identity.roomKey, identity.playerId, (room) =>
+      applyLock(room, identity.playerId),
+    );
   },
 
   async endSession(identity: PlayerIdentity) {
-    return mutate(identity.roomKey, (room) => applyEnd(room, identity.playerId));
+    return mutateAndScope(identity.roomKey, identity.playerId, (room) =>
+      applyEnd(room, identity.playerId),
+    );
   },
 
   async replaySession(identity: PlayerIdentity) {
-    return mutate(identity.roomKey, (room) => applyReplay(room, identity.playerId));
+    return mutateAndScope(identity.roomKey, identity.playerId, (room) =>
+      applyReplay(room, identity.playerId),
+    );
   },
 
   async removePlayer(identity: PlayerIdentity, targetPlayerId: string) {
-    return mutate(identity.roomKey, (room) => applyRemove(room, identity.playerId, targetPlayerId));
+    return mutateAndScope(identity.roomKey, identity.playerId, (room) =>
+      applyRemove(room, identity.playerId, targetPlayerId),
+    );
   },
 };

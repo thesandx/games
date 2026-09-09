@@ -19,7 +19,11 @@ import type { Room } from '@/types/playroom';
  */
 const POLL_INTERVAL_MS = 2_000;
 
-export function useRoom(roomKey: string): {
+export function useRoom(
+  roomKey: string,
+  /** Scopes which boards come back. Omit before the viewer is known. */
+  playerId?: string,
+): {
   room: Room | null | undefined;
   error: string | null;
   refresh: () => Promise<void>;
@@ -35,7 +39,7 @@ export function useRoom(roomKey: string): {
   const refresh = useCallback(async () => {
     const current = generation.current;
     try {
-      const next = await roomTransport.getRoom(roomKey);
+      const next = await roomTransport.getRoom(roomKey, playerId);
       if (generation.current !== current) return;
       setRoom(next);
       setError(null);
@@ -43,7 +47,7 @@ export function useRoom(roomKey: string): {
       if (generation.current !== current) return;
       setError(cause instanceof Error ? cause.message : 'Could not load this room.');
     }
-  }, [roomKey]);
+  }, [playerId, roomKey]);
 
   const apply = useCallback((next: Room) => {
     generation.current += 1;
