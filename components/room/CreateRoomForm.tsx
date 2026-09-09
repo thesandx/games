@@ -2,24 +2,17 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { AvatarPicker } from '@/components/room/AvatarPicker';
-import { SettingsEditor } from '@/components/room/SettingsEditor';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
 import { rememberPlayerIdentity } from '@/hooks/usePlayerIdentity';
-import { findGame, playableGames } from '@/lib/games';
+import { DEFAULT_ROOM_SETTINGS, findGame, playableGames } from '@/lib/games';
 import { initialOf, isValidNickname, MAX_NICKNAME_LENGTH } from '@/lib/players';
 import { cn } from '@/lib/utils';
 import { roomTransport } from '@/services/room-transport';
-import type { AvatarColor, GameId, RoomSettings } from '@/types/playroom';
-
-const DEFAULT_SETTINGS: RoomSettings = {
-  rounds: 5,
-  privacy: 'Key only',
-  maxPlayers: 20,
-};
+import type { AvatarColor, GameId } from '@/types/playroom';
 
 /**
  * Room creation.
@@ -28,6 +21,10 @@ const DEFAULT_SETTINGS: RoomSettings = {
  * cannot: the key is minted by the transport when the room is created. The
  * panel therefore summarises the setup and the key is revealed in the lobby,
  * one screen later.
+ *
+ * There is no settings section. Rounds, capacity and who may join are fixed —
+ * see `DEFAULT_ROOM_SETTINGS`. They were controls that asked the host to decide
+ * something before they had any reason to care.
  */
 export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
   const router = useRouter();
@@ -39,18 +36,31 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
   );
   const [nick, setNick] = useState('');
   const [color, setColor] = useState<AvatarColor>('peach');
-  const [settings, setSettings] = useState<RoomSettings>(DEFAULT_SETTINGS);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nickError, setNickError] = useState<string | null>(null);
+  const nickRef = useRef<HTMLInputElement>(null);
 
   const game = findGame(gameId);
-  const nickValid = isValidNickname(nick);
+  const settings = DEFAULT_ROOM_SETTINGS;
 
+  /**
+   * The submit button stays enabled on an empty nickname. A disabled button
+   * gives no reason for being disabled — pressing it and being shown the field
+   * that needs filling is how a person finds out what is missing.
+   */
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
-    if (!nickValid || submitting) return;
+    if (submitting) return;
+
+    if (!isValidNickname(nick)) {
+      setNickError('Enter a nickname so the room knows who you are.');
+      nickRef.current?.focus();
+      return;
+    }
 
     setSubmitting(true);
+    setNickError(null);
     setError(null);
     try {
       const { room, playerId } = await roomTransport.createRoom({
@@ -108,17 +118,20 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
         <div className="border-ink-1 rounded-card flex flex-col gap-4 border-2 p-6">
           <h2 className="text-ink-1 text-lg font-medium">You</h2>
           <TextInput
+            ref={nickRef}
             label="Nickname"
             placeholder="e.g. Rhea"
             value={nick}
             maxLength={MAX_NICKNAME_LENGTH}
             autoComplete="off"
-            onChange={(event) => setNick(event.target.value)}
+            onChange={(event) => {
+              setNick(event.target.value);
+              if (nickError !== null) setNickError(null);
+            }}
+            {...(nickError === null ? {} : { error: nickError })}
           />
           <AvatarPicker value={color} onChange={setColor} initial={initialOf(nick)} />
         </div>
-
-        <SettingsEditor settings={settings} onChange={setSettings} />
       </div>
 
       <div className="border-ink-1 rounded-card flex flex-col gap-4 border-2 p-6">
@@ -130,8 +143,9 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
           </span>
         </div>
         <p className="text-ink-3 text-sm leading-relaxed">
-          {game?.name ?? 'Bingo'} · {settings.rounds} rounds · up to {settings.maxPlayers} players.
-          Players take turns picking numbers. The key works until two hours after your last round.
+          {game?.name ?? 'Bingo'} · one round · up to {settings.maxPlayers} players. Players take
+          turns picking numbers, and the room locks once the game starts. The key works until two
+          hours after the round.
         </p>
 
         {error ? (
@@ -140,12 +154,9 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
           </p>
         ) : null}
 
-        <Button type="submit" block disabled={!nickValid || submitting}>
+        <Button type="submit" block disabled={submitting}>
           {submitting ? 'Creating room…' : 'Create room and open lobby'}
         </Button>
-        {!nickValid ? (
-          <p className="text-ink-3 text-sm">Add a nickname to create the room.</p>
-        ) : null}
         <Link href="/join" className="text-link text-center text-sm">
           I have a key instead
         </Link>

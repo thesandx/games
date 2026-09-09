@@ -62,7 +62,16 @@ export interface BingoState {
    * cannot drift out of sync with each other.
    */
   selected: readonly number[];
-  /** Board per player id. Every player gets a different arrangement. */
+  /**
+   * Boards, keyed by player id — but only the ones the caller may see.
+   *
+   * During a round this holds the caller's own board and nothing else: a player
+   * never sees another player's grid. Once somebody wins, the winner's board is
+   * added so the results screen can show the lines that took the round.
+   *
+   * The narrowing happens in the transport, not the UI. See
+   * `scopeRoomForPlayer` in `lib/room-engine.ts`.
+   */
   cards: Record<string, BingoCard>;
   /** Player ids in turn order, fixed when the round is dealt. */
   turnOrder: readonly string[];
@@ -70,8 +79,12 @@ export interface BingoState {
   currentTurnIndex: number;
   /** Set once someone calls a verified bingo. */
   winnerId: string | null;
-  /** The line the win was awarded for, shown on the winner's board. */
-  winningLine: WinningLine | null;
+  /**
+   * The completed lines the win was awarded for — five or more, since one line
+   * is not a win. Empty while the round is still running. Shown highlighted on
+   * the winner's board.
+   */
+  winningLines: readonly WinningLine[];
 }
 
 export type { WinningLine } from '@/lib/bingo';
@@ -135,7 +148,11 @@ export interface PlayerIdentity {
 export interface RoomTransport {
   createRoom(input: CreateRoomInput): Promise<{ room: Room; playerId: string }>;
   joinRoom(input: JoinRoomInput): Promise<{ room: Room; playerId: string }>;
-  getRoom(key: string): Promise<Room | null>;
+  /**
+   * Reads a room, scoped to the caller. `playerId` decides which boards come
+   * back; omit it for a spectator, who sees none until the winner is revealed.
+   */
+  getRoom(key: string, playerId?: string): Promise<Room | null>;
   startRound(identity: PlayerIdentity): Promise<Room>;
   /**
    * Takes a number on the caller's turn. The transport rejects the call when it

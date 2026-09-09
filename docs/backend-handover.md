@@ -213,6 +213,8 @@ CREATE TABLE bingo_selections (
 
 There is no marks table. **Marking is derived**: a cell is marked when its number appears in `bingo_selections` for that round. One shared list means every board agrees by construction. Do not add per-player mark state.
 
+**Every board is stored; not every board is sent.** `bingo_boards` holds a row per player because the server has to validate any player's claim against their own board. Visibility is a serialisation concern, applied on the way out of the handler — see [Board visibility](#the-rules-the-server-enforces). Storing one board per player and returning one board per request are both correct, and they are different things.
+
 ---
 
 ## Concurrency — the two patterns that matter
@@ -295,7 +297,9 @@ Every route below except `GET /v1/games` and `GET /health` requires `Authorizati
 | `GET`    | `/v1/games`                              | (new) catalogue              | none         |
 | `GET`    | `/health`                                | probes                       | none         |
 
-**Every mutating endpoint returns the full `Room` object**, exactly as `GET /v1/rooms/{key}` would. The client applies the returned room directly and skips a re-fetch. Do not return `204`.
+¹ Optional, but it changes the response. A request with a valid token gets that player's board in `bingo.cards`; a request without one gets no board at all. Both are valid — the second is a spectator view.
+
+**Every mutating endpoint returns the `Room` object scoped to the caller**, exactly as `GET /v1/rooms/{key}` would for that player. The client applies the returned room directly and skips a re-fetch. Do not return `204`.
 
 ### The action envelope
 
@@ -337,14 +341,14 @@ These are generated from `types/playroom.ts`. Match them exactly.
       "isReady": true
     }
   ],
-  "settings": { "rounds": 5, "privacy": "Key only", "maxPlayers": 20 },
+  "settings": { "rounds": 1, "privacy": "Locked after start", "maxPlayers": 8 },
   "bingo": {
     "selected": [17, 4, 23],
     "cards": { "8f14e45f-ceea-467a-9a3e-1b0c6a3f0001": [7, 19, 2, "…25 numbers"] },
     "turnOrder": ["8f14e45f-ceea-467a-9a3e-1b0c6a3f0001"],
     "currentTurnIndex": 0,
     "winnerId": null,
-    "winningLine": null
+    "winningLines": []
   },
   "lastRound": null,
   "createdAt": "2026-09-09T10:00:00.000Z",
@@ -355,8 +359,8 @@ These are generated from `types/playroom.ts`. Match them exactly.
 Rules for this object:
 
 - `bingo` is `null` outside a live or just-finished round.
-- `bingo.cards` is keyed by player id and contains **every** player's board. The client renders all of them; boards are not secret.
-- `winningLine` is `{ "kind": "row" | "column" | "diagonal", "index": 1..5, "cells": [5 ints] }`. `cells` are 0-based indices into the 25-cell array, row-major. Diagonals use `index` 1 for top-left to bottom-right and 2 for top-right to bottom-left.
+- `bingo.cards` is keyed by player id and is **scoped to the caller**. During a round it holds the caller's own board and nothing else — a player must never receive another player's grid. Once the round is won, add the winner's board so the results screen can show the winning lines. A caller with no token is a spectator and gets `{}`. Sending every board and expecting the client to hide the rest is not equivalent: the payload is one dev-tools tab away.
+- `winningLines` is an **array** of `{ "kind": "row" | "column" | "diagonal", "index": 1..5, "cells": [5 ints] }`, holding every line the winner had — five or more. Empty (`[]`) while the round is running. `cells` are 0-based indices into the 25-cell array, row-major. Diagonals use `index` 1 for top-left to bottom-right and 2 for top-right to bottom-left.
 - `lastRound` is populated only when `phase` is `round-results`. It is an array of `{ playerId, name, initial, color, note, gain }`, sorted by `gain` descending.
 - `initial` is the first character of `name`, uppercased. Take a full code point, not `name[0]` — a surrogate pair must not be cut in half.
 - Timestamps are ISO-8601 with a `Z` suffix.
@@ -372,7 +376,7 @@ Rules for this object:
 ```json
 POST /v1/rooms
 { "gameId": "bingo",
-  "settings": { "rounds": 5, "privacy": "Key only", "maxPlayers": 20 },
+  "settings": { "rounds": 1, "privacy": "Locked after start", "maxPlayers": 8 },
   "hostName": "Rhea", "hostColor": "peach" }
 
 POST /v1/rooms/{key}/players
@@ -388,9 +392,9 @@ The client enforces these. Enforce them again.
 | `key`                 | 6 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`. Case-insensitive on input. `I`, `O`, `0` and `1` are excluded. |
 | `hostName` / `name`   | Trimmed, 1 to 16 characters. Unique per live room, case-insensitive.                                                 |
 | `color`               | One of `peach`, `mint`, `yellow`, `mustard`, `cream`.                                                                |
-| `settings.rounds`     | Integer, 3 to 7.                                                                                                     |
-| `settings.maxPlayers` | One of 8, 12, 20.                                                                                                    |
-| `settings.privacy`    | `Key only` or `Locked after start`.                                                                                  |
+| `settings.rounds`     | Integer, 1 or more. The client always sends `1`.                                                                     |
+| `settings.maxPlayers` | Integer, 2 to 20. The client always sends `8`.                                                                       |
+| `settings.privacy`    | `Key only` or `Locked after start`. The client always sends `Locked after start`.                                    |
 | Bingo `value`         | Integer, 1 to 25.                                                                                                    |
 
 Reject a nickname that is only whitespace. Normalise Unicode to NFC before the uniqueness check.
@@ -448,17 +452,21 @@ Neon also scales to zero. The first query after idle pays a cold start of a few 
 
 ## The rules the server enforces
 
-Port these from `lib/room-engine.ts` and `lib/bingo.ts`. The TypeScript is the reference implementation and it has 105 passing tests behind it.
+Port these from `lib/room-engine.ts` and `lib/bingo.ts`. The TypeScript is the reference implementation and it has 147 passing tests behind it.
+
+**Settings are fixed, not chosen.** The create screen has no settings section. Every room opens with one round, a cap of eight players, and `Locked after start`, from `DEFAULT_ROOM_SETTINGS` in `lib/games.ts`. Keep `settings` as a stored per-room object rather than hard-coding the values — a later game will want different ones — but expect only these from today's client, and validate the range rather than the exact value.
 
 **Boards.** Each player gets the numbers 1 to 25 in a Fisher-Yates shuffle. Every number appears exactly once. There is no free square. Boards are fixed once the round starts.
+
+**Board visibility.** A player sees their own board only. Scope `bingo.cards` on the way out of every handler, using the caller's identity — `lib/room-engine.ts` has `scopeRoomForPlayer` as the reference. The winner's board becomes visible to the room when the round ends, and not before. This is why `GET /v1/rooms/{key}` reads the auth header even though it is otherwise optional.
 
 **Turns.** `turn_order` is seat order, fixed when the round is dealt. After a valid selection, advance by one and wrap. A player who joins mid-round is appended to `turn_order` and dealt a board; the running turn does not move.
 
 **Selection.** Only the player on turn. Only a number in 1 to 25. Only a number nobody has taken. The number is then marked for everybody, because marking is derived.
 
-**Winning.** Any complete row, column or diagonal — twelve lines. A full board is not required. The line is computed from the board and the selections.
+**Winning.** Each completed row, column or diagonal earns one letter of B-I-N-G-O. **Five** completed lines win, out of the twelve that exist. Lines share cells, so one number can complete two at once — count the lines, do not assume one per pick. One line is not a win. A full board is not required, and a full board holds all twelve lines, so a claim may carry more than five. Lines are computed from the board and the selections.
 
-**Claiming.** A player must claim explicitly. Validate server-side. The first valid claim ends the round; later claims get `round-over`. An invalid claim is rejected and the round continues.
+**Claiming.** A player must claim explicitly, and only once five letters are filled. Validate server-side by counting completed lines — never trust a client's count. The first valid claim ends the round; later claims get `round-over`. An invalid claim is rejected and the round continues.
 
 **Scoring.** The winner gets 100. Every other player gets 10 for each complete line they hold. Scores accumulate across rounds within a session.
 
@@ -466,7 +474,9 @@ Port these from `lib/room-engine.ts` and `lib/bingo.ts`. The TypeScript is the r
 
 **Phases.** `lobby` → `playing` → `round-results` → `playing` (next round) → … → `finished`. `nextRound` from the last round goes to `finished`. `replaySession` returns to `lobby`, keeps the players, and zeroes the scores.
 
-**Edge case with no owner yet.** With many players, 25 numbers can run out before anyone completes a line. The current client lets the round stall. Decide the behaviour and tell the frontend — see [Open questions](#open-questions).
+**Edge case with no owner yet.** Reaching five lines takes roughly 19 of the 25 numbers. Nothing forces a player to claim, so a round can consume all 25 with nobody having called bingo — at which point every board holds all twelve lines and no further selection is possible. The engine refuses a selection with no numbers left; it does not end the round. Decide the behaviour and tell the frontend — see [Open questions](#open-questions).
+
+This matters more now that a room holds eight players. Eight players over 25 numbers is about three turns each, so a full room is the case most likely to reach the end of the board.
 
 ---
 
@@ -536,9 +546,15 @@ Event types to emit:
 
 `room_created`, `player_joined`, `player_left`, `player_removed`, `room_locked`,
 `round_started`, `number_selected`, `bingo_claimed`, `bingo_rejected`,
-`round_won`, `round_advanced`, `session_ended`, `session_replayed`, `room_expired`.
+`round_won`, `round_advanced`, `session_ended`, `session_replayed`,
+`board_exhausted`, `room_expired`.
 
-Put the useful dimensions in `payload`. For `number_selected`: the number, the sequence, and how long the player took. For `bingo_rejected`: why. `bingo_rejected` is the one that tells you whether the rules are understood.
+Put the useful dimensions in `payload`:
+
+- `number_selected` — the number, the sequence, how long the player took, and **the seat that took it**. Seat is what makes turn-order fairness measurable.
+- `bingo_claimed` and `bingo_rejected` — how many lines the board actually held. A rejection at four lines is a player who misread the rule; a rejection at one is a player who did not know there was a rule. Those want different fixes.
+- `round_won` — the winning line count and how many numbers had gone.
+- `board_exhausted` — emitted if all 25 numbers go with no winner. This is the open question in [Open questions](#open-questions); instrument it from day one so the decision is made against a real rate rather than a guess.
 
 ### Questions this answers
 
@@ -613,8 +629,8 @@ The preview banner disappears on its own when the transport becomes `remote`.
 
 Answer these with the product owner before you finish.
 
-1. **A round with no winner.** 25 numbers, many players — the board can run out. End the round with no winner and no points? Reshuffle and continue? Award the player with the most complete lines? The client has no screen for this yet.
-2. **The host leaves.** Nothing currently promotes a new host, so the room cannot start another round. Promote the longest-present player, or end the session?
+1. **A round with no winner.** Five lines takes roughly 19 of the 25 numbers, and a room of eight gets about three turns each — so a full room is the likely case where all 25 go with nobody having claimed. Every board then holds all twelve lines and no selection is possible. End the round with no winner and no points? Award the player with the most lines? Deal again and continue? The client has no screen for this, and it is the most likely of these questions to be hit in real play.
+2. **The host leaves.** Only the host can start a round or advance past the results, and nothing promotes a replacement — so a lobby whose host closed the tab is stuck before it begins. Promote the longest-present player, or end the session?
 3. **Reconnect.** Session storage is cleared when the tab closes, and the player is then a stranger to their own room. Is that acceptable, or is a short-lived rejoin token wanted? A rejoin token weakens the privacy promise.
-4. **Does a spectator exist?** `GET /v1/rooms/{key}` currently works without a token. Anyone with a key can watch. Confirm that is intended.
+4. **Does a spectator exist?** `GET /v1/rooms/{key}` works without a token and returns the room with `bingo.cards` empty — turn order, scores and taken numbers, but no board. Anyone with a key can watch on those terms. Confirm that is intended, or require the token.
 5. **Analytics retention.** Is 7 days the right window before names are dropped? Legal may have a view.

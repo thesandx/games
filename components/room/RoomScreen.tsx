@@ -29,7 +29,7 @@ import type { PlayerIdentity, Room } from '@/types/playroom';
  */
 export function RoomScreen({ roomKey }: { roomKey: string }) {
   const { identity } = usePlayerIdentity(roomKey);
-  const { room, error, apply, refresh } = useRoom(roomKey);
+  const { room, error, apply, refresh } = useRoom(roomKey, identity?.playerId);
   const [hostOpen, setHostOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);

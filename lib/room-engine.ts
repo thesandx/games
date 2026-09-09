@@ -16,9 +16,9 @@
 
 import {
   createCard,
-  findWinningLine,
   findWinningLines,
   isPlayableNumber,
+  LINES_TO_WIN,
   type RandomInt,
 } from '@/lib/bingo';
 import { initialOf } from '@/lib/players';
@@ -133,7 +133,10 @@ export function joinRoom(
   now: number = Date.now(),
 ): Room {
   if (room.players.length >= room.settings.maxPlayers) {
-    throw new RoomError('room-full', 'This room is full.');
+    throw new RoomError(
+      'room-full',
+      `This room is full — it holds ${room.settings.maxPlayers} players.`,
+    );
   }
   if (room.settings.privacy === 'Locked after start' && room.phase !== 'lobby') {
     throw new RoomError('room-locked', 'The host locked this room after the game started.');
@@ -207,7 +210,7 @@ export function startRound(
         turnOrder: room.players.map((player) => player.id),
         currentTurnIndex: 0,
         winnerId: null,
-        winningLine: null,
+        winningLines: [],
       },
     },
     now,
@@ -284,9 +287,15 @@ export function claimBingo(room: Room, playerId: string, now: number = Date.now(
   const card = bingo.cards[playerId];
   if (!card) throw new RoomError('not-in-room', 'You have no board for this round.');
 
-  const line = findWinningLine(card, bingo.selected);
-  if (!line) {
-    throw new RoomError('invalid-claim', 'No complete row, column or diagonal yet.');
+  // Five lines, not one. Lines may share cells, so a single number can finish
+  // two at once — the count is what matters, not which ones.
+  const lines = findWinningLines(card, bingo.selected);
+  if (lines.length < LINES_TO_WIN) {
+    const short = LINES_TO_WIN - lines.length;
+    throw new RoomError(
+      'invalid-claim',
+      `You need ${LINES_TO_WIN} complete lines to call bingo. You have ${lines.length} — ${short} to go.`,
+    );
   }
 
   const rows: RoundResultRow[] = room.players.map((player) => {
@@ -323,7 +332,7 @@ export function claimBingo(room: Room, playerId: string, now: number = Date.now(
       ...room,
       phase: 'round-results',
       players,
-      bingo: { ...bingo, winnerId: playerId, winningLine: line },
+      bingo: { ...bingo, winnerId: playerId, winningLines: lines },
       lastRound: [...rows].sort((a, b) => b.gain - a.gain),
     },
     now,
@@ -415,6 +424,40 @@ export function removePlayer(
     },
     now,
   );
+}
+
+/**
+ * Strips boards the caller is not entitled to see.
+ *
+ * A player sees their own board and nobody else's. Hiding the other grids in
+ * the UI alone would be theatre: the boards would still be in the payload, one
+ * dev-tools tab away. So the room is narrowed here, and every transport applies
+ * it to what it returns.
+ *
+ * The winner's board is added back once the round is over, because the results
+ * screen has to show the lines that won it.
+ *
+ * `viewerId` is null for a spectator, who sees no board until the reveal.
+ */
+export function scopeRoomForPlayer(room: Room, viewerId: string | null): Room {
+  const bingo = room.bingo;
+  if (!bingo) return room;
+
+  const visible: Record<string, BingoCard> = {};
+
+  if (viewerId !== null) {
+    const own = bingo.cards[viewerId];
+    if (own) visible[viewerId] = own;
+  }
+
+  // The reveal: once somebody has won, their board is public so the room can
+  // see the winning lines.
+  if (bingo.winnerId !== null) {
+    const winning = bingo.cards[bingo.winnerId];
+    if (winning) visible[bingo.winnerId] = winning;
+  }
+
+  return { ...room, bingo: { ...bingo, cards: visible } };
 }
 
 /** True once the room has passed its two-hour window. */

@@ -11,7 +11,25 @@
  * flipping this flag alone would route players into a room that cannot play.
  */
 
-import type { GameId } from '@/types/playroom';
+import type { GameId, RoomSettings } from '@/types/playroom';
+
+/**
+ * Room settings are fixed, not chosen.
+ *
+ * Every one of these was a control on the create screen, and none of them was a
+ * decision worth asking for before a game of Bingo:
+ *   - one round, because a round already ends by declaring a winner
+ *   - eight players, past which the room reports itself full
+ *   - locked once play starts, so nobody joins a round already in progress
+ *
+ * They stay on `RoomSettings` rather than being hard-coded into the engine, so
+ * a future game can vary them without reshaping the room.
+ */
+export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
+  rounds: 1,
+  privacy: 'Locked after start',
+  maxPlayers: 8,
+};
 
 export type GameStatus = 'playable' | 'building';
 
@@ -37,7 +55,7 @@ export const GAMES: readonly GameDefinition[] = [
     tag: 'Live',
     meta: '2–20 players · 10 min',
     description:
-      'Take turns claiming numbers from 1 to 25. Every pick marks that number on every board. First complete line wins.',
+      'Take turns claiming numbers from 1 to 25. Every pick marks that number on every board. Five complete lines spell BINGO and take the round.',
     status: 'playable',
     surface: 'peach',
     categories: ['Quick'],
@@ -127,12 +145,13 @@ export const HOW_TO_PLAY: readonly HowToPlayEntry[] = [
     id: 'bingo',
     title: 'Bingo',
     intro:
-      'Everyone gets the numbers 1 to 25 on a 5x5 board, shuffled differently. Players take turns claiming a number, and every claim marks that number on every board at once.',
+      'Everyone gets the numbers 1 to 25 on a 5x5 board, shuffled differently. Players take turns claiming a number, and every claim marks that number on every board at once. Five completed lines spell BINGO and win the round.',
     steps: [
       'Each player gets their own shuffled board when the round starts. There is no free square.',
-      'On your turn, pick any number nobody has taken yet. It is marked for the whole room.',
+      'On your turn, tap any number on your board that nobody has taken. It is marked for the whole room.',
       'Nobody marks their own board — marking follows the numbers that have been taken.',
-      'Complete any row, column or diagonal, then press Call Bingo to claim it. You do not need to fill the board.',
+      'Each completed row, column or diagonal fills one letter of BINGO. Lines share numbers, so one pick can fill two letters at once.',
+      'When all five letters are filled, press Call Bingo. One line is not enough. You do not need to fill the board.',
       'The first valid claim wins the round. An incorrect claim is rejected and play carries on.',
     ],
   },

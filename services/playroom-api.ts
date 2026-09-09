@@ -22,6 +22,12 @@
  * The caller is identified by an `X-Player-Id` header rather than a body field,
  * so every mutating route reads it the same way.
  *
+ * The server also owns board visibility. A player may see their own board and
+ * nobody else's, so `bingo.cards` must come back holding only the caller's
+ * board — identified by the auth header — plus the winner's once the round is
+ * over. Sending every board and hiding the rest in the UI is not equivalent:
+ * the payload is one dev-tools tab away.
+ *
  * The server owns turn order, the taken-number set and bingo validation. It
  * must reject a selection made out of turn or on a number already taken, and a
  * bingo claim must be checked against the board and the selected numbers — not
@@ -142,9 +148,13 @@ export const playroomApi: RoomTransport = {
     );
   },
 
-  async getRoom(key: string) {
+  async getRoom(key: string, playerId?: string) {
     try {
-      return await request<Room>(`/rooms/${encodeURIComponent(key)}`);
+      return await request<Room>(`/rooms/${encodeURIComponent(key)}`, {
+        // Identifies the caller so the server can scope which boards it
+        // returns. Absent for a spectator, who gets none until the reveal.
+        ...(playerId === undefined ? {} : { headers: { 'X-Player-Id': playerId } }),
+      });
     } catch (error) {
       if (error instanceof RoomError && error.code === 'room-not-found') return null;
       throw error;

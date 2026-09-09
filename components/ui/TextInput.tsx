@@ -1,6 +1,6 @@
 'use client';
 
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, Ref } from 'react';
 import { useId } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -12,6 +12,11 @@ export interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   /** Announced assertively and given a red-free, ink-toned treatment. */
   error?: string;
   className?: string;
+  /**
+   * Lets a form move focus to the field it rejected. React 19 passes `ref`
+   * to a function component as an ordinary prop, so no `forwardRef` is needed.
+   */
+  ref?: Ref<HTMLInputElement>;
 }
 
 /**
@@ -21,7 +26,7 @@ export interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElemen
  * disappears the moment someone types and leaves screen-reader users with an
  * unnamed input.
  */
-export function TextInput({ label, hint, error, className, id, ...props }: TextInputProps) {
+export function TextInput({ label, hint, error, className, id, ref, ...props }: TextInputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const hintId = `${inputId}-hint`;
@@ -34,6 +39,7 @@ export function TextInput({ label, hint, error, className, id, ...props }: TextI
         {label}
       </label>
       <input
+        ref={ref}
         id={inputId}
         className={cn(
           'text-ink-1 placeholder:text-neutral-500 min-h-[52px] w-full rounded-input border-2 bg-white px-4 text-base',
