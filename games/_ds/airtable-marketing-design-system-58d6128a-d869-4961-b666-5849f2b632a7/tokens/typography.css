@@ -1,0 +1,48 @@
+:root{
+/* size scale (verbatim from source — do not snap to a grid) */
+--size-display-xl:48px;
+--size-display-lg:40px;
+--size-display-md:32px;
+--size-title-lg:24px;
+--size-title-md:20px;
+--size-title-sm:18px;
+--size-label-md:16px;
+--size-body-md:14px;
+--size-legal:13.12px;
+--size-pricing-display:44.8px;
+--size-pricing-section:28px;
+--size-pricing-card-title:20px;
+/* weights — display stays at 400/500; 600 is reserved for legal surfaces */
+--weight-regular:400;
+--weight-pricing-mid:475;
+--weight-medium:500;
+--weight-pricing-strong:575;
+--weight-legal:600;
+/* line heights */
+--lh-tight:1.1; /* @kind font */
+--lh-display:1.2; /* @kind font */
+--lh-title:1.35; /* @kind font */
+--lh-snug:1.4; /* @kind font */
+--lh-body:1.25; /* @kind font */
+--lh-loose:1.5; /* @kind font */
+/* tracking */
+--track-none:0; /* @kind font */
+--track-title:0.12px;
+--track-caption:0.16px;
+
+/* role composites */
+--text-display-xl:var(--weight-medium) var(--size-display-xl)/var(--lh-tight) var(--font-display);
+--text-display-lg:var(--weight-regular) var(--size-display-lg)/var(--lh-display) var(--font-display);
+--text-display-md:var(--weight-regular) var(--size-display-md)/var(--lh-display) var(--font-display);
+--text-title-lg:var(--weight-regular) var(--size-title-lg)/var(--lh-title) var(--font-text);
+--text-title-md:var(--weight-regular) var(--size-title-md)/var(--lh-loose) var(--font-display);
+--text-title-sm:var(--weight-medium) var(--size-title-sm)/var(--lh-snug) var(--font-text);
+--text-label-md:var(--weight-medium) var(--size-label-md)/var(--lh-snug) var(--font-text);
+--text-button:var(--weight-medium) var(--size-label-md)/var(--lh-snug) var(--font-text);
+--text-body-md:var(--weight-regular) var(--size-body-md)/var(--lh-body) var(--font-text);
+--text-caption:var(--weight-medium) var(--size-body-md)/var(--lh-title) var(--font-text);
+--text-legal:var(--weight-legal) var(--size-legal)/var(--lh-display) var(--font-text);
+--text-pricing-display:var(--weight-pricing-mid) var(--size-pricing-display)/var(--lh-tight) var(--font-pricing);
+--text-pricing-section:var(--weight-pricing-mid) var(--size-pricing-section)/var(--lh-display) var(--font-pricing);
+--text-pricing-card-title:var(--weight-pricing-mid) var(--size-pricing-card-title)/var(--lh-title) var(--font-pricing);
+}

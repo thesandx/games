@@ -1,0 +1,22 @@
+:root{
+--space-xxs:4px;
+--space-xs:8px;
+--space-sm:12px;
+--space-md:16px;
+--space-lg:24px;
+--space-xl:32px;
+--space-xxl:48px;
+--space-section:96px;
+/* semantic */
+--pad-band:var(--space-section);
+--pad-signature-card:var(--space-xxl);
+--pad-feature-card:var(--space-xl);
+--pad-callout:var(--space-lg);
+--pad-demo-card:var(--space-md);
+--gutter-grid:var(--space-lg);
+--gutter-dense:var(--space-md);
+--container-max:1280px;
+--container-inset:var(--space-xxl);
+--rail-width:240px;
+--nav-height:64px;
+}

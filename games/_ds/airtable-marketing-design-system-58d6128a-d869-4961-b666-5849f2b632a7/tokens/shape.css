@@ -1,0 +1,17 @@
+:root{
+--radius-xs:2px;
+--radius-sm:6px;
+--radius-md:10px;
+--radius-lg:12px;
+--radius-pill:9999px;
+--radius-full:9999px;
+/* semantic */
+--radius-button:var(--radius-lg);
+--radius-button-pricing:var(--radius-pill);
+--radius-button-legal:var(--radius-xs);
+--radius-input:var(--radius-sm);
+--radius-card:var(--radius-md);
+--radius-signature-card:var(--radius-lg);
+--radius-avatar:var(--radius-full);
+--hairline:1px;
+}
