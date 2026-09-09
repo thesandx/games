@@ -37,7 +37,7 @@ export const GAMES: readonly GameDefinition[] = [
     tag: 'Live',
     meta: '2–20 players · 10 min',
     description:
-      'Take turns claiming numbers from 1 to 25. Every pick marks that number on every board. First complete line wins.',
+      'Take turns claiming numbers from 1 to 25. Every pick marks that number on every board. Five complete lines spell BINGO and take the round.',
     status: 'playable',
     surface: 'peach',
     categories: ['Quick'],
@@ -127,12 +127,13 @@ export const HOW_TO_PLAY: readonly HowToPlayEntry[] = [
     id: 'bingo',
     title: 'Bingo',
     intro:
-      'Everyone gets the numbers 1 to 25 on a 5x5 board, shuffled differently. Players take turns claiming a number, and every claim marks that number on every board at once.',
+      'Everyone gets the numbers 1 to 25 on a 5x5 board, shuffled differently. Players take turns claiming a number, and every claim marks that number on every board at once. Five completed lines spell BINGO and win the round.',
     steps: [
       'Each player gets their own shuffled board when the round starts. There is no free square.',
-      'On your turn, pick any number nobody has taken yet. It is marked for the whole room.',
+      'On your turn, tap any number on your board that nobody has taken. It is marked for the whole room.',
       'Nobody marks their own board — marking follows the numbers that have been taken.',
-      'Complete any row, column or diagonal, then press Call Bingo to claim it. You do not need to fill the board.',
+      'Each completed row, column or diagonal fills one letter of BINGO. Lines share numbers, so one pick can fill two letters at once.',
+      'When all five letters are filled, press Call Bingo. One line is not enough. You do not need to fill the board.',
       'The first valid claim wins the round. An incorrect claim is rejected and play carries on.',
     ],
   },

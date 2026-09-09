@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CARD_SIZE, GRID_SIZE } from '@/lib/bingo';
+import { CARD_SIZE, findWinningLines, LINES_TO_WIN } from '@/lib/bingo';
 import {
   claimBingo,
   createRoom,
@@ -37,15 +37,33 @@ function soloInPlay(): Room {
   return startRound(newRoom(), 'host-1');
 }
 
-/** The numbers making up the host's top row, in board order. */
-function topRowNumbers(room: Room, playerId: string): number[] {
+/** The numbers sitting at these cell indices on a player's board. */
+function numbersAt(room: Room, playerId: string, cells: readonly number[]): number[] {
   const card = room.bingo?.cards[playerId] ?? [];
-  return card.slice(0, GRID_SIZE) as number[];
+  return cells.map((cell) => card[cell] as number);
 }
+
+/** The host's top row — one line, which is deliberately not a win. */
+function topRowNumbers(room: Room, playerId: string): number[] {
+  return numbersAt(room, playerId, [0, 1, 2, 3, 4]);
+}
+
+/**
+ * Cell groups that build up lines one at a time on any board.
+ * Rows 1-3 give three lines; each diagonal then needs two more cells.
+ */
+const CELLS_3_LINES = Array.from({ length: 15 }, (_, index) => index);
+const CELLS_4_LINES = [...CELLS_3_LINES, 18, 24];
+const CELLS_5_LINES = [...CELLS_4_LINES, 16, 20];
 
 /** Plays a solo room until `values` have all been taken. */
 function takeAll(room: Room, playerId: string, values: readonly number[]): Room {
   return values.reduce((current, value) => selectNumber(current, playerId, value), room);
+}
+
+/** Takes exactly the numbers that put `playerId` on five completed lines. */
+function playToBingo(room: Room, playerId: string): Room {
+  return takeAll(room, playerId, numbersAt(room, playerId, CELLS_5_LINES));
 }
 
 describe('startRound', () => {
@@ -140,22 +158,44 @@ describe('selectNumber', () => {
 describe('claimBingo', () => {
   it('refuses a claim with no complete line', () => {
     const room = selectNumber(soloInPlay(), 'host-1', 1);
-    expect(() => claimBingo(room, 'host-1')).toThrow(/no complete row, column or diagonal/i);
+    expect(() => claimBingo(room, 'host-1')).toThrow(/need 5 complete lines/i);
   });
 
-  it('accepts a completed row and ends the round', () => {
+  it('refuses a single completed line — one line is not a bingo', () => {
     const started = soloInPlay();
-    const room = claimBingo(takeAll(started, 'host-1', topRowNumbers(started, 'host-1')), 'host-1');
+    const room = takeAll(started, 'host-1', topRowNumbers(started, 'host-1'));
+    expect(
+      findWinningLines(room.bingo?.cards['host-1'] ?? [], room.bingo?.selected ?? []),
+    ).toHaveLength(1);
+    expect(() => claimBingo(room, 'host-1')).toThrow(/you have 1/i);
+  });
+
+  it('refuses at four lines and says how many are left', () => {
+    const started = soloInPlay();
+    const room = takeAll(started, 'host-1', numbersAt(started, 'host-1', CELLS_4_LINES));
+    expect(() => claimBingo(room, 'host-1')).toThrow(/you have 4 — 1 to go/i);
+  });
+
+  it('accepts five completed lines and ends the round', () => {
+    const room = claimBingo(playToBingo(soloInPlay(), 'host-1'), 'host-1');
 
     expect(room.phase).toBe('round-results');
     expect(room.bingo?.winnerId).toBe('host-1');
-    expect(room.bingo?.winningLine).toMatchObject({ kind: 'row', index: 1 });
+    expect(room.bingo?.winningLines.length).toBeGreaterThanOrEqual(LINES_TO_WIN);
     expect(room.players.find((player) => player.id === 'host-1')?.score).toBe(100);
   });
 
-  it('only lets the first valid call win', () => {
+  it('accepts a board that jumped past five in one pick', () => {
+    // A full board holds all twelve lines. More than five must still win.
     const started = soloInPlay();
-    const won = claimBingo(takeAll(started, 'host-1', topRowNumbers(started, 'host-1')), 'host-1');
+    const everything = started.bingo?.cards['host-1'] ?? [];
+    const room = claimBingo(takeAll(started, 'host-1', everything), 'host-1');
+    expect(room.bingo?.winningLines).toHaveLength(12);
+    expect(room.bingo?.winnerId).toBe('host-1');
+  });
+
+  it('only lets the first valid call win', () => {
+    const won = claimBingo(playToBingo(soloInPlay(), 'host-1'), 'host-1');
     // A second claim landing a moment later must not overwrite the winner.
     expect(() => claimBingo(won, 'host-1')).toThrow(/no round is in progress/i);
   });
@@ -168,9 +208,11 @@ describe('claimBingo', () => {
   });
 
   it('blocks further selections once the round is won', () => {
-    const started = soloInPlay();
-    const won = claimBingo(takeAll(started, 'host-1', topRowNumbers(started, 'host-1')), 'host-1');
-    expect(() => selectNumber(won, 'host-1', 24)).toThrow(/no round is in progress/i);
+    const won = claimBingo(playToBingo(soloInPlay(), 'host-1'), 'host-1');
+    const free = (won.bingo?.cards['host-1'] ?? []).find(
+      (value) => !(won.bingo?.selected ?? []).includes(value),
+    );
+    expect(() => selectNumber(won, 'host-1', free ?? 25)).toThrow(/no round is in progress/i);
   });
 });
 
@@ -247,7 +289,7 @@ describe('removePlayer', () => {
 
 describe('rounds and session', () => {
   function winSolo(room: Room): Room {
-    return claimBingo(takeAll(room, 'host-1', topRowNumbers(room, 'host-1')), 'host-1');
+    return claimBingo(playToBingo(room, 'host-1'), 'host-1');
   }
 
   it('deals a fresh round with nothing taken', () => {

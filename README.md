@@ -51,7 +51,9 @@ Playroom is a party-game app for a group chat. One person creates a room and get
 
 The room screen covers the lobby, play, round results and the final scoreboard. These are phases of one room rather than four routes, because the host starting a round has to move every player at once.
 
-**Bingo is playable**, and it is turn-based rather than called. Every player gets the numbers 1 to 25 on a 5x5 board, shuffled independently — no free square. On your turn you claim any number nobody has taken, and it is marked on every board in the room at once. Nobody marks their own cells: marking is derived from one shared list of taken numbers, so the boards cannot disagree. Complete any row, column or diagonal and a **Call Bingo** button appears; the claim is validated against the board and the taken numbers before it is awarded, and only the first valid claim wins. Filling the whole board is not required.
+**Bingo is playable**, and it is turn-based rather than called. Every player gets the numbers 1 to 25 on a 5x5 board, shuffled independently — no free square. On your turn you tap any free number **on your own board** to claim it, and it is marked on every board in the room at once. There is no separate number pad: every board already holds all 25 numbers, so the board is the picker. Nobody marks their own cells either — marking is derived from one shared list of taken numbers, so boards cannot disagree.
+
+Each completed row, column or diagonal fills one letter of **B-I-N-G-O**. Lines share cells, so a single pick can fill two letters at once. **Five** completed lines win the round — one line is not a win, and filling the whole board is not required. The winner must press **Call Bingo**; the claim is validated against the board and the taken numbers, and only the first valid claim wins.
 
 Turn order, the taken-number set and bingo validation are all enforced in [`lib/room-engine.ts`](./lib/room-engine.ts), not in the UI. A client that picks out of turn, picks a number already gone, or claims bingo on an incomplete board is rejected.
 

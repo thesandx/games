@@ -1,13 +1,12 @@
 'use client';
 
 import { BingoBoard } from '@/components/bingo/BingoBoard';
-import { NumberPicker } from '@/components/bingo/NumberPicker';
-import { SelectedNumbers } from '@/components/bingo/SelectedNumbers';
+import { BingoProgress } from '@/components/bingo/BingoProgress';
 import { TurnBanner } from '@/components/bingo/TurnBanner';
 import { PlayerScoreStrip } from '@/components/room/PlayerScoreStrip';
 import { Button } from '@/components/ui/Button';
 import { ButtonLink } from '@/components/ui/ButtonLink';
-import { describeLine, findWinningLine } from '@/lib/bingo';
+import { describeLine, findWinningLines, HIGHEST_NUMBER, LINES_TO_WIN } from '@/lib/bingo';
 import { findGame } from '@/lib/games';
 import { currentTurnPlayerId } from '@/lib/room-engine';
 import type { BingoCard, Room } from '@/types/playroom';
@@ -24,7 +23,14 @@ export interface PlayViewProps {
   actionError: string | null;
 }
 
-/** Bingo in play: turn-based number picking against a fixed board. */
+/**
+ * Bingo in play.
+ *
+ * One grid, not two. The board is the picker: every board already holds all 25
+ * numbers, so a separate number pad would be the same 25 buttons twice. Free
+ * cells are tappable on your turn; taken cells are filled and inert. That also
+ * removes the need for a "taken" list — the board already shows what has gone.
+ */
 export function PlayView({
   room,
   playerId,
@@ -44,9 +50,10 @@ export function PlayView({
   const currentPlayer = room.players.find((player) => player.id === turnPlayerId);
   const isYourTurn = turnPlayerId === playerId;
 
-  // Recomputed from the board and the selected numbers, exactly as the engine
+  // Recomputed from the board and the taken numbers, exactly as the engine
   // does — so the button only appears when a claim would actually be accepted.
-  const myLine = findWinningLine(card, selected);
+  const myLines = findWinningLines(card, selected);
+  const canCallBingo = myLines.length >= LINES_TO_WIN;
   const others = room.players.filter((player) => player.id !== playerId);
 
   return (
@@ -73,12 +80,20 @@ export function PlayView({
 
       <TurnBanner current={currentPlayer} isYourTurn={isYourTurn} />
 
-      {myLine ? (
+      <div className="border-ink-1 rounded-card mt-4 flex flex-wrap items-center justify-between gap-4 border-2 p-5">
+        <BingoProgress earned={Math.min(myLines.length, LINES_TO_WIN)} />
+        <p className="text-ink-3 max-w-[34ch] text-sm">
+          One letter per completed row, column or diagonal. Lines share numbers, so a single pick
+          can fill more than one letter.
+        </p>
+      </div>
+
+      {canCallBingo ? (
         <div className="bg-forest rounded-card mt-4 flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
             <p className="font-display text-2xl leading-tight font-medium text-white">BINGO!</p>
             <p className="mt-1 text-sm text-white/85">
-              {describeLine(myLine)} is complete. Claim it before somebody else does.
+              All {LINES_TO_WIN} lines are complete. Claim it before somebody else does.
             </p>
           </div>
           <Button variant="secondary" onClick={onClaimBingo} disabled={busy}>
@@ -93,26 +108,45 @@ export function PlayView({
         </p>
       ) : null}
 
-      <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="flex flex-col gap-4">
-          <NumberPicker
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-ink-1 text-lg font-medium">Your board</h2>
+            <span className="text-ink-3 text-sm">
+              {selected.length} of {HIGHEST_NUMBER} numbers taken
+            </span>
+          </div>
+
+          <BingoBoard
+            card={card}
             selected={selected}
+            winningLines={myLines}
+            label="Your board"
             onPick={onSelectNumber}
-            enabled={isYourTurn}
-            busy={busy}
+            canPick={isYourTurn && !busy}
           />
-          <SelectedNumbers selected={selected} />
+
+          <p className="text-ink-3 text-sm">
+            {isYourTurn
+              ? 'Tap any free number to take it. It is marked on every board in the room.'
+              : `Waiting for ${currentPlayer?.name ?? 'the next player'}. Numbers are marked here as they are taken.`}
+          </p>
         </div>
 
         <div className="flex flex-col gap-4">
-          <div>
-            <h2 className="text-ink-1 mb-2 text-lg font-medium">Your board</h2>
-            {/* The completed line is highlighted as soon as it exists, so the
-                board itself shows what the Call Bingo button is offering. */}
-            <BingoBoard card={card} selected={selected} winningLine={myLine} label="Your board" />
-            <p className="text-ink-3 mt-2 text-sm">
-              Marked automatically as numbers are taken. Complete any row, column or diagonal.
-            </p>
+          <div className="border-ink-1 rounded-card border-2 p-4">
+            <h2 className="text-ink-1 mb-2 text-lg font-medium">Completed lines</h2>
+            {myLines.length === 0 ? (
+              <p className="text-ink-3 text-sm">None yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {myLines.map((line) => (
+                  <li key={`${line.kind}-${line.index}`} className="text-ink-2 text-sm">
+                    {describeLine(line)}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <ButtonLink size="sm" variant="secondary" href="/how-to-play">
             Rules
@@ -124,17 +158,26 @@ export function PlayView({
         <section className="mt-8">
           <h2 className="text-ink-1 mb-3 text-lg font-medium">Everyone else</h2>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {others.map((player) => (
-              <li key={player.id} className="flex flex-col gap-2">
-                <span className="text-ink-2 truncate text-sm font-medium">{player.name}</span>
-                <BingoBoard
-                  card={bingo?.cards[player.id] ?? []}
-                  selected={selected}
-                  label={`${player.name}'s board`}
-                  compact
-                />
-              </li>
-            ))}
+            {others.map((player) => {
+              const theirCard = bingo?.cards[player.id] ?? [];
+              const theirLines = findWinningLines(theirCard, selected);
+              return (
+                <li key={player.id} className="flex flex-col gap-2">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="text-ink-2 truncate text-sm font-medium">{player.name}</span>
+                    <span className="text-ink-3 text-sm">
+                      {Math.min(theirLines.length, LINES_TO_WIN)}/{LINES_TO_WIN}
+                    </span>
+                  </span>
+                  <BingoBoard
+                    card={theirCard}
+                    selected={selected}
+                    label={`${player.name}'s board`}
+                    compact
+                  />
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}

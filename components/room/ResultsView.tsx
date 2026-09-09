@@ -17,7 +17,7 @@ export interface ResultsViewProps {
 /** The round-results screen, shown between rounds. */
 export function ResultsView({ room, isHost, onNextRound, onEndSession, busy }: ResultsViewProps) {
   const winner = room.players.find((player) => player.id === room.bingo?.winnerId);
-  const line = room.bingo?.winningLine ?? null;
+  const lines = room.bingo?.winningLines ?? [];
   const isFinalRound = room.round >= room.settings.rounds;
 
   const rows: readonly ScoreTableRow[] = (room.lastRound ?? []).map((row) => ({
@@ -40,8 +40,8 @@ export function ResultsView({ room, isHost, onNextRound, onEndSession, busy }: R
           {winner ? `${winner.name} called bingo` : 'Round over'}
         </h1>
         <p className="text-sm text-white/85">
-          {line
-            ? `${describeLine(line)}, on ${room.bingo?.selected.length ?? 0} numbers. Everyone else keeps points for the lines they completed.`
+          {lines.length > 0
+            ? `${lines.map(describeLine).join(', ')} — on ${room.bingo?.selected.length ?? 0} numbers. Everyone else keeps points for the lines they completed.`
             : 'Everyone else keeps points for the lines they completed.'}
         </p>
       </div>
@@ -55,7 +55,7 @@ export function ResultsView({ room, isHost, onNextRound, onEndSession, busy }: R
             <BingoBoard
               card={room.bingo.cards[winner.id] ?? []}
               selected={room.bingo.selected}
-              winningLine={line}
+              winningLines={lines}
               label={`${winner.name}'s winning board`}
             />
           </div>

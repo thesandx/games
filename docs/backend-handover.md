@@ -344,7 +344,7 @@ These are generated from `types/playroom.ts`. Match them exactly.
     "turnOrder": ["8f14e45f-ceea-467a-9a3e-1b0c6a3f0001"],
     "currentTurnIndex": 0,
     "winnerId": null,
-    "winningLine": null
+    "winningLines": []
   },
   "lastRound": null,
   "createdAt": "2026-09-09T10:00:00.000Z",
@@ -356,7 +356,7 @@ Rules for this object:
 
 - `bingo` is `null` outside a live or just-finished round.
 - `bingo.cards` is keyed by player id and contains **every** player's board. The client renders all of them; boards are not secret.
-- `winningLine` is `{ "kind": "row" | "column" | "diagonal", "index": 1..5, "cells": [5 ints] }`. `cells` are 0-based indices into the 25-cell array, row-major. Diagonals use `index` 1 for top-left to bottom-right and 2 for top-right to bottom-left.
+- `winningLines` is an **array** of `{ "kind": "row" | "column" | "diagonal", "index": 1..5, "cells": [5 ints] }`, holding every line the winner had — five or more. Empty (`[]`) while the round is running. `cells` are 0-based indices into the 25-cell array, row-major. Diagonals use `index` 1 for top-left to bottom-right and 2 for top-right to bottom-left.
 - `lastRound` is populated only when `phase` is `round-results`. It is an array of `{ playerId, name, initial, color, note, gain }`, sorted by `gain` descending.
 - `initial` is the first character of `name`, uppercased. Take a full code point, not `name[0]` — a surrogate pair must not be cut in half.
 - Timestamps are ISO-8601 with a `Z` suffix.
@@ -456,9 +456,9 @@ Port these from `lib/room-engine.ts` and `lib/bingo.ts`. The TypeScript is the r
 
 **Selection.** Only the player on turn. Only a number in 1 to 25. Only a number nobody has taken. The number is then marked for everybody, because marking is derived.
 
-**Winning.** Any complete row, column or diagonal — twelve lines. A full board is not required. The line is computed from the board and the selections.
+**Winning.** Each completed row, column or diagonal earns one letter of B-I-N-G-O. **Five** completed lines win, out of the twelve that exist. Lines share cells, so one number can complete two at once — count the lines, do not assume one per pick. One line is not a win. A full board is not required, and a full board holds all twelve lines, so a claim may carry more than five. Lines are computed from the board and the selections.
 
-**Claiming.** A player must claim explicitly. Validate server-side. The first valid claim ends the round; later claims get `round-over`. An invalid claim is rejected and the round continues.
+**Claiming.** A player must claim explicitly, and only once five letters are filled. Validate server-side by counting completed lines — never trust a client's count. The first valid claim ends the round; later claims get `round-over`. An invalid claim is rejected and the round continues.
 
 **Scoring.** The winner gets 100. Every other player gets 10 for each complete line they hold. Scores accumulate across rounds within a session.
 

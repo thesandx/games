@@ -16,9 +16,9 @@
 
 import {
   createCard,
-  findWinningLine,
   findWinningLines,
   isPlayableNumber,
+  LINES_TO_WIN,
   type RandomInt,
 } from '@/lib/bingo';
 import { initialOf } from '@/lib/players';
@@ -207,7 +207,7 @@ export function startRound(
         turnOrder: room.players.map((player) => player.id),
         currentTurnIndex: 0,
         winnerId: null,
-        winningLine: null,
+        winningLines: [],
       },
     },
     now,
@@ -284,9 +284,15 @@ export function claimBingo(room: Room, playerId: string, now: number = Date.now(
   const card = bingo.cards[playerId];
   if (!card) throw new RoomError('not-in-room', 'You have no board for this round.');
 
-  const line = findWinningLine(card, bingo.selected);
-  if (!line) {
-    throw new RoomError('invalid-claim', 'No complete row, column or diagonal yet.');
+  // Five lines, not one. Lines may share cells, so a single number can finish
+  // two at once — the count is what matters, not which ones.
+  const lines = findWinningLines(card, bingo.selected);
+  if (lines.length < LINES_TO_WIN) {
+    const short = LINES_TO_WIN - lines.length;
+    throw new RoomError(
+      'invalid-claim',
+      `You need ${LINES_TO_WIN} complete lines to call bingo. You have ${lines.length} — ${short} to go.`,
+    );
   }
 
   const rows: RoundResultRow[] = room.players.map((player) => {
@@ -323,7 +329,7 @@ export function claimBingo(room: Room, playerId: string, now: number = Date.now(
       ...room,
       phase: 'round-results',
       players,
-      bingo: { ...bingo, winnerId: playerId, winningLine: line },
+      bingo: { ...bingo, winnerId: playerId, winningLines: lines },
       lastRound: [...rows].sort((a, b) => b.gain - a.gain),
     },
     now,

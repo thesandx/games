@@ -9,14 +9,21 @@
  * that has not been taken; that number is then marked on EVERY board in the
  * room, wherever it appears. Nobody marks their own cells.
  *
- * A player wins with any complete row, column, or diagonal — twelve lines in
- * total. Filling the whole card is not required.
+ * A player wins by completing FIVE lines — any mix of rows, columns and
+ * diagonals, out of the twelve that exist. That is where the name comes from:
+ * one letter of B-I-N-G-O per completed line. Lines share cells, so a single
+ * number can complete two lines at once. Filling the whole card is not
+ * required, and one line is not a win.
  *
  * Cells are stored row-major, so index `i` sits at row `i / 5` and column
  * `i % 5` — the same order the 5-column CSS grid renders them in.
  */
 
 export const GRID_SIZE = 5;
+/** Lines needed to win — one per letter of B-I-N-G-O. */
+export const LINES_TO_WIN = 5;
+/** Earned left to right, one letter per completed line. */
+export const BINGO_LETTERS = ['B', 'I', 'N', 'G', 'O'] as const;
 export const CARD_SIZE = GRID_SIZE * GRID_SIZE;
 /** Numbers run 1..25, and every one of them appears on every board. */
 export const LOWEST_NUMBER = 1;
@@ -155,19 +162,29 @@ export function findWinningLines(
 }
 
 /**
- * The line a claim is awarded for, or `null` when the board has none.
+ * True when this board has the five completed lines a win needs.
  *
  * This is the whole of bingo validation: it reads only the board and the
  * globally selected numbers, so a client cannot manufacture a win by sending
  * its own idea of which cells are marked.
  */
-export function findWinningLine(card: BingoCard, selected: readonly number[]): WinningLine | null {
-  return findWinningLines(card, selected)[0] ?? null;
+export function hasBingo(card: BingoCard, selected: readonly number[]): boolean {
+  return findWinningLines(card, selected).length >= LINES_TO_WIN;
 }
 
-/** True when this board has at least one complete row, column or diagonal. */
-export function hasBingo(card: BingoCard, selected: readonly number[]): boolean {
-  return findWinningLine(card, selected) !== null;
+/**
+ * How many letters of B-I-N-G-O this board has earned, capped at five.
+ *
+ * The win is cumulative rather than a single line appearing, so a player has
+ * to be able to see how close they are.
+ */
+export function lettersEarned(card: BingoCard, selected: readonly number[]): number {
+  return Math.min(findWinningLines(card, selected).length, LINES_TO_WIN);
+}
+
+/** True when this number is still free for somebody to take. */
+export function isNumberAvailable(value: number, selected: readonly number[]): boolean {
+  return isPlayableNumber(value) && !selected.includes(value);
 }
 
 /** Human-readable name for a line, e.g. `Row 3` or `Diagonal ↘`. */

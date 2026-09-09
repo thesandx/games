@@ -70,8 +70,12 @@ export interface BingoState {
   currentTurnIndex: number;
   /** Set once someone calls a verified bingo. */
   winnerId: string | null;
-  /** The line the win was awarded for, shown on the winner's board. */
-  winningLine: WinningLine | null;
+  /**
+   * The completed lines the win was awarded for — five or more, since one line
+   * is not a win. Empty while the round is still running. Shown highlighted on
+   * the winner's board.
+   */
+  winningLines: readonly WinningLine[];
 }
 
 export type { WinningLine } from '@/lib/bingo';

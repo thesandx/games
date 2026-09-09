@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { CARD_SIZE, GRID_SIZE } from '@/lib/bingo';
+import { CARD_SIZE, LINES_TO_WIN } from '@/lib/bingo';
 import { localRoomStore } from '@/services/local-room-store';
 import type { CreateRoomInput, Room } from '@/types/playroom';
 
@@ -21,9 +21,21 @@ beforeEach(() => {
   window.localStorage.clear();
 });
 
-/** The numbers in a player's top row — the cheapest line to complete. */
+/**
+ * Cells that put a board on five completed lines: rows 1-3, then the two cells
+ * each diagonal still needs. Five lines is a win; fewer is not.
+ */
+const CELLS_5_LINES = [...Array.from({ length: 15 }, (_, index) => index), 18, 24, 16, 20];
+
+/** The numbers at those cells on a player's board. */
+function bingoNumbers(room: Room, playerId: string): number[] {
+  const card = room.bingo?.cards[playerId] ?? [];
+  return CELLS_5_LINES.map((cell) => card[cell] as number);
+}
+
+/** The player's top row — one line, deliberately not enough to win. */
 function topRow(room: Room, playerId: string): number[] {
-  return (room.bingo?.cards[playerId] ?? []).slice(0, GRID_SIZE) as number[];
+  return (room.bingo?.cards[playerId] ?? []).slice(0, 5) as number[];
 }
 
 describe('localRoomStore', () => {
@@ -133,12 +145,12 @@ describe('localRoomStore', () => {
     await localRoomStore.startRound(identity);
     await localRoomStore.selectNumber(identity, 1);
 
-    await expect(localRoomStore.claimBingo(identity)).rejects.toThrow(/no complete row/i);
+    await expect(localRoomStore.claimBingo(identity)).rejects.toThrow(/need 5 complete lines/i);
     // The round keeps running.
     expect((await localRoomStore.getRoom(room.key))?.phase).toBe('playing');
   });
 
-  it('plays a solo round through to a validated win', async () => {
+  it('rejects a claim on a single completed line', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
     const identity = { roomKey: room.key, playerId: hostId };
     const started = await localRoomStore.startRound(identity);
@@ -147,10 +159,23 @@ describe('localRoomStore', () => {
       await localRoomStore.selectNumber(identity, value);
     }
 
+    await expect(localRoomStore.claimBingo(identity)).rejects.toThrow(/you have 1/i);
+    expect((await localRoomStore.getRoom(room.key))?.phase).toBe('playing');
+  });
+
+  it('plays a solo round through to a validated five-line win', async () => {
+    const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
+    const identity = { roomKey: room.key, playerId: hostId };
+    const started = await localRoomStore.startRound(identity);
+
+    for (const value of bingoNumbers(started, hostId)) {
+      await localRoomStore.selectNumber(identity, value);
+    }
+
     const won = await localRoomStore.claimBingo(identity);
     expect(won.phase).toBe('round-results');
     expect(won.bingo?.winnerId).toBe(hostId);
-    expect(won.bingo?.winningLine).toMatchObject({ kind: 'row', index: 1 });
+    expect(won.bingo?.winningLines.length).toBeGreaterThanOrEqual(LINES_TO_WIN);
     expect(won.players.find((player) => player.id === hostId)?.score).toBe(100);
   });
 
@@ -158,12 +183,15 @@ describe('localRoomStore', () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
     const identity = { roomKey: room.key, playerId: hostId };
     const started = await localRoomStore.startRound(identity);
-    for (const value of topRow(started, hostId)) {
+    for (const value of bingoNumbers(started, hostId)) {
       await localRoomStore.selectNumber(identity, value);
     }
     await localRoomStore.claimBingo(identity);
 
-    await expect(localRoomStore.selectNumber(identity, 25)).rejects.toThrow(/no round/i);
+    const free = (started.bingo?.cards[hostId] ?? []).find(
+      (value) => !bingoNumbers(started, hostId).includes(value),
+    );
+    await expect(localRoomStore.selectNumber(identity, free ?? 25)).rejects.toThrow(/no round/i);
     await expect(localRoomStore.claimBingo(identity)).rejects.toThrow(/no round/i);
   });
 

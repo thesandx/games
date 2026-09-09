@@ -2,15 +2,18 @@ import { describe, expect, it } from 'vitest';
 
 import {
   availableNumbers,
+  BINGO_LETTERS,
   CARD_SIZE,
   createCard,
   describeLine,
-  findWinningLine,
   findWinningLines,
   GRID_SIZE,
   hasBingo,
   HIGHEST_NUMBER,
+  isNumberAvailable,
   isPlayableNumber,
+  lettersEarned,
+  LINES_TO_WIN,
   LOWEST_NUMBER,
   markedCells,
   type RandomInt,
@@ -105,54 +108,106 @@ describe('markedCells', () => {
   });
 });
 
-describe('findWinningLine', () => {
+/**
+ * On the ORDERED board, cell index i holds number i + 1. These groups are
+ * chosen so each step adds exactly one line and no accidental column.
+ */
+const ROWS_1_TO_3 = Array.from({ length: 15 }, (_, index) => index + 1); // 3 lines
+const PLUS_DIAGONAL_1 = [...ROWS_1_TO_3, 19, 25]; // 4 lines
+const PLUS_DIAGONAL_2 = [...PLUS_DIAGONAL_1, 17, 21]; // 5 lines
+
+describe('findWinningLines', () => {
   it('finds nothing on an untouched board', () => {
-    expect(findWinningLine(ORDERED, [])).toBeNull();
-    expect(hasBingo(ORDERED, [])).toBe(false);
+    expect(findWinningLines(ORDERED, [])).toEqual([]);
   });
 
   it('finds nothing for four of five in a row', () => {
-    expect(findWinningLine(ORDERED, [1, 2, 3, 4])).toBeNull();
+    expect(findWinningLines(ORDERED, [1, 2, 3, 4])).toEqual([]);
   });
 
   it('finds a complete row', () => {
-    const line = findWinningLine(ORDERED, [1, 2, 3, 4, 5]);
-    expect(line).toMatchObject({ kind: 'row', index: 1 });
-    expect(line?.cells).toEqual([0, 1, 2, 3, 4]);
+    const lines = findWinningLines(ORDERED, [1, 2, 3, 4, 5]);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ kind: 'row', index: 1 });
+    expect(lines[0]?.cells).toEqual([0, 1, 2, 3, 4]);
   });
 
   it('finds a complete column', () => {
     // Column 1 on the ordered board is 1, 6, 11, 16, 21.
-    const line = findWinningLine(ORDERED, [1, 6, 11, 16, 21]);
-    expect(line).toMatchObject({ kind: 'column', index: 1 });
-    expect(line?.cells).toEqual([0, 5, 10, 15, 20]);
+    const lines = findWinningLines(ORDERED, [1, 6, 11, 16, 21]);
+    expect(lines[0]).toMatchObject({ kind: 'column', index: 1 });
+    expect(lines[0]?.cells).toEqual([0, 5, 10, 15, 20]);
   });
 
   it('finds the leading diagonal', () => {
-    // 1, 7, 13, 19, 25 at indices 0, 6, 12, 18, 24.
-    const line = findWinningLine(ORDERED, [1, 7, 13, 19, 25]);
-    expect(line).toMatchObject({ kind: 'diagonal', index: 1 });
-    expect(line?.cells).toEqual([0, 6, 12, 18, 24]);
+    const lines = findWinningLines(ORDERED, [1, 7, 13, 19, 25]);
+    expect(lines[0]).toMatchObject({ kind: 'diagonal', index: 1 });
+    expect(lines[0]?.cells).toEqual([0, 6, 12, 18, 24]);
   });
 
   it('finds the other diagonal', () => {
-    // 5, 9, 13, 17, 21 at indices 4, 8, 12, 16, 20.
-    const line = findWinningLine(ORDERED, [5, 9, 13, 17, 21]);
-    expect(line).toMatchObject({ kind: 'diagonal', index: 2 });
-    expect(line?.cells).toEqual([4, 8, 12, 16, 20]);
+    const lines = findWinningLines(ORDERED, [5, 9, 13, 17, 21]);
+    expect(lines[0]).toMatchObject({ kind: 'diagonal', index: 2 });
+    expect(lines[0]?.cells).toEqual([4, 8, 12, 16, 20]);
   });
 
-  it('does not need a full card', () => {
-    expect(hasBingo(ORDERED, [1, 2, 3, 4, 5])).toBe(true);
-  });
-});
-
-describe('findWinningLines', () => {
-  it('reports every completed line, not just the first', () => {
-    // Row 1 plus column 1 share the corner: 1,2,3,4,5 and 1,6,11,16,21.
+  it('counts overlapping lines separately', () => {
+    // Row 1 and column 1 share the corner cell, and both count.
     const lines = findWinningLines(ORDERED, [1, 2, 3, 4, 5, 6, 11, 16, 21]);
     expect(lines).toHaveLength(2);
     expect(lines.map((line) => line.kind).sort()).toEqual(['column', 'row']);
+  });
+
+  it('reports all twelve lines on a full board', () => {
+    const everything = Array.from({ length: CARD_SIZE }, (_, index) => index + 1);
+    expect(findWinningLines(ORDERED, everything)).toHaveLength(12);
+  });
+});
+
+describe('hasBingo', () => {
+  it('is false for one line — one line is not a win', () => {
+    expect(findWinningLines(ORDERED, [1, 2, 3, 4, 5])).toHaveLength(1);
+    expect(hasBingo(ORDERED, [1, 2, 3, 4, 5])).toBe(false);
+  });
+
+  it('is false at four lines', () => {
+    expect(findWinningLines(ORDERED, PLUS_DIAGONAL_1)).toHaveLength(4);
+    expect(hasBingo(ORDERED, PLUS_DIAGONAL_1)).toBe(false);
+  });
+
+  it('is true at exactly five lines', () => {
+    expect(findWinningLines(ORDERED, PLUS_DIAGONAL_2)).toHaveLength(LINES_TO_WIN);
+    expect(hasBingo(ORDERED, PLUS_DIAGONAL_2)).toBe(true);
+  });
+
+  it('does not need a full board', () => {
+    expect(PLUS_DIAGONAL_2.length).toBeLessThan(CARD_SIZE);
+    expect(hasBingo(ORDERED, PLUS_DIAGONAL_2)).toBe(true);
+  });
+});
+
+describe('lettersEarned', () => {
+  it('is one letter per completed line', () => {
+    expect(lettersEarned(ORDERED, [])).toBe(0);
+    expect(lettersEarned(ORDERED, [1, 2, 3, 4, 5])).toBe(1);
+    expect(lettersEarned(ORDERED, ROWS_1_TO_3)).toBe(3);
+    expect(lettersEarned(ORDERED, PLUS_DIAGONAL_1)).toBe(4);
+  });
+
+  it('caps at five, because BINGO has five letters', () => {
+    const everything = Array.from({ length: CARD_SIZE }, (_, index) => index + 1);
+    expect(BINGO_LETTERS).toHaveLength(LINES_TO_WIN);
+    expect(findWinningLines(ORDERED, everything)).toHaveLength(12);
+    expect(lettersEarned(ORDERED, everything)).toBe(LINES_TO_WIN);
+  });
+});
+
+describe('isNumberAvailable', () => {
+  it('is true only for a playable number nobody has taken', () => {
+    expect(isNumberAvailable(7, [])).toBe(true);
+    expect(isNumberAvailable(7, [7])).toBe(false);
+    expect(isNumberAvailable(0, [])).toBe(false);
+    expect(isNumberAvailable(26, [])).toBe(false);
   });
 });
 
