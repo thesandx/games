@@ -40,3 +40,21 @@ export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
 /** Recursively marks every property optional. Useful for test fixtures. */
 export type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
+
+export type {
+  AvatarColor,
+  BingoCard,
+  BingoState,
+  CreateRoomInput,
+  GameId,
+  JoinRoomInput,
+  Player,
+  PlayerIdentity,
+  Room,
+  RoomPhase,
+  RoomPrivacy,
+  RoomSettings,
+  RoomTransport,
+  RoundResultRow,
+  WinningLine,
+} from '@/types/playroom';

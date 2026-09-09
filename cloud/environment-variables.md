@@ -195,6 +195,8 @@ Current inventory:
 | `MIN_INSTANCES`       | variable | no       | `1` removes cold starts, at a cost                                  |
 | `MAX_INSTANCES`       | variable | no       | Scaling and bill ceiling (default `10`)                             |
 | `DEPLOYED_AT`         | computed | no       | UTC deploy time the workflow injects; `/api/health` shows it in IST |
+| `PLAYROOM_API_URL`    | variable | no       | Rooms API base URL — **inlined at build time**                      |
+| `PLAYROOM_TRANSPORT`  | variable | no       | `local` or `remote` — **inlined at build time**                     |
 
 `WIF_PROVIDER` and `WIF_SERVICE_ACCOUNT` are resource identifiers rather than credentials — useless without a valid OIDC token from this repository. They are stored as secrets to avoid publishing your project layout, not because a leak would grant access.
 
@@ -223,3 +225,29 @@ Cloud Run sets these; do not define them yourself.
 | `--build-arg DATABASE_URL=...`          | Visible in `docker history`        | Secret Manager at runtime                 |
 | Changing `NEXT_PUBLIC_*` on the service | Silently has no effect             | Rebuild the image                         |
 | A secret with no owner or rotation plan | Nobody dares to change it later    | Document owner and rotation in the PR     |
+
+## The rooms API
+
+Playroom reads room state through one of two transports. `NEXT_PUBLIC_PLAYROOM_TRANSPORT` selects which.
+
+| Value    | Where rooms live                      | Use when                                            |
+| -------- | ------------------------------------- | --------------------------------------------------- |
+| `local`  | The player's browser (`localStorage`) | The rooms API is not live yet. This is the default. |
+| `remote` | `NEXT_PUBLIC_PLAYROOM_API_URL`        | The API answers the contract below.                 |
+
+`local` is fully playable, but only inside one browser. Two tabs on the same machine can play against each other. Two phones cannot. The on-screen preview banner says so, and it disappears when the transport becomes `remote`.
+
+### To switch to the real API
+
+1. Set the `PLAYROOM_API_URL` GitHub variable to the base URL, with no trailing slash.
+2. Set the `PLAYROOM_TRANSPORT` GitHub variable to `remote`.
+3. Push to `main`. Both values are `NEXT_PUBLIC_*`, so they are inlined at build time — changing them on the Cloud Run service alone does nothing. The pipeline must rebuild the image.
+
+### The contract the API must answer
+
+The full specification lives in [`docs/backend-handover.md`](../docs/backend-handover.md): endpoints, payload shapes, the data model, the concurrency rules, and the analytics design. That document is canonical. Do not restate the endpoint list here — two copies drift.
+
+Two points that affect deployment, and belong in this file:
+
+- Both variables are `NEXT_PUBLIC_*`, so they are inlined at build time. A Cloud Run env-var change alone does nothing. The pipeline must rebuild the image.
+- `NEXT_PUBLIC_PLAYROOM_API_URL` includes the API version, for example `https://api.sandeep.app/games/v1`. It carries no trailing slash.

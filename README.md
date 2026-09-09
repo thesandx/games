@@ -19,7 +19,7 @@ Multi-stage Docker build · Keyless CI/CD via Workload Identity Federation · St
 
 Most Next.js templates give you an application. This one also gives you **the path to production**. You get a container that runs on Cloud Run, a pipeline that deploys it without storing a single credential, and documentation that explains each decision.
 
-The app itself is one page. That is the point — everything else is the reusable part.
+The application is **Playroom** — party games played from a shared six-character room key. Everything around it is the reusable part.
 
 **What you get**
 
@@ -33,6 +33,42 @@ The app itself is one page. That is the point — everything else is the reusabl
 | 🧭 **AI-assistant ready**    | `.github/instructions/` — rules that keep generated code consistent across projects |
 | 📐 **Enterprise structure**  | Clear layer boundaries, absolute imports, enforced import ordering                  |
 | 📚 **Documented**            | Runbooks, ADRs, troubleshooting — not just a list of commands                       |
+
+---
+
+## The application
+
+Playroom is a party-game app for a group chat. One person creates a room and gets a six-character key; everyone else opens the site, types the key, and picks a nickname. No login, no download.
+
+| Screen           | Route          |
+| ---------------- | -------------- |
+| Landing          | `/`            |
+| Pick a game      | `/games`       |
+| Set up your room | `/create`      |
+| Join a room      | `/join`        |
+| Room             | `/room/[key]`  |
+| How to play      | `/how-to-play` |
+
+The room screen covers the lobby, play, round results and the final scoreboard. These are phases of one room rather than four routes, because the host starting a round has to move every player at once.
+
+**Bingo is playable**, and it is turn-based rather than called. Every player gets the numbers 1 to 25 on a 5x5 board, shuffled independently — no free square. On your turn you claim any number nobody has taken, and it is marked on every board in the room at once. Nobody marks their own cells: marking is derived from one shared list of taken numbers, so the boards cannot disagree. Complete any row, column or diagonal and a **Call Bingo** button appears; the claim is validated against the board and the taken numbers before it is awarded, and only the first valid claim wins. Filling the whole board is not required.
+
+Turn order, the taken-number set and bingo validation are all enforced in [`lib/room-engine.ts`](./lib/room-engine.ts), not in the UI. A client that picks out of turn, picks a number already gone, or claims bingo on an incomplete board is rejected.
+
+Scribble and Tic-tac-toe appear in the catalogue and say `In build — not playable yet`, which is deliberate: routing someone into a room for a game with no rules would strand them in a lobby that cannot start.
+
+### Where room state lives
+
+Rooms sit behind a `RoomTransport` interface with two implementations, selected by `NEXT_PUBLIC_PLAYROOM_TRANSPORT`:
+
+| Value    | Rooms live in                  | Cross-device |
+| -------- | ------------------------------ | ------------ |
+| `local`  | The browser (`localStorage`)   | No           |
+| `remote` | `NEXT_PUBLIC_PLAYROOM_API_URL` | Yes          |
+
+`local` is the default while the rooms API is being built. The app is fully playable — open a second tab, join with the key, and the two tabs play a real game — but rooms cannot leave the browser, and a banner says so. Switching to `remote` is one variable and a rebuild; no screen changes. The endpoint contract is in [`cloud/environment-variables.md`](./cloud/environment-variables.md), and the reasoning is [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
+
+The game rules live in [`lib/room-engine.ts`](./lib/room-engine.ts) as pure reducers, so both transports enforce the same rules and one set of tests covers both.
 
 ---
 
