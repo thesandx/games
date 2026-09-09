@@ -34,7 +34,7 @@ export function LobbyView({ room, isHost, onStart, onOpenHostControls, busy }: L
             Waiting room
           </span>
           <h1 className="font-display text-ink-1 mt-2 text-[clamp(1.625rem,5vw,2.25rem)] leading-tight font-normal">
-            {game?.name ?? 'Bingo'} · {room.settings.rounds} rounds
+            {game?.name ?? 'Bingo'}
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <RoomKeyDisplay roomKey={room.key} tone="light" />
@@ -59,21 +59,15 @@ export function LobbyView({ room, isHost, onStart, onOpenHostControls, busy }: L
       </div>
 
       <div className="border-ink-1 rounded-card flex flex-col gap-4 border-2 p-6">
-        <h2 className="text-ink-1 text-lg font-medium">Round settings</h2>
-        <dl className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between gap-3">
-            <dt className="text-ink-3">Rounds</dt>
-            <dd className="text-ink-1">{room.settings.rounds}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt className="text-ink-3">Who can join</dt>
-            <dd className="text-ink-1">{room.settings.privacy}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt className="text-ink-3">Max players</dt>
-            <dd className="text-ink-1">{room.settings.maxPlayers}</dd>
-          </div>
-        </dl>
+        <h2 className="text-ink-1 text-lg font-medium">This round</h2>
+        <ul className="text-ink-2 flex flex-col gap-2 text-sm">
+          <li>Each player gets their own board of 1 to 25.</li>
+          <li>Take turns claiming a number. Every claim marks it for the whole room.</li>
+          <li>Five complete lines spell BINGO and win the round.</li>
+        </ul>
+        <p className="text-ink-3 text-sm">
+          Up to {room.settings.maxPlayers} players. Once the game starts, nobody else can join.
+        </p>
 
         {isHost ? (
           <div className="mt-1.5 flex flex-col gap-2.5">

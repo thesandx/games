@@ -339,7 +339,7 @@ These are generated from `types/playroom.ts`. Match them exactly.
       "isReady": true
     }
   ],
-  "settings": { "rounds": 5, "privacy": "Key only", "maxPlayers": 20 },
+  "settings": { "rounds": 1, "privacy": "Locked after start", "maxPlayers": 8 },
   "bingo": {
     "selected": [17, 4, 23],
     "cards": { "8f14e45f-ceea-467a-9a3e-1b0c6a3f0001": [7, 19, 2, "…25 numbers"] },
@@ -374,7 +374,7 @@ Rules for this object:
 ```json
 POST /v1/rooms
 { "gameId": "bingo",
-  "settings": { "rounds": 5, "privacy": "Key only", "maxPlayers": 20 },
+  "settings": { "rounds": 1, "privacy": "Locked after start", "maxPlayers": 8 },
   "hostName": "Rhea", "hostColor": "peach" }
 
 POST /v1/rooms/{key}/players
@@ -451,6 +451,8 @@ Neon also scales to zero. The first query after idle pays a cold start of a few 
 ## The rules the server enforces
 
 Port these from `lib/room-engine.ts` and `lib/bingo.ts`. The TypeScript is the reference implementation and it has 105 passing tests behind it.
+
+**Settings are fixed, not chosen.** The create screen has no settings section. Every room opens with one round, a cap of eight players, and `Locked after start`, from `DEFAULT_ROOM_SETTINGS` in `lib/games.ts`. Keep `settings` as a stored per-room object rather than hard-coding the values — a later game will want different ones — but expect only these from today's client, and validate the range rather than the exact value.
 
 **Boards.** Each player gets the numbers 1 to 25 in a Fisher-Yates shuffle. Every number appears exactly once. There is no free square. Boards are fixed once the round starts.
 

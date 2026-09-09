@@ -11,7 +11,25 @@
  * flipping this flag alone would route players into a room that cannot play.
  */
 
-import type { GameId } from '@/types/playroom';
+import type { GameId, RoomSettings } from '@/types/playroom';
+
+/**
+ * Room settings are fixed, not chosen.
+ *
+ * Every one of these was a control on the create screen, and none of them was a
+ * decision worth asking for before a game of Bingo:
+ *   - one round, because a round already ends by declaring a winner
+ *   - eight players, past which the room reports itself full
+ *   - locked once play starts, so nobody joins a round already in progress
+ *
+ * They stay on `RoomSettings` rather than being hard-coded into the engine, so
+ * a future game can vary them without reshaping the room.
+ */
+export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
+  rounds: 1,
+  privacy: 'Locked after start',
+  maxPlayers: 8,
+};
 
 export type GameStatus = 'playable' | 'building';
 

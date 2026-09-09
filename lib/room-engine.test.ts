@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CARD_SIZE, findWinningLines, LINES_TO_WIN } from '@/lib/bingo';
+import { DEFAULT_ROOM_SETTINGS } from '@/lib/games';
 import {
   claimBingo,
   createRoom,
@@ -21,6 +22,9 @@ import {
 import type { CreateRoomInput, Room, RoomSettings } from '@/types/playroom';
 
 const SETTINGS: RoomSettings = { rounds: 2, privacy: 'Key only', maxPlayers: 3 };
+
+/** What a room actually opens with once the settings screen is gone. */
+const SHIPPED_DEFAULTS = DEFAULT_ROOM_SETTINGS;
 
 const INPUT: CreateRoomInput = {
   gameId: 'bingo',
@@ -407,5 +411,44 @@ describe('scopeRoomForPlayer', () => {
   it('does nothing to a room with no round in progress', () => {
     const lobby = newRoom();
     expect(scopeRoomForPlayer(lobby, 'host-1')).toEqual(lobby);
+  });
+});
+
+describe('the settings a room actually ships with', () => {
+  it('is one round, eight players, locked once play starts', () => {
+    expect(SHIPPED_DEFAULTS).toEqual({
+      rounds: 1,
+      privacy: 'Locked after start',
+      maxPlayers: 8,
+    });
+  });
+
+  it('reports itself full at the eighth player', () => {
+    let room = createRoom({ ...INPUT, settings: SHIPPED_DEFAULTS }, 'PLZ4K9', 'host-1');
+    for (let index = 2; index <= SHIPPED_DEFAULTS.maxPlayers; index += 1) {
+      room = joinRoom(room, { key: 'PLZ4K9', name: `P${index}`, color: 'mint' }, `p${index}`);
+    }
+    expect(room.players).toHaveLength(SHIPPED_DEFAULTS.maxPlayers);
+
+    expect(() => joinRoom(room, { key: 'PLZ4K9', name: 'Late', color: 'mint' }, 'p9')).toThrow(
+      /full — it holds 8 players/i,
+    );
+  });
+
+  it('shuts the door once the game starts', () => {
+    const started = startRound(
+      createRoom({ ...INPUT, settings: SHIPPED_DEFAULTS }, 'PLZ4K9', 'host-1'),
+      'host-1',
+    );
+    expect(() => joinRoom(started, { key: 'PLZ4K9', name: 'Late', color: 'mint' }, 'p2')).toThrow(
+      /locked/i,
+    );
+  });
+
+  it('finishes the session after the single round', () => {
+    const room = createRoom({ ...INPUT, settings: SHIPPED_DEFAULTS }, 'PLZ4K9', 'host-1');
+    const won = claimBingo(playToBingo(startRound(room, 'host-1'), 'host-1'), 'host-1');
+    // One round, so advancing past the results ends the session outright.
+    expect(nextRound(won, 'host-1').phase).toBe('finished');
   });
 });

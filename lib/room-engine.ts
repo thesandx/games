@@ -133,7 +133,10 @@ export function joinRoom(
   now: number = Date.now(),
 ): Room {
   if (room.players.length >= room.settings.maxPlayers) {
-    throw new RoomError('room-full', 'This room is full.');
+    throw new RoomError(
+      'room-full',
+      `This room is full — it holds ${room.settings.maxPlayers} players.`,
+    );
   }
   if (room.settings.privacy === 'Locked after start' && room.phase !== 'lobby') {
     throw new RoomError('room-locked', 'The host locked this room after the game started.');
