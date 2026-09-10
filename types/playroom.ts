@@ -97,6 +97,16 @@ export interface BingoState {
    * duration is measured against the clock that set it.
    */
   turnSecondsRemaining: number | null;
+  /**
+   * The most recent number, and who took it. `null` before anybody has taken
+   * one.
+   *
+   * The number is also the last entry of `selected`, but who took it is not
+   * recoverable here: stepping back one place through `turnOrder` gives the
+   * wrong player the moment somebody joins or leaves mid-round, because
+   * removal rebases the index. The server knows, so the server says.
+   */
+  lastPick: { value: number; playerId: string } | null;
 }
 
 export type { WinningLine } from '@/lib/bingo';

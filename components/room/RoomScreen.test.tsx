@@ -68,6 +68,7 @@ function room(overrides: Partial<Room> = {}): Room {
       winnerId: null,
       winningLines: [],
       turnSecondsRemaining: 20,
+      lastPick: null,
     },
     lastRound: null,
     createdAt: '2026-09-10T10:00:00.000Z',

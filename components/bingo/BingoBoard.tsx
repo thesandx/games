@@ -10,6 +10,11 @@ export interface BingoBoardProps {
   selected: readonly number[];
   /** Completed lines to highlight. Empty for a board with none. */
   winningLines?: readonly WinningLine[];
+  /**
+   * The number taken most recently, highlighted so the whole room can see what
+   * just happened. Omit outside a live round.
+   */
+  latest?: number | null;
   /** Accessible name, e.g. "Your board" or "Dev's board". */
   label: string;
   /**
@@ -40,6 +45,7 @@ export function BingoBoard({
   card,
   selected,
   winningLines = [],
+  latest = null,
   label,
   onPick,
   canPick = false,
@@ -75,15 +81,21 @@ export function BingoBoard({
               const value = card[index];
               const marked = value !== undefined && taken.has(value);
               const isWinning = winning.has(index);
+              const isLatest = value !== undefined && value === latest;
               const pickable = interactive && canPick && !marked && value !== undefined;
 
+              // Yellow outranks peach on purpose. A completed line is the
+              // thing worth seeing, and the line below the board already says
+              // which number went last and who took it.
               const tone = isWinning
                 ? 'bg-yellow border-ink-1 text-ink-1'
-                : marked
-                  ? 'bg-ink-1 border-ink-1 text-white'
-                  : pickable
-                    ? 'bg-white border-ink-1 text-ink-1 active:bg-mint cursor-pointer'
-                    : 'bg-neutral-50 border-neutral-500 text-ink-3';
+                : isLatest && marked
+                  ? 'bg-peach border-ink-1 text-ink-1'
+                  : marked
+                    ? 'bg-ink-1 border-ink-1 text-white'
+                    : pickable
+                      ? 'bg-white border-ink-1 text-ink-1 active:bg-mint cursor-pointer'
+                      : 'bg-neutral-50 border-neutral-500 text-ink-3';
 
               return (
                 <td key={index} className="p-0">
@@ -103,9 +115,11 @@ export function BingoBoard({
                         {value}
                         {isWinning
                           ? ', taken, part of a completed line'
-                          : marked
-                            ? ', taken'
-                            : ', free'}
+                          : isLatest && marked
+                            ? ', taken, the most recent number'
+                            : marked
+                              ? ', taken'
+                              : ', free'}
                       </span>
                     </span>
                   )}
