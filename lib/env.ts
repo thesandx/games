@@ -109,13 +109,16 @@ export const env = {
   deployedAt: optional(process.env.DEPLOYED_AT, ''),
 
   /**
-   * Base URL of the Playroom rooms API. Every path in
-   * `services/playroom-api.ts` is appended to this, so it carries no trailing
-   * slash. Placeholder until the real service is live.
+   * Base URL of the Playroom rooms API, including its `/v1` prefix. Every path
+   * in `services/playroom-api.ts` is appended to this, so it carries no
+   * trailing slash.
+   *
+   * The service is the `playroom` app in the anuvia repository, mounted at
+   * `/games`, which is why the base ends `/games/v1`.
    */
   playroomApiUrl: optional(
     process.env.NEXT_PUBLIC_PLAYROOM_API_URL,
-    'https://api.sandeep.app/games',
+    'https://api.sandeep.app/games/v1',
   ).replace(/\/+$/, ''),
 
   /**

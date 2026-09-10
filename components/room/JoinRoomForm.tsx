@@ -75,14 +75,15 @@ export function JoinRoomForm({ initialKey }: { initialKey: string }) {
         return;
       }
 
-      const { playerId } = await roomTransport.joinRoom({
+      const { playerId, playerToken } = await roomTransport.joinRoom({
         key: normalised,
         name: nick.trim(),
         color,
       });
       // Hand the identity to the room screen before navigating, so the player
-      // arrives as a member rather than a stranger.
-      rememberPlayerIdentity(normalised, playerId);
+      // arrives as a member rather than a stranger. The token comes back once
+      // and only here.
+      rememberPlayerIdentity(normalised, playerId, playerToken);
       router.push(`/room/${normalised}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not join that room.');

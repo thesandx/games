@@ -63,15 +63,17 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
     setNickError(null);
     setError(null);
     try {
-      const { room, playerId } = await roomTransport.createRoom({
+      const { room, playerId, playerToken } = await roomTransport.createRoom({
         gameId,
         settings,
         hostName: nick.trim(),
         hostColor: color,
       });
       // Hand the identity to the room screen before navigating, so the player
-      // arrives as a member rather than a stranger.
-      rememberPlayerIdentity(room.key, playerId);
+      // arrives as a member rather than a stranger. The token comes back once
+      // and only here — it is never in a room payload, so losing it means
+      // rejoining as somebody new.
+      rememberPlayerIdentity(room.key, playerId, playerToken);
       router.push(`/room/${room.key}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not create the room.');
