@@ -145,11 +145,23 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false # keeps the Artifact Registry listing to one entry
+          # These are NEXT_PUBLIC_*, so they are inlined into the JavaScript
+          # here, at build time. Changing them on the Cloud Run service does
+          # nothing — the value is already inside the bundle users downloaded.
+          # Flipping a deployment to the real rooms API therefore means setting
+          # the repository variables and then RE-RUNNING this workflow:
+          #
+          #   PLAYROOM_TRANSPORT=remote
+          #   PLAYROOM_API_URL=https://<the anuvia service>/games/v1
+          #
+          # Leave PLAYROOM_TRANSPORT unset and the app keeps rooms in the
+          # browser and says so on screen, which is the right default while the
+          # rooms API is not reachable at that URL.
           build-args: |
             NEXT_PUBLIC_APP_URL=${{ vars.APP_URL }}
             NEXT_PUBLIC_APP_NAME=${{ vars.APP_NAME || 'Next.js on Cloud Run' }}
             NEXT_PUBLIC_APP_VERSION=${{ github.sha }}
-            NEXT_PUBLIC_PLAYROOM_API_URL=${{ vars.PLAYROOM_API_URL || 'https://api.sandeep.app/games' }}
+            NEXT_PUBLIC_PLAYROOM_API_URL=${{ vars.PLAYROOM_API_URL || 'https://api.sandeep.app/games/v1' }}
             NEXT_PUBLIC_PLAYROOM_TRANSPORT=${{ vars.PLAYROOM_TRANSPORT || 'local' }}
 
       - name: Deploy to Cloud Run
