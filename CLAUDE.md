@@ -2,7 +2,7 @@
 
 **Read this file completely before making any change.** It is the operating manual for AI coding assistants (Claude Code, Copilot, Cursor, ChatGPT) and new human contributors working in this repository.
 
-It exists because several things here look wrong but are correct. Several obvious "improvements" break the build or the deploy. [Traps](#traps--things-that-look-wrong-and-are-not) and [Never do this](#never-do-this) record them. Both sections come from real failures, not speculation.
+It exists because several things here look wrong but are correct. Several obvious "improvements" break the build or the deploy. [Traps](#traps-things-that-look-wrong-and-are-not) and [Never do this](#never-do-this) record them. Both sections come from real failures, not speculation.
 
 ---
 
@@ -12,10 +12,10 @@ It exists because several things here look wrong but are correct. Several obviou
 2. [Verified state](#verified-state)
 3. [Documentation map](#documentation-map)
 4. [Commands](#commands)
-5. [The thirteen rules](#the-thirteen-rules)
+5. [The fourteen rules](#the-fourteen-rules)
 6. [Where files go](#where-files-go)
 7. [Architecture in brief](#architecture-in-brief)
-8. [Traps — things that look wrong and are not](#traps--things-that-look-wrong-and-are-not)
+8. [Traps, things that look wrong and are not](#traps-things-that-look-wrong-and-are-not)
 9. [Never do this](#never-do-this)
 10. [Task recipes](#task-recipes)
 11. [Verification protocol](#verification-protocol)
@@ -29,11 +29,11 @@ It exists because several things here look wrong but are correct. Several obviou
 
 A production Next.js application deployed to Google Cloud Run, generated from a template.
 
-The application is **Playroom** — party games played from a shared six-character room key. Bingo is playable, and it is turn-based: players claim numbers from 1 to 25 and every claim marks that number on every board. Scribble and Tic-tac-toe are in the catalogue but not yet implemented. Room state sits behind a transport interface, so it moves between the browser and the rooms API without changing a screen. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
+The application is **Playroom**, party games played from a shared six-character room key. Bingo is playable, and it is turn-based: players claim numbers from 1 to 25 and every claim marks that number on every board. Scribble and Tic-tac-toe are in the catalogue but not yet implemented. Room state sits behind a transport interface, so it moves between the browser and the rooms API without changing a screen. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
 
-**The rooms API exists.** It is the `playroom` app in the `anuvia` repository, and [`docs/backend-handover.md`](./docs/backend-handover.md) is its contract. Set `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote` to use it. The default stays `local` so a fresh checkout is playable with no backend running. A caller is identified by a bearer token, never by a player id — see [ADR-0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md).
+**The rooms API exists.** It is the `playroom` app in the `anuvia` repository, and [`docs/backend-handover.md`](./docs/backend-handover.md) is its contract. Set `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote` to use it. The default stays `local` so a fresh checkout is playable with no backend running. A caller is identified by a bearer token, never by a player id: see [ADR-0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md).
 
-The template's purpose is that **the path to production already works**: a container that runs on Cloud Run, a pipeline that deploys it without storing any credential, and documentation that explains each decision. The application is deliberately trivial. Everything else is the reusable part — do not degrade it.
+The template's purpose is that **the path to production already works**: a container that runs on Cloud Run, a pipeline that deploys it without storing any credential, and documentation that explains each decision. The application is deliberately trivial. Everything else is the reusable part: do not degrade it.
 
 ---
 
@@ -41,37 +41,37 @@ The template's purpose is that **the path to production already works**: a conta
 
 A clean install, a full build, a `--no-cache` Docker build and a running container confirmed the versions below work together. Do not assume a newer version works. See [Dependency policy](#dependency-policy).
 
-|                      | Version    | Note                                     |
-| -------------------- | ---------- | ---------------------------------------- |
-| Next.js              | `16.2.10`  | App Router, Turbopack                    |
-| React / React DOM    | `19.2.7`   |                                          |
-| TypeScript           | `^6.0.3`   | Major bump; **do not add `baseUrl`**     |
-| ESLint               | `^9.39.5`  | **Pinned to 9 deliberately** — see traps |
-| `eslint-config-next` | `16.2.10`  | Must track the Next version              |
-| Tailwind CSS         | `^4.3.3`   | v4, CSS-first config                     |
-| Vitest               | `^4.1.10`  | jsdom + React Testing Library            |
-| Node                 | `>=22.0.0` | `.nvmrc` pins `22.20.0`                  |
-| pnpm                 | `11.15.1`  | Via `packageManager` + corepack          |
+|                      | Version    | Note                                    |
+| -------------------- | ---------- | --------------------------------------- |
+| Next.js              | `16.2.10`  | App Router, Turbopack                   |
+| React / React DOM    | `19.2.7`   |                                         |
+| TypeScript           | `^6.0.3`   | Major bump; **do not add `baseUrl`**    |
+| ESLint               | `^9.39.5`  | **Pinned to 9 deliberately**, see traps |
+| `eslint-config-next` | `16.2.10`  | Must track the Next version             |
+| Tailwind CSS         | `^4.3.3`   | v4, CSS-first config                    |
+| Vitest               | `^4.1.10`  | jsdom + React Testing Library           |
+| Node                 | `>=22.0.0` | `.nvmrc` pins `22.20.0`                 |
+| pnpm                 | `11.15.1`  | Via `packageManager` + corepack         |
 
 **Measured facts:**
 
-- The production image is **~64 MB** as stored and transferred (`docker save`, `docker image inspect .Size`) — this is what a registry holds and Cloud Run pulls.
+- The production image is **~64 MB** as stored and transferred (`docker save`, `docker image inspect .Size`). This is what a registry holds and Cloud Run pulls.
 - The container boots and answers `/api/health` in ~2s.
 - It responds to `SIGTERM` in ~1s.
 - It runs as `uid=1001(nextjs)` on a read-only root filesystem.
 
-> Docker Desktop may display **~278 MB** for the same image. It is not a different image — Desktop's containerd image store reports the _unpacked on-disk_ size, while `docker save` and registries measure the compressed content. Both numbers are real. They measure different things.
+> Docker Desktop may display **~278 MB** for the same image. It is not a different image. Desktop's containerd image store reports the _unpacked on-disk_ size, while `docker save` and registries measure the compressed content. Both numbers are real. They measure different things.
 
 ---
 
 ## Documentation map
 
-This file is the index and the warnings. The detail lives in `.github/instructions/` — **read the relevant one before working in that area**, rather than reasoning from training defaults.
+This file is the index and the warnings. The detail lives in `.github/instructions/`, **read the relevant one before working in that area**, rather than reasoning from training defaults.
 
 | Read this                                                                                  | Before                                                         |
 | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
 | [`.github/instructions/coding-rules.md`](./.github/instructions/coding-rules.md)           | Writing anything. The non-negotiables in full.                 |
-| [`.github/instructions/project-structure.md`](./.github/instructions/project-structure.md) | Creating any file — it decides where it goes.                  |
+| [`.github/instructions/project-structure.md`](./.github/instructions/project-structure.md) | Creating any file. It decides where it goes.                   |
 | [`.github/instructions/coding-standards.md`](./.github/instructions/coding-standards.md)   | Writing TypeScript, React or CSS.                              |
 | [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md)             | Writing ANY user-facing UI. The design system, in full.        |
 | [`.github/instructions/architecture.md`](./.github/instructions/architecture.md)           | Adding a layer, dependency, or changing data flow.             |
@@ -107,24 +107,56 @@ docker compose up --build   # run the real production image locally
 
 ---
 
-## The thirteen rules
+## The fourteen rules
 
-Full reasoning in [`coding-rules.md`](./.github/instructions/coding-rules.md), and — for anything
-visual — in [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md).
+Full reasoning in [`coding-rules.md`](./.github/instructions/coding-rules.md), and, for anything
+visual, in [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md).
 
 1. **Never break the folder structure.** The top-level folders are fixed. Do not invent `utils/`, `helpers/`, `src/`, or a root `api/`. Nest inside what exists.
-2. **Always TypeScript.** No `.js`/`.jsx` source. No `any` — use `unknown` and narrow. No `@ts-ignore`; `@ts-expect-error` only with a comment saying what would remove it. Never weaken `tsconfig.json`.
+2. **Always TypeScript.** No `.js`/`.jsx` source. No `any`: use `unknown` and narrow. No `@ts-ignore`; `@ts-expect-error` only with a comment saying what would remove it. Never weaken `tsconfig.json`.
 3. **Prefer Server Components.** `'use client'` requires state, effects, event handlers, or browser APIs. Nothing else qualifies.
-4. **Keep client components minimal.** Push `'use client'` to the leaves. Never in `app/layout.tsx` — that makes the whole app a client bundle.
+4. **Keep client components minimal.** Push `'use client'` to the leaves. Never in `app/layout.tsx`. That makes the whole app a client bundle.
 5. **Keep components reusable.** One responsibility per file. `components/ui/` takes props and does no fetching. Export the props interface.
 6. **Write production-quality code.** Handle the error path. Timeout every outbound call. No stubs, no commented-out code, no secrets.
 7. **Explain architectural decisions.** In a comment when non-obvious, in the PR always, in `docs/adr/` when it will outlive the PR.
 8. **Avoid unnecessary dependencies.** Check the platform first (`Intl`, `fetch`, `crypto`, `AbortSignal.timeout`, `structuredClone`). See [Dependency policy](#dependency-policy).
-9. **Update docs when architecture or behaviour changes** — same PR, not later.
+9. **Update docs when architecture or behaviour changes**: same PR, not later.
 10. **Verify before claiming.** See [Verification protocol](#verification-protocol).
-11. **Design mobile-first.** Every UI works on a small screen first, then scales up. Unprefixed Tailwind utilities are the phone layout; add `sm:`/`md:`/`lg:` to enhance for wider screens — never the reverse. No fixed widths that overflow a phone, no horizontal scroll on the body, touch targets ≥44px. Responsiveness is a requirement, not a finishing touch.
-12. **Write docs in Simplified Technical English (ASD-STE100).** Every Markdown document — this file, `.github/instructions/`, `docs/`, `cloud/`, ADRs, READMEs — follows the standard. Short sentences (≤20 words for an instruction, ≤25 for a description), one instruction per sentence, active voice, present tense, one topic per paragraph, and one approved term per concept. Write for a non-native reader; choose the plain word over the clever one. Bring a document into compliance when you touch it.
-13. **Follow the design system.** [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md) is the rulebook for anything a user sees: tokens instead of raw hex, `ink-1` for the CTA fill and never the link blue, signature colours as whole-card surfaces, display type at 400/500, 2px ink borders, no shadows, no hover styling, no emoji. Reuse `components/ui/` before you build a new primitive.
+11. **Design mobile-first.** Every UI works on a small screen first, then scales up. Unprefixed Tailwind utilities are the phone layout; add `sm:`/`md:`/`lg:` to enhance for wider screens, never the reverse. No fixed widths that overflow a phone, no horizontal scroll on the body, touch targets ≥44px. Responsiveness is a requirement, not a finishing touch.
+12. **Never use an em dash or an en dash (U+2014, U+2013), anywhere.** Not in code, comments, documentation, commit messages, or copy a reader sees. A comma for an aside, a colon for an explanation, a full stop for two statements that stand alone, a hyphen for a range. See [Never use an em dash](#never-use-an-em-dash).
+13. **Write docs in Simplified Technical English (ASD-STE100).** Every Markdown document, this file, `.github/instructions/`, `docs/`, `cloud/`, ADRs, READMEs, follows the standard. Short sentences (≤20 words for an instruction, ≤25 for a description), one instruction per sentence, active voice, present tense, one topic per paragraph, and one approved term per concept. Write for a non-native reader; choose the plain word over the clever one. Bring a document into compliance when you touch it.
+14. **Follow the design system.** [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md) is the rulebook for anything a user sees: tokens instead of raw hex, `ink-1` for the CTA fill and never the link blue, signature colours as whole-card surfaces, display type at 400/500, 2px ink borders, no shadows, no hover styling, no emoji. Reuse `components/ui/` before you build a new primitive.
+
+## Never use an em dash
+
+The characters are U+2014 (em dash) and U+2013 (en dash). Neither belongs in
+this repository: not in code, not in comments, not in documentation, not in a
+commit message, not in copy a reader sees.
+
+This section names them by codepoint rather than printing them, so the check
+below stays honest.
+
+Use the punctuation that carries what the dash was standing in for:
+
+| Instead of                               | Write                          |
+| ---------------------------------------- | ------------------------------ |
+| An aside in the middle of a clause       | A pair of commas, or brackets  |
+| A clause that explains the one before it | A colon                        |
+| Two statements that each stand alone     | A full stop, and two sentences |
+| A range, such as 3 to 8 players          | A hyphen, or the word `to`     |
+
+A full stop is usually the right answer here, because short sentences are
+already the house style.
+
+Check before you commit:
+
+```bash
+git grep -nP '\x{2014}|\x{2013}' -- . ':!games/_ds' ':!.claude/skills/neon*'
+```
+
+Vendored material is excluded on purpose. `games/_ds` is an extracted design
+system and `.claude/skills/neon*` comes from upstream. Rewriting either would
+only make it drift from its source.
 
 ---
 
@@ -150,7 +182,7 @@ visual — in [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-
 
 **Naming:** components `PascalCase.tsx`; hooks `camelCase.ts`; utilities/services `kebab-case.ts`; tests `<subject>.test.ts(x)`; docs `kebab-case.md`.
 
-**Imports are always absolute** via `@/*` — `@/lib/env`, never `../../../lib/env`. `eslint-plugin-simple-import-sort` enforces ordering. Run `pnpm lint:fix` rather than hand-sorting.
+**Imports are always absolute** via `@/*`: `@/lib/env`, never `../../../lib/env`. `eslint-plugin-simple-import-sort` enforces ordering. Run `pnpm lint:fix` rather than hand-sorting.
 
 ---
 
@@ -174,7 +206,7 @@ Deployment: `git push main` → GitHub Actions → OIDC → Artifact Registry �
 
 ---
 
-## Traps — things that look wrong and are not
+## Traps: things that look wrong and are not
 
 Every item here caused a real failure. Do not "fix" any of them without reading the reason.
 
@@ -205,7 +237,7 @@ Next.js 16 removed it along with `next lint`. Adding `eslint: { ignoreDuringBuil
 
 ### 5. pnpm `minimumReleaseAge` and Dependabot `cooldown` are coupled
 
-`pnpm-workspace.yaml` sets `minimumReleaseAge: 1440` (24h) — a supply-chain control that refuses freshly published packages. `.github/dependabot.yml` sets `cooldown` to 5–14 days, deliberately **longer**, so bot PRs only propose versions that already clear the gate.
+`pnpm-workspace.yaml` sets `minimumReleaseAge: 1440` (24h). A supply-chain control that refuses freshly published packages. `.github/dependabot.yml` sets `cooldown` to 5-14 days, deliberately **longer**, so bot PRs only propose versions that already clear the gate.
 
 **Change one, change the other.** Otherwise every Dependabot PR fails `pnpm install --frozen-lockfile` through no fault of the change.
 
@@ -218,7 +250,7 @@ Two further hazards:
 
 In `next.config.ts`. The Dockerfile's runtime stage copies `.next/standalone`. Remove the option and the image builds but the container dies with `Cannot find module '/app/server.js'`. It is also what keeps the image at ~64 MB instead of ~1.2 GB.
 
-`.next/static` is **not** included in the standalone output — that is why the Dockerfile copies it separately. Delete that line and the site renders unstyled.
+`.next/static` is **not** included in the standalone output. That is why the Dockerfile copies it separately. Delete that line and the site renders unstyled.
 
 ### 7. The container must bind `0.0.0.0` and honour `$PORT`
 
@@ -226,15 +258,15 @@ In `next.config.ts`. The Dockerfile's runtime stage copies `.next/standalone`. R
 
 > The user-provided container failed to start and listen on the port defined by the PORT environment variable.
 
-`PORT` is a default, not a constant — Cloud Run overrides it. Never hardcode a port.
+`PORT` is a default, not a constant. Cloud Run overrides it. Never hardcode a port.
 
 ### 8. `NEXT_PUBLIC_*` is inlined at build time and is public
 
-Changing it on the Cloud Run service does nothing; the value is already inside the JavaScript users downloaded. **Rebuild the image.** And never put a credential behind that prefix — it ships to every browser.
+Changing it on the Cloud Run service does nothing; the value is already inside the JavaScript users downloaded. **Rebuild the image.** And never put a credential behind that prefix: it ships to every browser.
 
 ### 9. pnpm blocks dependency install scripts
 
-By design. `allowBuilds` in `pnpm-workspace.yaml` lists the only packages permitted to run lifecycle scripts (`sharp`, `unrs-resolver`). Adding a package that needs one is a deliberate, explained decision — not a config annoyance to switch off.
+By design. `allowBuilds` in `pnpm-workspace.yaml` lists the only packages permitted to run lifecycle scripts (`sharp`, `unrs-resolver`). Adding a package that needs one is a deliberate, explained decision, not a config annoyance to switch off.
 
 ### 10. Async Server Components cannot be unit-tested
 
@@ -242,7 +274,7 @@ React Testing Library cannot render them. Test the `services/`/`lib/` helpers th
 
 ### 11. CodeQL needs code scanning enabled
 
-Free on **public** repositories only. On a private repo without GitHub Advanced Security the analysis runs, scans everything, then fails at upload with `Code scanning is not enabled for this repository`. If you generate a private project from this template: buy GHAS or delete `codeql.yml`. Do not leave a permanently red check — a check everyone ignores is worse than no check.
+Free on **public** repositories only. On a private repo without GitHub Advanced Security the analysis runs, scans everything, then fails at upload with `Code scanning is not enabled for this repository`. If you generate a private project from this template: buy GHAS or delete `codeql.yml`. Do not leave a permanently red check. A check everyone ignores is worse than no check.
 
 ### 12. `dumb-init` is PID 1
 
@@ -254,33 +286,33 @@ Without it, Node ignores `SIGTERM`. Cloud Run waits 10s, then sends `SIGKILL`, a
 
 Violations here are defects, not style disagreements.
 
-| Never                                                                | Why                                                                                                                                                        |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Push or commit directly to `main`                                    | Every change reaches `main` through a reviewed pull request. A push to `main` deploys to production — see [Architecture in brief](#architecture-in-brief). |
-| Commit a service account key, or write `credentials_json:`           | The pipeline is keyless by design. A key is a permanent bearer credential. See [ADR-0002](./docs/adr/0002-use-workload-identity-federation.md).            |
-| Interpolate `${{ secrets.* }}` into a `run:` block                   | It splices into shell source before execution. Pass via `env:` instead.                                                                                    |
-| Deploy the `:latest` tag                                             | A revision pinned to a moving tag cannot be traced to a commit, and rollback becomes a rebuild.                                                            |
-| Read `process.env` outside `lib/env.ts`                              | Untyped, unvalidated, and bypasses startup validation.                                                                                                     |
-| Use `console.log` for application logging                            | Use `@/lib/logger` — it emits the JSON shape Cloud Logging parses.                                                                                         |
-| Add `'use client'` to `app/layout.tsx`                               | Turns the entire application into a client bundle.                                                                                                         |
-| Create a new top-level folder                                        | Breaks cross-project consistency. Raise it instead.                                                                                                        |
-| Weaken `tsconfig.json` strictness                                    | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` are load-bearing.                                                                       |
-| Disable a CI check to make a PR green                                | Fix the code, or change the check deliberately and say why.                                                                                                |
-| Put a secret in a Docker build arg                                   | Visible in `docker history`. Use Secret Manager at runtime.                                                                                                |
-| Push, claim work is done, or open a PR without `pnpm validate` green | Run it locally first — `format:check` included. CI must never fail from your end. See [Verification protocol](#verification-protocol).                     |
+| Never                                                                | Why                                                                                                                                                       |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Push or commit directly to `main`                                    | Every change reaches `main` through a reviewed pull request. A push to `main` deploys to production: see [Architecture in brief](#architecture-in-brief). |
+| Commit a service account key, or write `credentials_json:`           | The pipeline is keyless by design. A key is a permanent bearer credential. See [ADR-0002](./docs/adr/0002-use-workload-identity-federation.md).           |
+| Interpolate `${{ secrets.* }}` into a `run:` block                   | It splices into shell source before execution. Pass via `env:` instead.                                                                                   |
+| Deploy the `:latest` tag                                             | A revision pinned to a moving tag cannot be traced to a commit, and rollback becomes a rebuild.                                                           |
+| Read `process.env` outside `lib/env.ts`                              | Untyped, unvalidated, and bypasses startup validation.                                                                                                    |
+| Use `console.log` for application logging                            | Use `@/lib/logger`. It emits the JSON shape Cloud Logging parses.                                                                                         |
+| Add `'use client'` to `app/layout.tsx`                               | Turns the entire application into a client bundle.                                                                                                        |
+| Create a new top-level folder                                        | Breaks cross-project consistency. Raise it instead.                                                                                                       |
+| Weaken `tsconfig.json` strictness                                    | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` are load-bearing.                                                                      |
+| Disable a CI check to make a PR green                                | Fix the code, or change the check deliberately and say why.                                                                                               |
+| Put a secret in a Docker build arg                                   | Visible in `docker history`. Use Secret Manager at runtime.                                                                                               |
+| Push, claim work is done, or open a PR without `pnpm validate` green | Run it locally first: `format:check` included. CI must never fail from your end. See [Verification protocol](#verification-protocol).                     |
 
 ---
 
 ## Task recipes
 
-### Add an environment variable — four places, one PR
+### Add an environment variable: four places, one PR
 
 Missing any step breaks somebody:
 
-1. `.env.example` — document purpose, valid values, default, whether required in production
-2. `lib/env.ts` — declare and validate it
-3. `.github/workflows/deploy.yml` — a build arg (+ `Dockerfile` `ARG`/`ENV`) if `NEXT_PUBLIC_*`, otherwise an `env_vars` entry
-4. `cloud/environment-variables.md` — note it if operators need context
+1. `.env.example`, document purpose, valid values, default, whether required in production
+2. `lib/env.ts`: declare and validate it
+3. `.github/workflows/deploy.yml`. A build arg (+ `Dockerfile` `ARG`/`ENV`) if `NEXT_PUBLIC_*`, otherwise an `env_vars` entry
+4. `cloud/environment-variables.md`, note it if operators need context
 
 ### Add a component
 
@@ -290,7 +322,7 @@ Missing any step breaks somebody:
 2. Server Component unless it needs state/effects/handlers/browser APIs
 3. Export the props interface; accept `className`
 4. Semantic HTML, accessible name, keyboard reachable
-5. Tailwind utilities using tokens from `styles/globals.css` — no raw hex
+5. Tailwind utilities using tokens from `styles/globals.css`: no raw hex
 6. Mobile-first: base styles target the phone; layer `sm:`/`md:`/`lg:` for wider screens. Fluid widths (`w-full`, `max-w-*`), no fixed pixel widths that overflow, touch targets ≥44px. Verify at 320px wide and up
 7. Colocate `<Name>.test.tsx`
 
@@ -302,7 +334,7 @@ Missing any step breaks somebody:
 
 ### Add a dependency
 
-Read [rule 8](./.github/instructions/coding-rules.md#8-avoid-unnecessary-dependencies). If still justified: `pnpm add [-D] <pkg>`, commit `pnpm-lock.yaml`, and expect one of pnpm's two safety nets to stop you — see [Dependency policy](#dependency-policy).
+Read [rule 8](./.github/instructions/coding-rules.md#8-avoid-unnecessary-dependencies). If still justified: `pnpm add [-D] <pkg>`, commit `pnpm-lock.yaml`, and expect one of pnpm's two safety nets to stop you: see [Dependency policy](#dependency-policy).
 
 ### Triage a failing Dependabot PR
 
@@ -319,16 +351,16 @@ Read the failing step before deciding. Close with a comment that explains _why_,
 
 **Never describe unverified work as working.** If a check fails, report the failure with its output.
 
-**Run `pnpm validate` and get it green _before every push_ — never push work that will fail CI from your end.** It is exactly what CI runs, so a green local run is a green CI run. A push that turns CI red on something you could have run locally wastes a CI round and a review cycle.
+**Run `pnpm validate` and get it green _before every push_, never push work that will fail CI from your end.** It is exactly what CI runs, so a green local run is a green CI run. A push that turns CI red on something you could have run locally wastes a CI round and a review cycle.
 
-Minimum, always — before you push:
+Minimum, always, before you push:
 
 ```bash
 pnpm validate     # typecheck + lint + format:check + test
 ```
 
-- **`format:check` is part of `pnpm validate`, not optional.** The most common self-inflicted CI failure is a Prettier miss — for example, editing a Markdown table re-widens its columns. CI fails it exactly like a type error. Run `pnpm format` (which writes the fix), then re-run `pnpm validate` before you push.
-- **If you cannot run `pnpm validate` locally** (dependencies not installed), run `pnpm install` and the gate. If you truly cannot, do not push silently — say so explicitly and treat the work as unverified.
+- **`format:check` is part of `pnpm validate`, not optional.** The most common self-inflicted CI failure is a Prettier miss, for example, editing a Markdown table re-widens its columns. CI fails it exactly like a type error. Run `pnpm format` (which writes the fix), then re-run `pnpm validate` before you push.
+- **If you cannot run `pnpm validate` locally** (dependencies not installed), run `pnpm install` and the gate. If you truly cannot, do not push silently, say so explicitly and treat the work as unverified.
 - **After you push, watch the checks.** If CI still fails, fix it and push again; work is not done until CI is green.
 
 If you touched `Dockerfile`, `next.config.ts`, `package.json`, or the env model:
@@ -374,7 +406,7 @@ Full model in [`SECURITY.md`](./SECURITY.md).
 - **No long-lived credentials exist.** CI authenticates via Workload Identity Federation with a short-lived OIDC token bound to this repository by an attribute condition.
 - **Two identities, deliberately separate.** The deployer service account can push images and deploy; it cannot read application data. The runtime service account can read its own secrets; it cannot deploy.
 - **The container is hardened:** non-root uid 1001, no source/dev-deps/package manager in the final image, pinned base image, read-only root filesystem, `no-new-privileges`.
-- **Workflows are least-privilege:** `contents: read` by default, `id-token: write` only where OIDC is needed, `persist-credentials: false` on checkout. PR validation needs **no** cloud credentials — keep it that way so fork PRs work.
+- **Workflows are least-privilege:** `contents: read` by default, `id-token: write` only where OIDC is needed, `persist-credentials: false` on checkout. PR validation needs **no** cloud credentials, keep it that way so fork PRs work.
 - **Secrets** come from Secret Manager at runtime. Never a build arg, never `NEXT_PUBLIC_*`, never the repository.
 
 ---
@@ -385,13 +417,13 @@ Recorded in [`docs/adr/`](./docs/adr/). Read before proposing a change to any of
 
 | ADR                                                                  | Decision                                                         |
 | -------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)                 | Cloud Run for hosting — over Vercel, GKE, App Engine, a VM       |
-| [0002](./docs/adr/0002-use-workload-identity-federation.md)          | Workload Identity Federation — no service account keys, ever     |
+| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)                 | Cloud Run for hosting, over Vercel, GKE, App Engine, a VM        |
+| [0002](./docs/adr/0002-use-workload-identity-federation.md)          | Workload Identity Federation, no service account keys, ever      |
 | [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md)    | Room state behind a transport interface, with a browser fallback |
-| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)          | Turn-based Bingo on a 1-25 board — no host caller, no daubing    |
+| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)          | Turn-based Bingo on a 1-25 board, no host caller, no daubing     |
 | [0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md) | The player id is public; the credential is a separate token      |
 
-Add an ADR when a decision is expensive to reverse, affects how everyone works, or rejects an obvious alternative. Never edit an accepted ADR to change its decision — write a new one that supersedes it, and link both ways.
+Add an ADR when a decision is expensive to reverse, affects how everyone works, or rejects an obvious alternative. Never edit an accepted ADR to change its decision, write a new one that supersedes it, and link both ways.
 
 ---
 
@@ -403,8 +435,8 @@ Say so explicitly and propose a change to the rule. Do not silently work around 
 
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+This version has breaking changes. APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+This block is written and re-added by `next dev`: verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->

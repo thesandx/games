@@ -1,4 +1,4 @@
-# Playroom rooms API — backend handover
+# Playroom rooms API: backend handover
 
 This document specifies the service behind `https://api.sandeep.app/games`.
 
@@ -7,7 +7,7 @@ This document specifies the service behind `https://api.sandeep.app/games`.
   repository, at `app/apps/playroom/`. It is mounted at `/games`, so the client
   base URL is `<host>/games/v1`.
 - **Status of the client:** complete, and switched over. `PlayerIdentity` now
-  carries a token — see [ADR-0005](./adr/0005-split-the-player-id-from-the-player-token.md).
+  carries a token: see [ADR-0005](./adr/0005-split-the-player-id-from-the-player-token.md).
 
 This document stays as the contract. Where the implementation departs from the
 SQL below it says so, in `app/apps/playroom/models.py`, and the reasons are
@@ -21,7 +21,7 @@ listed under [What was built differently](#what-was-built-differently).
 2. [Two decisions you must make first](#two-decisions-you-must-make-first)
 3. [Identity without login](#identity-without-login)
 4. [Data model](#data-model)
-5. [Concurrency — the two patterns that matter](#concurrency--the-two-patterns-that-matter)
+5. [Concurrency: the two patterns that matter](#concurrency-the-two-patterns-that-matter)
 6. [Endpoints](#endpoints)
 7. [Payload shapes](#payload-shapes)
 8. [Errors](#errors)
@@ -67,8 +67,8 @@ So the identifier and the credential are the same string. Any player in a room c
 
 **Fix:** split them.
 
-- `playerId` — a UUID. Public. Stays in the room payload.
-- `playerToken` — an opaque secret, 32 random bytes, base64url. Returned **once**, at create or join. Never appears in a room payload.
+- `playerId`: a UUID. Public. Stays in the room payload.
+- `playerToken`, an opaque secret, 32 random bytes, base64url. Returned **once**, at create or join. Never appears in a room payload.
 
 The client sends `Authorization: Bearer <playerToken>`. The server looks up the player by the SHA-256 hash of the token.
 
@@ -80,7 +80,7 @@ This needs a small frontend change: `identityHeaders()` in `services/playroom-ap
 
 The "How to play" screen says:
 
-> Nothing is stored against you — close the tab and the nickname is gone.
+> Nothing is stored against you, close the tab and the nickname is gone.
 
 Analytics must not contradict this. Concretely:
 
@@ -223,15 +223,15 @@ CREATE TABLE bingo_selections (
 );
 ```
 
-`PRIMARY KEY (round_id, number)` is not decoration. It is how the database — not your application code — guarantees that two players never take the same number. See the next section.
+`PRIMARY KEY (round_id, number)` is not decoration. It is how the database, not your application code, guarantees that two players never take the same number. See the next section.
 
 There is no marks table. **Marking is derived**: a cell is marked when its number appears in `bingo_selections` for that round. One shared list means every board agrees by construction. Do not add per-player mark state.
 
-**Every board is stored; not every board is sent.** `bingo_boards` holds a row per player because the server has to validate any player's claim against their own board. Visibility is a serialisation concern, applied on the way out of the handler — see [Board visibility](#the-rules-the-server-enforces). Storing one board per player and returning one board per request are both correct, and they are different things.
+**Every board is stored; not every board is sent.** `bingo_boards` holds a row per player because the server has to validate any player's claim against their own board. Visibility is a serialisation concern, applied on the way out of the handler: see [Board visibility](#the-rules-the-server-enforces). Storing one board per player and returning one board per request are both correct, and they are different things.
 
 ---
 
-## Concurrency — the two patterns that matter
+## Concurrency: the two patterns that matter
 
 The requirement is that a client cannot win by sending a well-timed request. Two database patterns give you that. Use both.
 
@@ -291,7 +291,7 @@ A rejected claim must leave the round running. Do not change `status` on a faile
 
 ## Endpoints
 
-Base path `/v1`. All bodies are JSON. All responses use **camelCase** — Pydantic needs `alias_generator=to_camel` and `populate_by_name=True`, because the client types are TypeScript.
+Base path `/v1`. All bodies are JSON. All responses use **camelCase**. Pydantic needs `alias_generator=to_camel` and `populate_by_name=True`, because the client types are TypeScript.
 
 Every route below except `GET /v1/games` and `GET /health` requires `Authorization: Bearer <playerToken>`, except room creation and joining, which mint it.
 
@@ -311,7 +311,7 @@ Every route below except `GET /v1/games` and `GET /health` requires `Authorizati
 | `GET`    | `/v1/games`                              | (new) catalogue              | none         |
 | `GET`    | `/health`                                | probes                       | none         |
 
-¹ Optional, but it changes the response. A request with a valid token gets that player's board in `bingo.cards`; a request without one gets no board at all. Both are valid — the second is a spectator view.
+¹ Optional, but it changes the response. A request with a valid token gets that player's board in `bingo.cards`; a request without one gets no board at all. Both are valid. The second is a spectator view.
 
 **Every mutating endpoint returns the `Room` object scoped to the caller**, exactly as `GET /v1/rooms/{key}` would for that player. The client applies the returned room directly and skips a re-fetch. Do not return `204`.
 
@@ -327,7 +327,7 @@ POST /v1/rooms/{key}/rounds/current/actions
 
 Dispatch on `(game_id, type)`. An unknown type for the room's game returns `422`.
 
-This differs from the placeholder client, which has `/round/select` and `/round/claim`. Changing it is two lines in `services/playroom-api.ts`. Take the envelope — the alternative is a new route for every move of every future game.
+This differs from the placeholder client, which has `/round/select` and `/round/claim`. Changing it is two lines in `services/playroom-api.ts`. Take the envelope. The alternative is a new route for every move of every future game.
 
 ---
 
@@ -373,10 +373,10 @@ These are generated from `types/playroom.ts`. Match them exactly.
 Rules for this object:
 
 - `bingo` is `null` outside a live or just-finished round.
-- `bingo.cards` is keyed by player id and is **scoped to the caller**. During a round it holds the caller's own board and nothing else — a player must never receive another player's grid. Once the round is won, add the winner's board so the results screen can show the winning lines. A caller with no token is a spectator and gets `{}`. Sending every board and expecting the client to hide the rest is not equivalent: the payload is one dev-tools tab away.
-- `winningLines` is an **array** of `{ "kind": "row" | "column" | "diagonal", "index": 1..5, "cells": [5 ints] }`, holding every line the winner had — five or more. Empty (`[]`) while the round is running. `cells` are 0-based indices into the 25-cell array, row-major. Diagonals use `index` 1 for top-left to bottom-right and 2 for top-right to bottom-left.
+- `bingo.cards` is keyed by player id and is **scoped to the caller**. During a round it holds the caller's own board and nothing else. A player must never receive another player's grid. Once the round is won, add the winner's board so the results screen can show the winning lines. A caller with no token is a spectator and gets `{}`. Sending every board and expecting the client to hide the rest is not equivalent: the payload is one dev-tools tab away.
+- `winningLines` is an **array** of `{ "kind": "row" | "column" | "diagonal", "index": 1..5, "cells": [5 ints] }`, holding every line the winner had, five or more. Empty (`[]`) while the round is running. `cells` are 0-based indices into the 25-cell array, row-major. Diagonals use `index` 1 for top-left to bottom-right and 2 for top-right to bottom-left.
 - `lastRound` is populated only when `phase` is `round-results`. It is an array of `{ playerId, name, initial, color, note, gain }`, sorted by `gain` descending.
-- `initial` is the first character of `name`, uppercased. Take a full code point, not `name[0]` — a surrogate pair must not be cut in half.
+- `initial` is the first character of `name`, uppercased. Take a full code point, not `name[0]`. A surrogate pair must not be cut in half.
 - Timestamps are ISO-8601 with a `Z` suffix.
 
 ### Create and join responses
@@ -446,7 +446,7 @@ Any other failure returns `500` with a generic message. The client shows a gener
 
 ## Real-time updates
 
-The client polls `GET /v1/rooms/{key}` every 2 seconds today. That works on day one. Do not remove it — it is the fallback.
+The client polls `GET /v1/rooms/{key}` every 2 seconds today. That works on day one. Do not remove it. It is the fallback.
 
 **Add Server-Sent Events.** `GET /v1/rooms/{key}/stream` emits the full `Room` on every change. SSE is enough because it is one-way: actions are ordinary POSTs. It needs no WebSocket infrastructure, survives proxies, and reconnects on its own.
 
@@ -468,19 +468,19 @@ Neon also scales to zero. The first query after idle pays a cold start of a few 
 
 Port these from `lib/room-engine.ts` and `lib/bingo.ts`. The TypeScript is the reference implementation and it has 147 passing tests behind it.
 
-**Settings are fixed, not chosen.** The create screen has no settings section. Every room opens with one round, a cap of eight players, and `Locked after start`, from `DEFAULT_ROOM_SETTINGS` in `lib/games.ts`. Keep `settings` as a stored per-room object rather than hard-coding the values — a later game will want different ones — but expect only these from today's client, and validate the range rather than the exact value.
+**Settings are fixed, not chosen.** The create screen has no settings section. Every room opens with one round, a cap of eight players, and `Locked after start`, from `DEFAULT_ROOM_SETTINGS` in `lib/games.ts`. Keep `settings` as a stored per-room object rather than hard-coding the values: a later game will want different ones , but expect only these from today's client, and validate the range rather than the exact value.
 
 **Boards.** Each player gets the numbers 1 to 25 in a Fisher-Yates shuffle. Every number appears exactly once. There is no free square. Boards are fixed once the round starts.
 
-**Board visibility.** A player sees their own board only. Scope `bingo.cards` on the way out of every handler, using the caller's identity — `lib/room-engine.ts` has `scopeRoomForPlayer` as the reference. The winner's board becomes visible to the room when the round ends, and not before. This is why `GET /v1/rooms/{key}` reads the auth header even though it is otherwise optional.
+**Board visibility.** A player sees their own board only. Scope `bingo.cards` on the way out of every handler, using the caller's identity: `lib/room-engine.ts` has `scopeRoomForPlayer` as the reference. The winner's board becomes visible to the room when the round ends, and not before. This is why `GET /v1/rooms/{key}` reads the auth header even though it is otherwise optional.
 
 **Turns.** `turn_order` is seat order, fixed when the round is dealt. After a valid selection, advance by one and wrap. A player who joins mid-round is appended to `turn_order` and dealt a board; the running turn does not move.
 
 **Selection.** Only the player on turn. Only a number in 1 to 25. Only a number nobody has taken. The number is then marked for everybody, because marking is derived.
 
-**Winning.** Each completed row, column or diagonal earns one letter of B-I-N-G-O. **Five** completed lines win, out of the twelve that exist. Lines share cells, so one number can complete two at once — count the lines, do not assume one per pick. One line is not a win. A full board is not required, and a full board holds all twelve lines, so a claim may carry more than five. Lines are computed from the board and the selections.
+**Winning.** Each completed row, column or diagonal earns one letter of B-I-N-G-O. **Five** completed lines win, out of the twelve that exist. Lines share cells, so one number can complete two at once: count the lines, do not assume one per pick. One line is not a win. A full board is not required, and a full board holds all twelve lines, so a claim may carry more than five. Lines are computed from the board and the selections.
 
-**Claiming.** A player must claim explicitly, and only once five letters are filled. Validate server-side by counting completed lines — never trust a client's count. The first valid claim ends the round; later claims get `round-over`. An invalid claim is rejected and the round continues.
+**Claiming.** A player must claim explicitly, and only once five letters are filled. Validate server-side by counting completed lines: never trust a client's count. The first valid claim ends the round; later claims get `round-over`. An invalid claim is rejected and the round continues.
 
 **Scoring.** The winner gets 100. Every other player gets 10 for each complete line they hold. Scores accumulate across rounds within a session.
 
@@ -488,7 +488,7 @@ Port these from `lib/room-engine.ts` and `lib/bingo.ts`. The TypeScript is the r
 
 **Phases.** `lobby` → `playing` → `round-results` → `playing` (next round) → … → `finished`. `nextRound` from the last round goes to `finished`. `replaySession` returns to `lobby`, keeps the players, and zeroes the scores.
 
-**Edge case with no owner yet.** Reaching five lines takes roughly 19 of the 25 numbers. Nothing forces a player to claim, so a round can consume all 25 with nobody having called bingo — at which point every board holds all twelve lines and no further selection is possible. The engine refuses a selection with no numbers left; it does not end the round. Decide the behaviour and tell the frontend — see [Open questions](#open-questions).
+**Edge case with no owner yet.** Reaching five lines takes roughly 19 of the 25 numbers. Nothing forces a player to claim, so a round can consume all 25 with nobody having called bingo: at which point every board holds all twelve lines and no further selection is possible. The engine refuses a selection with no numbers left; it does not end the round. Decide the behaviour and tell the frontend , see [Open questions](#open-questions).
 
 This matters more now that a room holds eight players. Eight players over 25 numbers is about three turns each, so a full room is the case most likely to reach the end of the board.
 
@@ -537,7 +537,7 @@ Constraint first: no cross-session identity. See [decision 2](#2-the-product-pro
 
 ### The event store
 
-Write an event in the **same transaction** as every state change. Never in a background task — an event that can be lost is not an audit log.
+Write an event in the **same transaction** as every state change. Never in a background task. An event that can be lost is not an audit log.
 
 ```sql
 CREATE TABLE events (
@@ -565,10 +565,10 @@ Event types to emit:
 
 Put the useful dimensions in `payload`:
 
-- `number_selected` — the number, the sequence, how long the player took, and **the seat that took it**. Seat is what makes turn-order fairness measurable.
-- `bingo_claimed` and `bingo_rejected` — how many lines the board actually held. A rejection at four lines is a player who misread the rule; a rejection at one is a player who did not know there was a rule. Those want different fixes.
-- `round_won` — the winning line count and how many numbers had gone.
-- `board_exhausted` — emitted if all 25 numbers go with no winner. This is the open question in [Open questions](#open-questions); instrument it from day one so the decision is made against a real rate rather than a guess.
+- `number_selected`, the number, the sequence, how long the player took, and **the seat that took it**. Seat is what makes turn-order fairness measurable.
+- `bingo_claimed` and `bingo_rejected`, how many lines the board actually held. A rejection at four lines is a player who misread the rule; a rejection at one is a player who did not know there was a rule. Those want different fixes.
+- `round_won`. The winning line count and how many numbers had gone.
+- `board_exhausted`, emitted if all 25 numbers go with no winner. This is the open question in [Open questions](#open-questions); instrument it from day one so the decision is made against a real rate rather than a guess.
 
 ### Questions this answers
 
@@ -603,17 +603,17 @@ Run a sweeper every few minutes:
    (set it to `NULL` or `'player'`). Keep the rows and the ids.
 3. Keep `events` and `rounds` indefinitely. They carry no name after step 2.
 
-Anonymising rather than deleting keeps every aggregate correct while honouring the promise. Run it as a scheduled job — Cloud Scheduler hitting an authenticated endpoint, or `pg_cron` on Neon.
+Anonymising rather than deleting keeps every aggregate correct while honouring the promise. Run it as a scheduled job, Cloud Scheduler hitting an authenticated endpoint, or `pg_cron` on Neon.
 
 ---
 
 ## Operational requirements
 
-**CORS.** Allow the Cloud Run origin and `http://localhost:3000`. Allow `Authorization` and `Content-Type`. Credentials are not needed — the token is a bearer header, not a cookie.
+**CORS.** Allow the Cloud Run origin and `http://localhost:3000`. Allow `Authorization` and `Content-Type`. Credentials are not needed: the token is a bearer header, not a cookie.
 
 **Rate limits.** There is no login, so nothing stops a script. Limit by IP: room creation to about 10 per hour, joins to about 30 per hour, actions to about 5 per second. Cloud Run puts the client IP first in `X-Forwarded-For`. Use the IP for rate limiting only, and do not store it beyond the window.
 
-**Key generation.** Draw 6 characters from the 32-character alphabet — about 1.07 billion combinations. Insert and retry on unique violation, up to 5 attempts. Do not pre-check for existence; the unique index is the check.
+**Key generation.** Draw 6 characters from the 32-character alphabet: about 1.07 billion combinations. Insert and retry on unique violation, up to 5 attempts. Do not pre-check for existence; the unique index is the check.
 
 **Idempotency.** Network retries will double-post a selection. Accept an optional `Idempotency-Key` header on action requests and store it per round. Without it, a retried "take 17" returns `number-taken` and looks like a bug to the player.
 
@@ -627,8 +627,8 @@ Anonymising rather than deleting keeps every aggregate correct while honouring t
 
 ## Switch-over checklist
 
-1. ~~Implement the endpoints.~~ Done — `app/apps/playroom/` in `anuvia`.
-2. ~~Apply the token change in `services/playroom-api.ts` and `types/playroom.ts`.~~ Done — [ADR-0005](./adr/0005-split-the-player-id-from-the-player-token.md).
+1. ~~Implement the endpoints.~~ Done: `app/apps/playroom/` in `anuvia`.
+2. ~~Apply the token change in `services/playroom-api.ts` and `types/playroom.ts`.~~ Done: [ADR-0005](./adr/0005-split-the-player-id-from-the-player-token.md).
 3. Point the client at the service:
    - `NEXT_PUBLIC_PLAYROOM_API_URL=https://api.sandeep.app/games/v1`
    - `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote`
@@ -661,7 +661,7 @@ These were answered with the product owner before the service shipped. They are
 recorded here because each one is a rule a future change could break by
 accident.
 
-1. **A round with no winner. — Answered: the round ends and the closing player
+1. **A round with no winner.: Answered: the round ends and the closing player
    takes it.**
 
    When the twenty-fifth number is taken the round ends by itself. The player
@@ -669,7 +669,7 @@ accident.
 
    The reason for that tiebreak is worth stating, because "award the player with
    the most lines" sounds better and cannot work. Once all 25 numbers are gone
-   every board is complete, so every board holds all twelve lines — the line
+   every board is complete, so every board holds all twelve lines. The line
    count is a twelve-way tie by construction and can decide nothing. The player
    who closed the board out is the one deterministic, seat-neutral answer
    available at that moment.
@@ -683,7 +683,7 @@ accident.
    for everyone else. `board_exhausted` is emitted, so the real rate is
    measurable rather than guessed.
 
-2. **The host leaves. — Answered: promote the longest-present player.**
+2. **The host leaves.: Answered: promote the longest-present player.**
 
    A host who is removed, or who has not been seen for sixty seconds while
    somebody else has, is replaced by the lowest remaining seat. `hostId` changes
@@ -696,14 +696,14 @@ accident.
    polls every two seconds, so a minute of silence is a closed tab rather than a
    slow network. A `host_promoted` event records each promotion and why.
 
-3. **Reconnect. — Answered: no recovery.**
+3. **Reconnect.: Answered: no recovery.**
 
    A closed tab loses the identity and the player rejoins as somebody new. A
    rejoin token needs something durable to key off, which is the device id the
    "How to play" screen promises not to keep. Recovery and that promise cannot
    both hold.
 
-4. **Does a spectator exist? — Answered: yes, and it is intended.**
+4. **Does a spectator exist?: Answered: yes, and it is intended.**
 
    `GET /v1/rooms/{key}` without a token returns the room with `bingo.cards`
    empty: turn order, scores and taken numbers, but no board. Anyone with a key
@@ -716,7 +716,7 @@ accident.
    silently downgrading it would show that player a board-less room with no
    explanation.
 
-5. **Analytics retention. — Answered: seven days, configurable.**
+5. **Analytics retention.: Answered: seven days, configurable.**
 
    `PLAYROOM_RETENTION_DAYS` sets it. After the window the sweeper drops
    nicknames, boards and selections, and keeps the rows and their ids, so every

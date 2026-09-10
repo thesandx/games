@@ -25,7 +25,7 @@ The operator-facing guide: set up once, then deploy by merging to `main`.
   --service my-app
 ```
 
-The script enables APIs, creates the Artifact Registry repository, sets up Workload Identity Federation, creates the deployer and runtime service accounts with least-privilege roles, and prints the exact GitHub secrets and variables to configure. Re-running it is safe — every step is idempotent.
+The script enables APIs, creates the Artifact Registry repository, sets up Workload Identity Federation, creates the deployer and runtime service accounts with least-privilege roles, and prints the exact GitHub secrets and variables to configure. Re-running it is safe, every step is idempotent.
 
 Then set what it printed:
 
@@ -77,7 +77,7 @@ gcloud artifacts repositories create "$AR_REPO" \
   --description="Container images for $SERVICE"
 ```
 
-**3. Create the deployer service account** — the identity GitHub Actions impersonates.
+**3. Create the deployer service account**: the identity GitHub Actions impersonates.
 
 ```bash
 gcloud iam service-accounts create github-deployer \
@@ -97,7 +97,7 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --role="roles/run.admin"
 ```
 
-**4. Create the runtime service account** — the identity the _application_ runs as. Separate from the deployer on purpose: the pipeline should not inherit the app's data access, and the app should not be able to deploy itself.
+**4. Create the runtime service account**: the identity the _application_ runs as. Separate from the deployer on purpose: the pipeline should not inherit the app's data access, and the app should not be able to deploy itself.
 
 ```bash
 gcloud iam service-accounts create "${SERVICE}-runtime" \
@@ -154,30 +154,30 @@ Set that as the `WIF_PROVIDER` secret, and `$DEPLOYER` as `WIF_SERVICE_ACCOUNT`.
 
 ## GitHub configuration
 
-**Secrets** — Settings → Secrets and variables → Actions → Secrets
+**Secrets**: Settings → Secrets and variables → Actions → Secrets
 
 | Secret                | Value                                                                              |
 | --------------------- | ---------------------------------------------------------------------------------- |
 | `WIF_PROVIDER`        | `projects/<number>/locations/global/workloadIdentityPools/github/providers/github` |
 | `WIF_SERVICE_ACCOUNT` | `github-deployer@<project>.iam.gserviceaccount.com`                                |
 
-Neither is a credential — both are resource identifiers, useless without a valid OIDC token from this repository. They are stored as secrets to avoid publishing your project structure, not because disclosure would be catastrophic.
+Neither is a credential. Both are resource identifiers, useless without a valid OIDC token from this repository. They are stored as secrets to avoid publishing your project structure, not because disclosure would be catastrophic.
 
-**Variables** — same page, Variables tab
+**Variables**: same page, Variables tab
 
 | Variable              | Required | Default                | Purpose                              |
 | --------------------- | -------- | ---------------------- | ------------------------------------ |
-| `GCP_PROJECT_ID`      | **yes**  | —                      | Target project                       |
+| `GCP_PROJECT_ID`      | **yes**  | -                      | Target project                       |
 | `GCP_REGION`          | no       | `asia-southeast1`      | Cloud Run + Artifact Registry region |
 | `ARTIFACT_REPOSITORY` | no       | `containers`           | Artifact Registry repository name    |
 | `CLOUD_RUN_SERVICE`   | no       | repository name        | Cloud Run service name               |
-| `APP_URL`             | no       | —                      | Public URL, inlined at build time    |
+| `APP_URL`             | no       | -                      | Public URL, inlined at build time    |
 | `APP_NAME`            | no       | `Next.js on Cloud Run` | Display name                         |
 | `LOG_LEVEL`           | no       | `info`                 | Runtime log verbosity                |
 | `MIN_INSTANCES`       | no       | `0`                    | `1` removes cold starts, at a cost   |
 | `MAX_INSTANCES`       | no       | `10`                   | Scaling and bill ceiling             |
 
-**Environment** — Settings → Environments → New environment → `production`
+**Environment**: Settings → Environments → New environment → `production`
 
 Optional but recommended: add required reviewers so a deploy pauses for human approval, and restrict the environment to the `main` branch.
 
@@ -232,7 +232,7 @@ The `version` field in the health payload is the commit SHA. If it does not matc
 
 ## Rolling back
 
-The previous revision still exists and the previous image is still in Artifact Registry, so rollback is a traffic shift — seconds, not a rebuild.
+The previous revision still exists and the previous image is still in Artifact Registry, so rollback is a traffic shift: seconds, not a rebuild.
 
 ```bash
 # 1. Find a known-good revision
@@ -272,7 +272,7 @@ gcloud beta run domain-mappings create \
 
 Add the DNS records it prints. The managed certificate takes up to ~15 minutes to provision. Afterwards, update `APP_URL` and redeploy so canonical URLs and metadata use the real domain.
 
-For anything more involved — CDN, WAF, multi-region — put a Cloud Load Balancer in front of Cloud Run instead of using domain mappings.
+For anything more involved, CDN, WAF, multi-region, put a Cloud Load Balancer in front of Cloud Run instead of using domain mappings.
 
 ---
 
@@ -316,7 +316,7 @@ gcloud iam service-accounts delete "$DEPLOYER"
 gcloud iam service-accounts delete "$RUNTIME"
 ```
 
-Google soft-deletes Workload Identity Pools for 30 days, and the name stays reserved. If you recreate one with the same id before then, it fails — undelete it instead:
+Google soft-deletes Workload Identity Pools for 30 days, and the name stays reserved. If you recreate one with the same id before then, it fails, undelete it instead:
 
 ```bash
 gcloud iam workload-identity-pools undelete github --location=global

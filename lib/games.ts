@@ -4,10 +4,10 @@
  * Content is taken verbatim from the design so the built app reads exactly as
  * the artboards do. `status` is what the browse screen keys off:
  *   - `playable` renders the create/rules buttons
- *   - `building` renders the design's "In build — not playable yet" line
+ *   - `building` renders the design's "In build, not playable yet" line
  *
  * Bingo is the only `playable` entry today. Promoting Scribble or Tic-tac-toe
- * means implementing its rules in `lib/` and a round handler in the transport —
+ * means implementing its rules in `lib/` and a round handler in the transport,
  * flipping this flag alone would route players into a room that cannot play.
  */
 
@@ -53,7 +53,7 @@ export const GAMES: readonly GameDefinition[] = [
     id: 'bingo',
     name: 'Bingo',
     tag: 'Live',
-    meta: '2–20 players · 10 min',
+    meta: '2-20 players · 10 min',
     description:
       'Take turns claiming numbers from 1 to 25. Every pick marks that number on every board. Five complete lines spell BINGO and take the round.',
     status: 'playable',
@@ -64,7 +64,7 @@ export const GAMES: readonly GameDefinition[] = [
     id: 'scribble',
     name: 'Scribble',
     tag: 'In build',
-    meta: '4–12 players · 15 min',
+    meta: '4-12 players · 15 min',
     description: 'One person draws the word, everyone else races to type it in the guess box.',
     status: 'building',
     surface: 'mint',
@@ -85,7 +85,7 @@ export const GAMES: readonly GameDefinition[] = [
     id: 'trivia',
     name: 'Trivia',
     tag: 'Coming',
-    meta: '3–20 players',
+    meta: '3-20 players',
     description: 'Timed question rounds with a category vote before each set.',
     status: 'building',
     surface: 'white',
@@ -95,7 +95,7 @@ export const GAMES: readonly GameDefinition[] = [
     id: 'wordchain',
     name: 'Word chain',
     tag: 'Coming',
-    meta: '3–10 players',
+    meta: '3-10 players',
     description: 'Each answer has to start with the last letter of the one before it.',
     status: 'building',
     surface: 'white',
@@ -105,7 +105,7 @@ export const GAMES: readonly GameDefinition[] = [
     id: 'mafia',
     name: 'Mafia',
     tag: 'Coming',
-    meta: '6–16 players',
+    meta: '6-16 players',
     description: 'Night phase, day phase, and a vote. Roles are dealt privately in the room.',
     status: 'building',
     surface: 'white',
@@ -149,7 +149,7 @@ export const HOW_TO_PLAY: readonly HowToPlayEntry[] = [
     steps: [
       'Each player gets their own shuffled board when the round starts. There is no free square.',
       'On your turn, tap any number on your board that nobody has taken. It is marked for the whole room.',
-      'Nobody marks their own board — marking follows the numbers that have been taken.',
+      'Nobody marks their own board. Marking follows the numbers that have been taken.',
       'Each completed row, column or diagonal fills one letter of BINGO. Lines share numbers, so one pick can fill two letters at once.',
       'When all five letters are filled, press Call Bingo. One line is not enough. You do not need to fill the board.',
       'The first valid claim wins the round. An incorrect claim is rejected and play carries on.',

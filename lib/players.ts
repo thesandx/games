@@ -1,5 +1,5 @@
 /**
- * Player helpers — avatars, initials and score ordering.
+ * Player helpers: avatars, initials and score ordering.
  *
  * Avatar colours are stored as token names rather than hex values so the
  * palette stays editable from `styles/globals.css` alone.

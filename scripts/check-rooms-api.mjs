@@ -3,7 +3,7 @@
 // Check a live rooms API against the contract this client expects.
 //
 // The unit tests exercise the browser transport, and the API has its own tests.
-// Neither proves the two agree on the wire — that is what this does. Run it
+// Neither proves the two agree on the wire. That is what this does. Run it
 // after changing `services/playroom-api.ts`, `types/playroom.ts`, or anything
 // in the service's `app/apps/playroom/`.
 //
@@ -25,7 +25,7 @@ function check(label, condition, detail) {
     console.log(`  PASS  ${label}`);
   } else {
     failed += 1;
-    console.log(`  FAIL  ${label}${detail === undefined ? '' : ` — ${JSON.stringify(detail)}`}`);
+    console.log(`  FAIL  ${label}${detail === undefined ? '' : `, ${JSON.stringify(detail)}`}`);
   }
 }
 

@@ -5,7 +5,7 @@ export function Footer({ brandName }: { brandName: string }) {
     <footer className="border-t border-hairline">
       <div className="mx-auto flex max-w-[1120px] flex-wrap justify-between gap-4 px-5 py-6">
         <span className="text-ink-3 text-sm">
-          {brandName} — play with friends, no account needed
+          {brandName}: play with friends, no account needed
         </span>
         <span className="flex flex-wrap gap-4">
           <Link href="/how-to-play" className="text-link text-sm">

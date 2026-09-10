@@ -45,7 +45,7 @@ export function useRoom(
   // against an in-flight fetch overwriting a fresher mutation result.
   const generation = useRef(0);
   // One read at a time. A second read of the same room while one is still open
-  // buys nothing — it can only return the same answer — and it costs something
+  // buys nothing, it can only return the same answer, and it costs something
   // real: the browser revalidates this URL against its cache, and two requests
   // contending for one cache entry make the browser drop one of them.
   const inFlight = useRef<Promise<void> | null>(null);
@@ -94,7 +94,7 @@ export function useRoom(
   useEffect(() => {
     // The first read is scheduled rather than called inline. Fetching is a
     // subscription to an external system, and starting it on a timer keeps the
-    // effect body free of state updates — the same reason the poll below is a
+    // effect body free of state updates. The same reason the poll below is a
     // callback rather than a synchronous call.
     const first = window.setTimeout(() => void refresh(), 0);
     const timer = window.setInterval(() => void refresh(), POLL_INTERVAL_MS);

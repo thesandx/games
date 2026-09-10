@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
 
   // Fail the production build on type errors. This is the default; it is
   // spelled out so nobody "temporarily" flips it to unblock a deploy.
-  // (Next.js 16 removed the `eslint` config key along with `next lint` —
+  // (Next.js 16 removed the `eslint` config key along with `next lint`,
   // linting runs as its own CI step via `pnpm lint`.)
   typescript: { ignoreBuildErrors: false },
 

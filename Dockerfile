@@ -35,7 +35,7 @@ RUN corepack enable
 WORKDIR /app
 
 ###############################################################################
-# deps — cached independently of application source
+# deps, cached independently of application source
 ###############################################################################
 FROM base AS deps
 
@@ -48,7 +48,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
 ###############################################################################
-# builder — produces .next/standalone
+# builder, produces .next/standalone
 ###############################################################################
 FROM base AS builder
 
@@ -75,7 +75,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 
 ###############################################################################
-# runner — the only stage that ships
+# runner, the only stage that ships
 ###############################################################################
 FROM base AS runner
 

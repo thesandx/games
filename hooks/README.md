@@ -31,7 +31,7 @@ export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     subscribe,
     () => window.matchMedia(query).matches,
-    () => false, // server snapshot — avoids a hydration mismatch
+    () => false, // server snapshot, avoids a hydration mismatch
   );
 }
 ```

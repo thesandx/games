@@ -8,7 +8,7 @@
 /**
  * Conditionally joins class names.
  *
- * Deliberately does NOT merge conflicting Tailwind utilities — that needs
+ * Deliberately does NOT merge conflicting Tailwind utilities. That needs
  * `clsx` + `tailwind-merge`. Add them when a real component library starts
  * fighting over `p-2` vs `p-4`, not before.
  *
@@ -34,7 +34,7 @@ export function formatUtc(date: Date | string): string {
 
 /**
  * Formats an ISO timestamp in India Standard Time (UTC+5:30) via the platform
- * `Intl` API — no date library. Returns `null` for empty or unparseable input,
+ * `Intl` API: no date library. Returns `null` for empty or unparseable input,
  * so `/api/health` can show "not deployed by the pipeline" instead of a crash.
  *
  * @example formatIst('2026-07-26T12:15:00Z') // '2026-07-26 17:45:00 IST'

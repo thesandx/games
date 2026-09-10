@@ -12,7 +12,7 @@ export interface RoomKeyDisplayProps {
  * The six-character key, letter-spaced and set large.
  *
  * The key is read aloud and typed by hand, so it is rendered as one string with
- * an `aria-label` that spells it out — "P L Z 4 K 9" — instead of leaving a
+ * an `aria-label` that spells it out, "P L Z 4 K 9", instead of leaving a
  * screen reader to pronounce "plzfourkaynine".
  */
 export function RoomKeyDisplay({ roomKey, tone = 'dark', label, className }: RoomKeyDisplayProps) {

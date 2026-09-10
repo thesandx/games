@@ -14,7 +14,7 @@ Rules for anything under `.github/workflows/`. A broken workflow blocks every co
 
 > **CodeQL needs code scanning enabled, and that is not free on private repositories.** The analysis runs fine, then the upload step fails with `Code scanning is not enabled for this repository`. Code scanning is included for **public** repos. Private repos need GitHub Advanced Security.
 >
-> If you generate a private project from this template, either purchase GHAS, or delete `codeql.yml` rather than leaving a permanently red check — a check everyone learns to ignore is worse than no check.
+> If you generate a private project from this template, either purchase GHAS, or delete `codeql.yml` rather than leaving a permanently red check. A check everyone learns to ignore is worse than no check.
 
 ---
 
@@ -77,7 +77,7 @@ permissions:
 | Upload CodeQL results | `security-events: write` |
 | Comment on a PR       | `pull-requests: write`   |
 
-Never `permissions: write-all`. Never leave the repository default in place — declare it explicitly at the workflow level, and narrow further per job.
+Never `permissions: write-all`. Never leave the repository default in place, declare it explicitly at the workflow level, and narrow further per job.
 
 ---
 
@@ -93,7 +93,7 @@ Rules:
 - Never `echo` a secret, and never interpolate one into a shell command where it could reach a log. GitHub masks known secret values but not derived ones (a base64 of a secret is not masked).
 - Never expose a secret to a step that does not need it.
 - `pull_request_target` and `workflow_run` run with write permissions and repository secrets against **untrusted** code. This repository does not use them. If you believe you need one, ask a human first.
-- Fork PRs cannot read secrets. That is why `pr-validation.yml` needs none — keep it that way, otherwise external contributions break.
+- Fork PRs cannot read secrets. That is why `pr-validation.yml` needs none, keep it that way, otherwise external contributions break.
 
 ---
 
@@ -121,7 +121,7 @@ concurrency:
   group: pr-validation-${{ github.ref }}
   cancel-in-progress: true
 
-# Deploys: queue, never cancel — a half-applied deploy is worse than a slow one
+# Deploys: queue, never cancel. A half-applied deploy is worse than a slow one
 concurrency:
   group: deploy-cloud-run
   cancel-in-progress: false
@@ -139,8 +139,8 @@ In `pr-validation.yml`, **build runs before typecheck**. This looks wrong and is
 
 ## Changing a workflow
 
-1. Change it on a branch, open a PR — `pr-validation.yml` validates itself.
-2. `deploy.yml` cannot be tested by a PR (it only runs on `main`). Use `workflow_dispatch` on a branch, or accept that the first real run is the test — and watch it.
+1. Change it on a branch, open a PR: `pr-validation.yml` validates itself.
+2. `deploy.yml` cannot be tested by a PR (it only runs on `main`). Use `workflow_dispatch` on a branch, or accept that the first real run is the test, and watch it.
 3. Never disable a check to make a PR green. Fix the code, or change the check deliberately and say why.
 4. Update this file and the README when you add, remove or rename a workflow.
 

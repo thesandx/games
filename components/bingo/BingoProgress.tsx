@@ -24,7 +24,7 @@ const LETTER_TONE = [
 /**
  * The B-I-N-G-O letters, one per completed line.
  *
- * The win is cumulative — five lines, not one — so a player needs to see how
+ * The win is cumulative, five lines, not one, so a player needs to see how
  * far along they are. The letters are the game's own scorekeeping device, and
  * they say what "five lines" means without a sentence of explanation.
  *
@@ -51,7 +51,7 @@ export function BingoProgress({ earned, className }: BingoProgressProps) {
       </ul>
       <p className="text-ink-3 text-sm">
         {earned} of {LINES_TO_WIN} lines
-        {earned >= LINES_TO_WIN ? ' — you can call bingo' : ''}
+        {earned >= LINES_TO_WIN ? '. You can call bingo' : ''}
       </p>
     </div>
   );

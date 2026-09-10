@@ -9,7 +9,7 @@ import { BROWSE_FILTERS, type BrowseFilter, filterGames } from '@/lib/games';
 /**
  * The browse screen's filter row and grid.
  *
- * A Client Component because the filter is local UI state — it is deliberately
+ * A Client Component because the filter is local UI state. It is deliberately
  * NOT in the URL, since a filtered game list is not a destination anyone links
  * to or expects the back button to step through.
  */

@@ -8,7 +8,7 @@ import { GAMES } from '@/lib/games';
 import type { AvatarColor } from '@/types/playroom';
 
 /**
- * Landing page — a synchronous Server Component, so it ships no JavaScript for
+ * Landing page, a synchronous Server Component, so it ships no JavaScript for
  * this route and React Testing Library can render it directly.
  */
 
@@ -33,7 +33,7 @@ const STEPS = [
   },
 ] as const;
 
-/** Illustrative only — the hero shows what a lobby looks like before you make one. */
+/** Illustrative only. The hero shows what a lobby looks like before you make one. */
 const EXAMPLE_PLAYERS: ReadonlyArray<{ name: string; initial: string; color: AvatarColor }> = [
   { name: 'Rhea', initial: 'R', color: 'peach' },
   { name: 'Dev', initial: 'D', color: 'mint' },

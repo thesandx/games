@@ -36,12 +36,12 @@ The configuration model, end to end. The canonical list of variables is [`.env.e
 
 Two rules follow from this diagram, and almost every configuration bug is a violation of one of them:
 
-1. **`NEXT_PUBLIC_*` is baked in at build time.** Changing it on the Cloud Run service does nothing — the value is already inside the JavaScript your users downloaded. You must rebuild.
+1. **`NEXT_PUBLIC_*` is baked in at build time.** Changing it on the Cloud Run service does nothing: the value is already inside the JavaScript your users downloaded. You must rebuild.
 2. **`NEXT_PUBLIC_*` is public.** It is in a file served to browsers. Never put a credential behind that prefix, no matter how convenient.
 
 ---
 
-## `lib/env.ts` — the single entry point
+## `lib/env.ts`: the single entry point
 
 Nothing else in the codebase reads `process.env`.
 
@@ -110,7 +110,7 @@ env_vars: |-
 cp .env.example .env.local
 ```
 
-`.env.local` is gitignored and takes precedence over `.env`. Next.js loads it automatically — no `dotenv` dependency needed.
+`.env.local` is gitignored and takes precedence over `.env`. Next.js loads it automatically: no `dotenv` dependency needed.
 
 Load order, highest precedence first: `.env.local` → `.env.$NODE_ENV` → `.env`. Real shell environment variables override all of them.
 
@@ -133,7 +133,7 @@ gcloud services enable secretmanager.googleapis.com
 
 gcloud secrets create DATABASE_URL --replication-policy=automatic
 
-# Pipe the value — never pass it as an argument, where it lands in shell history
+# Pipe the value, never pass it as an argument, where it lands in shell history
 printf '%s' 'postgresql://user:pass@host:5432/db' \
   | gcloud secrets versions add DATABASE_URL --data-file=-
 ```
@@ -168,7 +168,7 @@ gcloud run services update my-app --region asia-southeast1  # new revision
 gcloud secrets versions disable 1 --secret=DATABASE_URL     # after verifying
 ```
 
-Disable before destroying — disabling is reversible, destroying is not.
+Disable before destroying, disabling is reversible, destroying is not.
 
 ---
 
@@ -189,16 +189,16 @@ Current inventory:
 | `GCP_REGION`          | variable | no       | Deployment region (default `asia-southeast1`)                       |
 | `ARTIFACT_REPOSITORY` | variable | no       | Artifact Registry repository (default `containers`)                 |
 | `CLOUD_RUN_SERVICE`   | variable | no       | Service name (defaults to the repository name)                      |
-| `APP_URL`             | variable | no       | Public URL — **inlined at build time**                              |
+| `APP_URL`             | variable | no       | Public URL, **inlined at build time**                               |
 | `APP_NAME`            | variable | no       | Display name                                                        |
 | `LOG_LEVEL`           | variable | no       | Runtime verbosity (default `info`)                                  |
 | `MIN_INSTANCES`       | variable | no       | `1` removes cold starts, at a cost                                  |
 | `MAX_INSTANCES`       | variable | no       | Scaling and bill ceiling (default `10`)                             |
 | `DEPLOYED_AT`         | computed | no       | UTC deploy time the workflow injects; `/api/health` shows it in IST |
-| `PLAYROOM_API_URL`    | variable | no       | Rooms API base URL — **inlined at build time**                      |
-| `PLAYROOM_TRANSPORT`  | variable | no       | `local` or `remote` — **inlined at build time**                     |
+| `PLAYROOM_API_URL`    | variable | no       | Rooms API base URL, **inlined at build time**                       |
+| `PLAYROOM_TRANSPORT`  | variable | no       | `local` or `remote`, **inlined at build time**                      |
 
-`WIF_PROVIDER` and `WIF_SERVICE_ACCOUNT` are resource identifiers rather than credentials — useless without a valid OIDC token from this repository. They are stored as secrets to avoid publishing your project layout, not because a leak would grant access.
+`WIF_PROVIDER` and `WIF_SERVICE_ACCOUNT` are resource identifiers rather than credentials, useless without a valid OIDC token from this repository. They are stored as secrets to avoid publishing your project layout, not because a leak would grant access.
 
 ---
 
@@ -241,11 +241,11 @@ Playroom reads room state through one of two transports. `NEXT_PUBLIC_PLAYROOM_T
 
 1. Set the `PLAYROOM_API_URL` GitHub variable to the base URL, with no trailing slash.
 2. Set the `PLAYROOM_TRANSPORT` GitHub variable to `remote`.
-3. Push to `main`. Both values are `NEXT_PUBLIC_*`, so they are inlined at build time — changing them on the Cloud Run service alone does nothing. The pipeline must rebuild the image.
+3. Push to `main`. Both values are `NEXT_PUBLIC_*`, so they are inlined at build time, changing them on the Cloud Run service alone does nothing. The pipeline must rebuild the image.
 
 ### The contract the API must answer
 
-The full specification lives in [`docs/backend-handover.md`](../docs/backend-handover.md): endpoints, payload shapes, the data model, the concurrency rules, and the analytics design. That document is canonical. Do not restate the endpoint list here — two copies drift.
+The full specification lives in [`docs/backend-handover.md`](../docs/backend-handover.md): endpoints, payload shapes, the data model, the concurrency rules, and the analytics design. That document is canonical. Do not restate the endpoint list here, two copies drift.
 
 Two points that affect deployment, and belong in this file:
 

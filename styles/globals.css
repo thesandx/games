@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /**
- * Design tokens — Airtable Marketing Design System, "Playroom Kawaii" variant.
+ * Design tokens, Airtable Marketing Design System, "Playroom Kawaii" variant.
  *
  * Ported from the token files under the design's _ds/ folder.
  * Everything the app renders references a token, never a raw hex value.
@@ -27,7 +27,7 @@
   --color-neutral-500: #9297a0;
   --color-neutral-900: #1d1f25;
 
-  /* signature palette — whole-card surfaces only */
+  /* signature palette, whole-card surfaces only */
   --color-coral: #aa2d00;
   --color-forest: #0a2e0e;
   --color-cream: #f5e9d4;
@@ -50,7 +50,7 @@
   --color-link-active: #1a3866;
   --color-success: #006400;
 
-  /* type — Huninn ships a single weight (400); 500 is browser-synthesised.
+  /* type. Huninn ships a single weight (400); 500 is browser-synthesised.
      `--font-huninn` is set on <html> by next/font in app/layout.tsx. */
   --font-display:
     var(--font-huninn), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
@@ -60,7 +60,7 @@
     sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* radii — the kawaii variant overrides the base system's 12px/6px */
+  /* radii, the kawaii variant overrides the base system's 12px/6px */
   --radius-card: 20px;
   --radius-pill: 999px;
   --radius-input: 14px;
@@ -76,7 +76,7 @@
   }
 
   /**
-   * The design commits to a single light look — white canvas, dark ink type.
+   * The design commits to a single light look: white canvas, dark ink type.
    * The source system documents no dark palette, so the template's automatic
    * dark mode was removed rather than invented. Add one deliberately, with
    * tokens for every colour, if the product ever needs it.
@@ -91,7 +91,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* The system documents Default and Active/Pressed only — no hover states. */
+  /* The system documents Default and Active/Pressed only: no hover states. */
   :focus-visible {
     outline: 2px solid var(--color-blue-400);
     outline-offset: 2px;

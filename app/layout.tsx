@@ -11,7 +11,7 @@ import { env } from '@/lib/env';
 /**
  * Huninn is the design system's stand-in for the licensed Haas Grotesk family.
  * It ships a single weight (400), so the 500 steps in the type scale are
- * synthesised by the browser — that is the source system's documented
+ * synthesised by the browser. That is the source system's documented
  * behaviour, not an oversight here.
  *
  * Loaded through `next/font` rather than a Google Fonts `<link>`: the file is
@@ -23,7 +23,7 @@ import { env } from '@/lib/env';
  * and Huninn is not among them, so it cannot synthesise a metric-matched
  * fallback face. The font itself loads and self-hosts normally; only the
  * fallback metrics are absent. `adjustFontFallback: false` does NOT silence it
- * under Turbopack — it was tried and removed rather than left as dead config.
+ * under Turbopack. It was tried and removed rather than left as dead config.
  */
 const huninn = Huninn({
   weight: '400',
@@ -35,7 +35,7 @@ const huninn = Huninn({
 export const metadata: Metadata = {
   metadataBase: new URL(env.appUrl),
   title: {
-    default: 'Playroom — party games with a room key',
+    default: 'Playroom: party games with a room key',
     template: `%s | Playroom`,
   },
   description:
@@ -54,7 +54,7 @@ export const viewport: Viewport = {
 };
 
 /**
- * Root layout — a Server Component, and it must stay one.
+ * Root layout. A Server Component, and it must stay one.
  *
  * Adding `'use client'` here would turn the entire application into a client
  * bundle. Interactive pieces declare `'use client'` themselves, at the leaves.

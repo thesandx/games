@@ -1,6 +1,6 @@
 # Project structure
 
-Where every file goes, and why. **This layout is fixed** — see rule 1 in [coding-rules.md](./coding-rules.md).
+Where every file goes, and why. **This layout is fixed**: see rule 1 in [coding-rules.md](./coding-rules.md).
 
 ## The tree
 
@@ -8,11 +8,11 @@ Where every file goes, and why. **This layout is fixed** — see rule 1 in [codi
 .
 ├── app/                    # Next.js App Router: routes, layouts, route handlers
 │   ├── api/                #   Route handlers (server-side HTTP endpoints)
-│   │   └── health/         #     GET /api/health — liveness probe
+│   │   └── health/         #     GET /api/health, liveness probe
 │   ├── error.tsx           #   Route-segment error boundary (Client Component)
-│   ├── layout.tsx          #   Root layout — must stay a Server Component
+│   ├── layout.tsx          #   Root layout, must stay a Server Component
 │   ├── not-found.tsx       #   404 page
-│   └── page.tsx            #   GET / — the Hello World page
+│   └── page.tsx            #   GET /, the Hello World page
 │
 ├── components/             # Reusable React components
 │   ├── ui/                 #   Presentational primitives: Button, Card, Input
@@ -20,7 +20,7 @@ Where every file goes, and why. **This layout is fixed** — see rule 1 in [codi
 │
 ├── hooks/                  # Reusable React hooks (client-side by definition)
 ├── lib/                    # Pure utilities, config, cross-cutting concerns
-│   ├── env.ts              #   Validated environment variables — the ONLY
+│   ├── env.ts              #   Validated environment variables, the ONLY
 │   │                       #   place process.env is read
 │   ├── logger.ts           #   Structured logging for Cloud Logging
 │   └── utils.ts            #   Small generic helpers
@@ -74,28 +74,28 @@ Where every file goes, and why. **This layout is fixed** — see rule 1 in [codi
 └── package.json
 ```
 
-## Decision table — "where does this file go?"
+## Decision table: "where does this file go?"
 
-| I am writing...                           | It goes in                |
-| ----------------------------------------- | ------------------------- |
-| A page at a URL                           | `app/<route>/page.tsx`    |
-| A shared shell around routes              | `app/<route>/layout.tsx`  |
-| An HTTP endpoint                          | `app/api/<name>/route.ts` |
-| A loading skeleton                        | `app/<route>/loading.tsx` |
-| A button, card, modal — no business logic | `components/ui/`          |
-| A header, footer, page shell              | `components/layout/`      |
-| A component used by one feature only      | `components/<feature>/`   |
-| A `use...` React hook                     | `hooks/use<Thing>.ts`     |
-| A pure function with no I/O               | `lib/`                    |
-| Anything that calls an external system    | `services/`               |
-| A type used in more than one place        | `types/`                  |
-| A type used in exactly one place          | Next to its consumer      |
-| An image, font, favicon, `robots.txt`     | `public/`                 |
-| A CSS custom property or global style     | `styles/globals.css`      |
-| A shell script humans run                 | `scripts/`                |
-| An explanation of how something works     | `docs/`                   |
-| An explanation of the cloud setup         | `cloud/`                  |
-| A rule for future assistants              | `.github/instructions/`   |
+| I am writing...                          | It goes in                |
+| ---------------------------------------- | ------------------------- |
+| A page at a URL                          | `app/<route>/page.tsx`    |
+| A shared shell around routes             | `app/<route>/layout.tsx`  |
+| An HTTP endpoint                         | `app/api/<name>/route.ts` |
+| A loading skeleton                       | `app/<route>/loading.tsx` |
+| A button, card, modal, no business logic | `components/ui/`          |
+| A header, footer, page shell             | `components/layout/`      |
+| A component used by one feature only     | `components/<feature>/`   |
+| A `use...` React hook                    | `hooks/use<Thing>.ts`     |
+| A pure function with no I/O              | `lib/`                    |
+| Anything that calls an external system   | `services/`               |
+| A type used in more than one place       | `types/`                  |
+| A type used in exactly one place         | Next to its consumer      |
+| An image, font, favicon, `robots.txt`    | `public/`                 |
+| A CSS custom property or global style    | `styles/globals.css`      |
+| A shell script humans run                | `scripts/`                |
+| An explanation of how something works    | `docs/`                   |
+| An explanation of the cloud setup        | `cloud/`                  |
+| A rule for future assistants             | `.github/instructions/`   |
 
 ## The distinctions people get wrong
 
@@ -112,7 +112,7 @@ Where every file goes, and why. **This layout is fixed** — see rule 1 in [codi
 
 ### `components/ui/` vs `components/<feature>/`
 
-`components/ui/` knows nothing about the domain. A `Button` that mentions "invoice" is not a UI primitive — it belongs in `components/invoices/`.
+`components/ui/` knows nothing about the domain. A `Button` that mentions "invoice" is not a UI primitive. It belongs in `components/invoices/`.
 
 ### `types/` vs colocated types
 
@@ -142,7 +142,7 @@ import type { HealthStatus } from '@/types';
 
 Never `../../../lib/env`. A relative import breaks when a file moves. It also hides which layer a module belongs to.
 
-`eslint-plugin-simple-import-sort` enforces the ordering automatically — run `pnpm lint:fix` rather than hand-sorting.
+`eslint-plugin-simple-import-sort` enforces the ordering automatically: run `pnpm lint:fix` rather than hand-sorting.
 
 ## Placeholder folders
 

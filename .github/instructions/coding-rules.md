@@ -9,7 +9,7 @@ The non-negotiables. Everything else in this folder elaborates on these.
 The top-level folders (`app/`, `components/`, `hooks/`, `lib/`, `services/`, `types/`, `styles/`, `public/`, `docs/`, `scripts/`, `cloud/`, `.github/`) are fixed. Every file has exactly one correct home.
 
 - **Do not invent new top-level folders.** No `utils/` next to `lib/`, no `helpers/`, no `api/` at the root, no `src/`.
-- If something does not fit, that is a signal to discuss the architecture — not to create a folder. Raise it, propose it, and update `project-structure.md` in the same PR if it is accepted.
+- If something does not fit, that is a signal to discuss the architecture, not to create a folder. Raise it, propose it, and update `project-structure.md` in the same PR if it is accepted.
 - Nest inside the existing folders instead: `components/checkout/`, `services/billing/`, `types/billing.ts`.
 
 **Why:** dozens of projects come from this template. When layouts diverge, cross-project navigation, shared tooling and every assistant's assumptions break at once.
@@ -48,9 +48,9 @@ Every component is a Server Component unless it cannot be.
 `'use client'` is contagious: everything a client component imports becomes client code.
 
 - Push the boundary **down** the tree, toward the leaves. Wrap the interactive button, not the page.
-- Server Components can render Client Components and pass them data as props. The reverse does not work — a Client Component cannot import a Server Component, only receive one via `children`.
+- Server Components can render Client Components and pass them data as props. The reverse does not work. A Client Component cannot import a Server Component, only receive one via `children`.
 - Never put `'use client'` in `app/layout.tsx`. That turns the entire application into a client bundle.
-- Anything you pass across the boundary must be serialisable — no functions, no class instances, no `Date` inside deeply nested objects you did not check.
+- Anything you pass across the boundary must be serialisable, no functions, no class instances, no `Date` inside deeply nested objects you did not check.
 
 ---
 
@@ -71,7 +71,7 @@ Assume this code runs in production tonight, for real users.
 - Handle the error path. Every `fetch` gets a timeout and a failure branch.
 - Log through `@/lib/logger`, never bare `console.log`.
 - No `TODO` left as the implementation. No commented-out code. No stubs that silently return empty data.
-- No secrets in source, ever — not in a comment, not in a test fixture, not "temporarily".
+- No secrets in source, ever, not in a comment, not in a test fixture, not "temporarily".
 - Validate input at trust boundaries: request bodies, query params, third-party responses.
 
 ---
@@ -96,7 +96,7 @@ Before adding one, answer all of these:
 
 1. Can the platform do it? (`Intl`, `fetch`, `crypto`, `URL`, `AbortSignal.timeout`, `structuredClone`)
 2. Can it be done in under ~50 lines in `lib/`?
-3. Is it maintained — releases in the last 6 months, no critical advisories?
+3. Is it maintained, releases in the last 6 months, no critical advisories?
 4. What does it cost the client bundle? (Zero, for a server-only dependency.)
 
 Adding one anyway? Say why in the PR. Adding a _transitive-heavy_ one (a package with 20+ dependencies) needs explicit human agreement.
@@ -107,7 +107,7 @@ Adding one anyway? Say why in the PR. Adding a _transitive-heavy_ one (a package
 
 ## 9. Always update documentation when architecture or behaviour changes
 
-Same PR. Not "later". This covers a change in **how something works**, not only a change in structure — if the observable behaviour of a module, endpoint, or config differs, the docs that describe it change with it.
+Same PR. Not "later". This covers a change in **how something works**, not only a change in structure, if the observable behaviour of a module, endpoint, or config differs, the docs that describe it change with it.
 
 | If you change...                    | Update...                                                                           |
 | ----------------------------------- | ----------------------------------------------------------------------------------- |
@@ -121,12 +121,12 @@ Same PR. Not "later". This covers a change in **how something works**, not only 
 
 ---
 
-## 10. Verify before you claim — and before you push
+## 10. Verify before you claim, and before you push
 
 - **Run `pnpm validate` before every push, not only before you claim the work is done.** It is exactly what CI runs (typecheck + lint + format:check + test), so a green local run is a green CI run. **CI must never fail on something you could have caught locally.**
-- **`format:check` is part of the gate.** The most common self-inflicted CI failure is a Prettier miss — for example, editing a Markdown table re-widens its columns. Run `pnpm format` to write the fix, then re-run `pnpm validate` before you push.
+- **`format:check` is part of the gate.** The most common self-inflicted CI failure is a Prettier miss: for example, editing a Markdown table re-widens its columns. Run `pnpm format` to write the fix, then re-run `pnpm validate` before you push.
 - If a check fails, report the failure with its output. Do not describe unverified work as working.
-- If you cannot run `pnpm validate` locally, run `pnpm install` and the gate. If you truly cannot, do not push silently — say so and treat the work as unverified.
+- If you cannot run `pnpm validate` locally, run `pnpm install` and the gate. If you truly cannot, do not push silently, say so and treat the work as unverified.
 - Changed the Dockerfile? Build the image and run the container. `docker compose up --build` then `curl localhost:8080/api/health`.
 - Changed a workflow? YAML that parses is not a workflow that runs.
 
@@ -140,7 +140,7 @@ Every UI is built for a small screen first, then progressively enhanced for larg
 - **Never overflow the viewport.** Prefer fluid widths (`w-full`, `max-w-*`, `min-w-0`) over fixed pixel widths. The body must not scroll horizontally at 320px. Wide content (tables, code blocks, diagrams) scrolls inside its own `overflow-x-auto` container.
 - **Touch first.** Interactive targets are at least 44×44px, with enough spacing that a finger cannot hit two at once.
 - **Layout that reflows.** Use flexbox and grid that wrap and stack; avoid absolute positioning that assumes a viewport size. Images and media get `max-w-full` and intrinsic sizing.
-- **Verify both ends.** Check the component at ~320px and at desktop width before claiming it done — a layout that only works on one is not finished.
+- **Verify both ends.** Check the component at ~320px and at desktop width before claiming it done: a layout that only works on one is not finished.
 
 **Why:** most traffic is mobile, and a broken small-screen layout is a broken product. Mobile-first also forces a content and priority order that scales up cleanly, whereas desktop-first almost never scales down without rework.
 
@@ -153,13 +153,13 @@ Every Markdown document in the repository follows ASD-STE100 Simplified Technica
 - **Keep sentences short.** At most 20 words for an instruction, 25 for a description. One idea per sentence.
 - **One instruction per sentence.** Split a compound step into separate sentences or list items.
 - **Use the active voice and the present tense.** "The build generates the types", not "the types are generated by the build".
-- **Use one approved term per concept.** Do not call the same thing a "folder" here and a "directory" there. Keep verbs and nouns distinct — do not use a noun as a verb.
+- **Use one approved term per concept.** Do not call the same thing a "folder" here and a "directory" there. Keep verbs and nouns distinct: do not use a noun as a verb.
 - **Start a procedure step with the command verb.** "Run `pnpm validate`", not "You should now run `pnpm validate`".
 - **Keep paragraphs to one topic.** Six sentences is a reasonable maximum.
 - **Write for a non-native reader.** Choose the plain word over the clever one. Avoid idiom, slang, and long noun clusters.
 - **Bring a document into compliance when you edit it.** Do not rewrite every file at once; improve the file you touch, in the same PR.
 
-**Why:** many readers — human and machine — parse these documents as instructions. Simple, consistent, unambiguous English lowers the chance that a reader acts on a sentence in a way the author did not mean.
+**Why:** many readers: human and machine , parse these documents as instructions. Simple, consistent, unambiguous English lowers the chance that a reader acts on a sentence in a way the author did not mean.
 
 ---
 
@@ -191,6 +191,6 @@ The rules that get broken most often:
 - Display type runs at weight 400, and 500 at the largest sizes. It is never bold.
 - Objects carry a 2px `ink-1` border. Dividers carry a 1px hairline.
 - There are no shadows on cards, no gradients, no blur, and no hover styling.
-- There is no emoji anywhere — not in copy, not as an icon.
+- There is no emoji anywhere, not in copy, not as an icon.
 
 Reuse `components/ui/` before you build a new primitive. A second button component is a defect.

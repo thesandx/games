@@ -1,5 +1,5 @@
 # Everything excluded here stays out of the build context, which keeps builds
-# fast and — more importantly — prevents secrets and local state from being
+# fast and, more importantly, prevents secrets and local state from being
 # baked into an image layer.
 
 # Dependencies and build output (reinstalled/rebuilt inside the image)
@@ -11,7 +11,7 @@ build
 coverage
 *.tsbuildinfo
 
-# Secrets — never copy real env files into an image
+# Secrets, never copy real env files into an image
 .env
 .env.*
 !.env.example

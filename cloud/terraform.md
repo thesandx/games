@@ -15,7 +15,7 @@ The script is the right tool at this scale. Terraform becomes the right tool at 
 Any one of these is sufficient:
 
 - **More than one environment.** When staging and production must match, drift becomes a real problem.
-- **More than a handful of resources.** Cloud SQL, VPC connectors, load balancers, DNS, monitoring policies — manual console setup does not scale to this.
+- **More than a handful of resources.** Cloud SQL, VPC connectors, load balancers, DNS, monitoring policies: manual console setup does not scale to this.
 - **More than one person changing infrastructure.** Terraform's plan output is a review artefact; a console change is invisible.
 - **A compliance requirement** for infrastructure change history.
 - **Disaster recovery** that must be provably reproducible, not "I think I remember the steps".
@@ -81,21 +81,21 @@ gcloud storage buckets update gs://my-project-tf-state --versioning
 
 Versioning matters: it is the only recovery path from a corrupted or accidentally deleted state file.
 
-## What Terraform should own — and what it should not
+## What Terraform should own, and what it should not
 
-| Resource                                        | Terraform | Why                                                        |
-| ----------------------------------------------- | --------- | ---------------------------------------------------------- |
-| Artifact Registry repository + cleanup policy   | ✅        | Stable, rarely changes                                     |
-| Workload Identity pool, provider, IAM bindings  | ✅        | Security-critical; changes need review                     |
-| Service accounts and their roles                | ✅        | Same                                                       |
-| Cloud Run **service** (existence, scaling, IAM) | ✅        | The shape of the service                                   |
-| Cloud Run **image tag**                         | ❌        | Changes on every deploy                                    |
-| Secret Manager secrets (the container)          | ✅        | Existence and IAM                                          |
-| Secret **values**                               | ❌        | Never in state — state is not encrypted at the field level |
-| Monitoring, alerting, uptime checks             | ✅        | Should not be click-ops                                    |
-| DNS records                                     | ✅        |                                                            |
+| Resource                                        | Terraform | Why                                                       |
+| ----------------------------------------------- | --------- | --------------------------------------------------------- |
+| Artifact Registry repository + cleanup policy   | ✅        | Stable, rarely changes                                    |
+| Workload Identity pool, provider, IAM bindings  | ✅        | Security-critical; changes need review                    |
+| Service accounts and their roles                | ✅        | Same                                                      |
+| Cloud Run **service** (existence, scaling, IAM) | ✅        | The shape of the service                                  |
+| Cloud Run **image tag**                         | ❌        | Changes on every deploy                                   |
+| Secret Manager secrets (the container)          | ✅        | Existence and IAM                                         |
+| Secret **values**                               | ❌        | Never in state, state is not encrypted at the field level |
+| Monitoring, alerting, uptime checks             | ✅        | Should not be click-ops                                   |
+| DNS records                                     | ✅        |                                                           |
 
-**The image tag split is the important one.** If Terraform owns the deployed image, every application deploy becomes a Terraform apply — slow, and it couples the app pipeline to the infrastructure pipeline. Instead, let Terraform create the service and ignore subsequent image changes:
+**The image tag split is the important one.** If Terraform owns the deployed image, every application deploy becomes a Terraform apply: slow, and it couples the app pipeline to the infrastructure pipeline. Instead, let Terraform create the service and ignore subsequent image changes:
 
 ```hcl
 resource "google_cloud_run_v2_service" "app" {
@@ -140,11 +140,11 @@ terraform import google_service_account.deployer \
 terraform plan   # must show NO changes before you trust it
 ```
 
-> `terraform plan` showing an empty diff after import is the acceptance test. If it wants to destroy and recreate something, the configuration does not yet match reality — fix the configuration, not the infrastructure.
+> `terraform plan` showing an empty diff after import is the acceptance test. If it wants to destroy and recreate something, the configuration does not yet match reality: fix the configuration, not the infrastructure.
 
 ## CI integration
 
-A separate workflow from application deploys, using the same Workload Identity Federation (the deployer SA will need broader roles for infrastructure — consider a second, more privileged SA gated behind a protected environment).
+A separate workflow from application deploys, using the same Workload Identity Federation (the deployer SA will need broader roles for infrastructure, consider a second, more privileged SA gated behind a protected environment).
 
 ```
 pull request  →  terraform fmt -check

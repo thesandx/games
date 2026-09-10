@@ -6,7 +6,7 @@
  * behind `https://api.sandeep.app/games`.
  *
  * To move to the real API, set `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote` and
- * rebuild. It is a `NEXT_PUBLIC_*` value, so it is inlined at build time — a
+ * rebuild. It is a `NEXT_PUBLIC_*` value, so it is inlined at build time. A
  * Cloud Run env-var change alone will not switch it. See CLAUDE.md, trap 8.
  */
 

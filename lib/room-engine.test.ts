@@ -37,7 +37,7 @@ function newRoom(overrides: Partial<RoomSettings> = {}): Room {
   return createRoom({ ...INPUT, settings: { ...SETTINGS, ...overrides } }, 'PLZ4K9', 'host-1');
 }
 
-/** A solo room already in play — every turn belongs to the host. */
+/** A solo room already in play, every turn belongs to the host. */
 function soloInPlay(): Room {
   return startRound(newRoom(), 'host-1');
 }
@@ -48,7 +48,7 @@ function numbersAt(room: Room, playerId: string, cells: readonly number[]): numb
   return cells.map((cell) => card[cell] as number);
 }
 
-/** The host's top row — one line, which is deliberately not a win. */
+/** The host's top row, one line, which is deliberately not a win. */
 function topRowNumbers(room: Room, playerId: string): number[] {
   return numbersAt(room, playerId, [0, 1, 2, 3, 4]);
 }
@@ -74,7 +74,7 @@ function playToBingo(room: Room, playerId: string): Room {
 /**
  * Plays the values through, each taken by whoever is on turn.
  *
- * Marking is global, so it does not matter who takes a number — it lands on
+ * Marking is global, so it does not matter who takes a number. It lands on
  * every board. That is what lets one player's winning line be completed by
  * picks the whole table made.
  */
@@ -180,7 +180,7 @@ describe('claimBingo', () => {
     expect(() => claimBingo(room, 'host-1')).toThrow(/need 5 complete lines/i);
   });
 
-  it('refuses a single completed line — one line is not a bingo', () => {
+  it('refuses a single completed line, one line is not a bingo', () => {
     const started = soloInPlay();
     const room = takeAll(started, 'host-1', topRowNumbers(started, 'host-1'));
     expect(
@@ -192,7 +192,7 @@ describe('claimBingo', () => {
   it('refuses at four lines and says how many are left', () => {
     const started = soloInPlay();
     const room = takeAll(started, 'host-1', numbersAt(started, 'host-1', CELLS_4_LINES));
-    expect(() => claimBingo(room, 'host-1')).toThrow(/you have 4 — 1 to go/i);
+    expect(() => claimBingo(room, 'host-1')).toThrow(/you have 4, so 1 to go/i);
   });
 
   it('accepts five completed lines and ends the round', () => {
@@ -380,7 +380,7 @@ describe('scopeRoomForPlayer', () => {
     expect(scoped.bingo?.cards).toEqual({});
   });
 
-  it('keeps the board itself intact — it narrows, it does not redact', () => {
+  it('keeps the board itself intact. It narrows, it does not redact', () => {
     const room = duoInPlay();
     const scoped = scopeRoomForPlayer(room, 'p2');
     expect(scoped.bingo?.cards['p2']).toEqual(room.bingo?.cards['p2']);
@@ -431,7 +431,7 @@ describe('the settings a room actually ships with', () => {
     expect(room.players).toHaveLength(SHIPPED_DEFAULTS.maxPlayers);
 
     expect(() => joinRoom(room, { key: 'PLZ4K9', name: 'Late', color: 'mint' }, 'p9')).toThrow(
-      /full — it holds 8 players/i,
+      /full. It holds 8 players/i,
     );
   });
 

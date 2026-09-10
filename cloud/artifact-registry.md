@@ -6,7 +6,7 @@ Where container images live between CI and Cloud Run.
 
 Container Registry (`gcr.io`) is deprecated and no longer receives features. Artifact Registry is its supported successor. It is better in the ways that matter here:
 
-- Repositories are regional, so Cloud Run pulls from the same region it runs in — faster cold starts, no cross-region egress.
+- Repositories are regional, so Cloud Run pulls from the same region it runs in, faster cold starts, no cross-region egress.
 - IAM is per-repository, not tied to a Cloud Storage bucket.
 - Vulnerability scanning is built in.
 
@@ -49,7 +49,7 @@ Every build pushes two tags:
 | `<commit-sha>` | No      | **What actually gets deployed.** Traceable to an exact commit.                    |
 | `latest`       | Yes     | Convenience pointer for humans and `docker pull`. Never referenced by a revision. |
 
-**Never deploy `:latest`.** A revision pinned to a moving tag cannot answer "what code is running?". A rollback then becomes a rebuild instead of a traffic shift. The deploy workflow uses the SHA tag deliberately — do not "simplify" it.
+**Never deploy `:latest`.** A revision pinned to a moving tag cannot answer "what code is running?". A rollback then becomes a rebuild instead of a traffic shift. The deploy workflow uses the SHA tag deliberately: do not "simplify" it.
 
 Consider adding a semver tag on release if the project cuts versioned releases:
 
@@ -99,7 +99,7 @@ Note that `writer` includes delete on some resources. If your threat model needs
 
 ## Storage and cleanup
 
-Storage is billed per GB per month. Each build pushes a new image, so without a policy the repository grows forever — a few dollars a month becomes a few hundred over a couple of years.
+Storage is billed per GB per month. Each build pushes a new image, so without a policy the repository grows forever. A few dollars a month becomes a few hundred over a couple of years.
 
 A sensible policy: keep the 10 most recent, delete untagged images older than 30 days.
 
@@ -127,7 +127,7 @@ gcloud artifacts repositories set-cleanup-policies containers \
   --policy=/tmp/cleanup-policy.json
 ```
 
-Dry-run it first — cleanup policies delete permanently:
+Dry-run it first, cleanup policies delete permanently:
 
 ```bash
 gcloud artifacts repositories set-cleanup-policies containers \
@@ -176,7 +176,7 @@ gcloud artifacts docker images describe \
 
 # Delete a specific version (rollback becomes impossible for that build)
 gcloud artifacts docker images delete \
-  asia-southeast1-docker.pkg.dev/my-project/containers/my-app@sha256:... \
+  asia-southeast1-docker.pkg.dev/my-project/containers/my-app@sha256:.. \
   --delete-tags
 
 # Repository size

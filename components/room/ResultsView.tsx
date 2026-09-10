@@ -64,7 +64,7 @@ export function ResultsView({
         </h1>
         <p className="text-sm text-white/85">
           {lines.length > 0
-            ? `${lines.map(describeLine).join(', ')} — on ${room.bingo?.selected.length ?? 0} numbers. Everyone else keeps points for the lines they completed.`
+            ? `${lines.map(describeLine).join(', ')}. That took ${room.bingo?.selected.length ?? 0} numbers. Everyone else keeps points for the lines they completed.`
             : 'Everyone else keeps points for the lines they completed.'}
         </p>
       </div>
@@ -93,7 +93,7 @@ export function ResultsView({
             <p className="text-ink-3 mt-2 text-sm">
               {myLines.length === 0
                 ? 'No completed lines.'
-                : `${myLines.map(describeLine).join(', ')} — ${myLines.length} of ${LINES_TO_WIN}.`}
+                : `${myLines.length} of ${LINES_TO_WIN}: ${myLines.map(describeLine).join(', ')}.`}
             </p>
           </section>
 
@@ -108,7 +108,7 @@ export function ResultsView({
               label={`${winner?.name}'s winning board`}
             />
             <p className="text-ink-3 mt-2 text-sm">
-              {lines.map(describeLine).join(', ')} — {lines.length} of {LINES_TO_WIN}.
+              {lines.length} of {LINES_TO_WIN}: {lines.map(describeLine).join(', ')}.
             </p>
           </section>
         </div>
@@ -136,7 +136,7 @@ export function ResultsView({
         <div className="mt-5 flex flex-wrap gap-3">
           {/*
             On the last round this screen IS the end of the session, so the
-            thing most groups want next — another game with the same people —
+            thing most groups want next, another game with the same people,
             is offered here rather than only one screen further on. Mid-session
             it is deliberately absent: "Next round" is already the way to carry
             on, and a session reset sitting beside it is a wiped scoreboard one

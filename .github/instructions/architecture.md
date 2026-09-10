@@ -20,7 +20,7 @@ Google Cloud Run  (managed, autoscaling, scale-to-zero)
    └── stdout / stderr ──▶ Cloud Logging (structured JSON)
 ```
 
-There is no database, cache or queue in the template. That is deliberate — see "What is not here" below.
+There is no database, cache or queue in the template. That is deliberate, see "What is not here" below.
 
 ---
 
@@ -57,7 +57,7 @@ Next.js App Router with React Server Components.
 | -------------- | ------------------------------------------------------- |
 | Data fetching  | Server Components (`async` functions) or Route Handlers |
 | HTML rendering | Server, by default                                      |
-| Interactivity  | Client Components — small, leaf-shaped islands          |
+| Interactivity  | Client Components, small, leaf-shaped islands           |
 | Mutations      | Server Actions or Route Handlers                        |
 
 **Why Server Components by default:**
@@ -100,7 +100,7 @@ logger.info('Order created', { orderId, userId, amountCents });
 
 becomes a queryable LogEntry in Cloud Logging with `jsonPayload.orderId` as a filterable field.
 
-`/api/health` reports the running version (commit SHA), region and uptime — enough to answer "which build is serving traffic?" without opening the console.
+`/api/health` reports the running version (commit SHA), region and uptime, enough to answer "which build is serving traffic?" without opening the console.
 
 **Deliberately not included:** distributed tracing, metrics export, error tracking. Add OpenTelemetry or Cloud Error Reporting when there is a system complex enough to need them.
 
@@ -108,15 +108,15 @@ becomes a queryable LogEntry in Cloud Logging with `jsonPayload.orderId` as a fi
 
 ## Security posture
 
-| Layer    | Control                                                                    |
-| -------- | -------------------------------------------------------------------------- |
-| Pipeline | Workload Identity Federation — no long-lived service account keys exist    |
-| Pipeline | Least-privilege job permissions; `contents: read` unless more is needed    |
-| Image    | Non-root user (uid 1001), Alpine base, standalone output (small surface)   |
-| Image    | Read-only root filesystem in Compose; `no-new-privileges`                  |
-| Runtime  | Secrets from Secret Manager, mounted as env vars — never baked into layers |
-| Runtime  | Security headers set in `next.config.ts`; `X-Powered-By` removed           |
-| Code     | CodeQL on every PR and weekly; Dependabot on npm, Actions and Docker       |
+| Layer    | Control                                                                   |
+| -------- | ------------------------------------------------------------------------- |
+| Pipeline | Workload Identity Federation. No long-lived service account keys exist    |
+| Pipeline | Least-privilege job permissions; `contents: read` unless more is needed   |
+| Image    | Non-root user (uid 1001), Alpine base, standalone output (small surface)  |
+| Image    | Read-only root filesystem in Compose; `no-new-privileges`                 |
+| Runtime  | Secrets from Secret Manager, mounted as env vars, never baked into layers |
+| Runtime  | Security headers set in `next.config.ts`; `X-Powered-By` removed          |
+| Code     | CodeQL on every PR and weekly; Dependabot on npm, Actions and Docker      |
 
 ---
 
@@ -138,7 +138,7 @@ GitHub Actions  ── OIDC token ──▶  Workload Identity Pool
                         health probe verifies it serves
 ```
 
-The pipeline tags each image with the commit SHA and deploys it by that immutable tag — never `:latest`. A rollback is therefore a one-line `gcloud run services update-traffic` to a previous revision, with no rebuild.
+The pipeline tags each image with the commit SHA and deploys it by that immutable tag, never `:latest`. A rollback is therefore a one-line `gcloud run services update-traffic` to a previous revision, with no rebuild.
 
 ---
 
@@ -152,7 +152,7 @@ The pipeline tags each image with the commit SHA and deploys it by that immutabl
 | **pnpm**                         | Content-addressed store, fast CI installs, strict about phantom dependencies         | Contributors need corepack enabled                                      |
 | **Workload Identity Federation** | No key material exists to leak or rotate                                             | ~10 minutes of one-time setup (automated in `scripts/gcp-bootstrap.sh`) |
 | **Vitest over Jest**             | Reuses the tsconfig path aliases, no separate transform, fast enough for every PR    | Smaller ecosystem than Jest                                             |
-| **Hand-rolled logger**           | Zero dependencies, exactly the fields Cloud Logging wants                            | No sampling, redaction or transports — swap in `pino` if needed         |
+| **Hand-rolled logger**           | Zero dependencies, exactly the fields Cloud Logging wants                            | No sampling, redaction or transports, swap in `pino` if needed          |
 | **Tailwind CSS**                 | No naming debate, dead CSS is impossible, tokens live in one file                    | Verbose `className` strings                                             |
 
 ---

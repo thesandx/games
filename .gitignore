@@ -16,12 +16,12 @@ next-env.d.ts
 # TypeScript
 *.tsbuildinfo
 
-# Environment — never commit real values. .env.example is the tracked contract.
+# Environment, never commit real values. .env.example is the tracked contract.
 .env
 .env.*
 !.env.example
 
-# Google Cloud — service account keys must never reach the repository.
+# Google Cloud, service account keys must never reach the repository.
 # The deploy pipeline uses Workload Identity Federation and needs no key files.
 *.json.key
 gha-creds-*.json
@@ -29,7 +29,7 @@ service-account*.json
 application_default_credentials.json
 .gcloudignore
 
-# Terraform (for when cloud/terraform/ lands — see cloud/terraform.md)
+# Terraform (for when cloud/terraform/ lands, see cloud/terraform.md)
 **/.terraform/*
 *.tfstate
 *.tfstate.*
@@ -54,7 +54,7 @@ Thumbs.db
 *.swp
 *.pem
 
-# Vercel (unused here — this template deploys to Cloud Run)
+# Vercel (unused here. This template deploys to Cloud Run)
 .vercel
 
 /games/*

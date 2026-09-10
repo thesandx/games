@@ -3,7 +3,7 @@
  *
  * Why this file exists: `process.env.FOO` is `string | undefined` everywhere,
  * so a missing variable surfaces as a confusing runtime error deep in a request
- * handler — often only in production. Validating once, at module load, turns
+ * handler: often only in production. Validating once, at module load, turns
  * that into a loud failure at container start, which Cloud Run reports as a
  * failed revision instead of silently serving broken traffic.
  *
@@ -124,7 +124,7 @@ export const env = {
   /**
    * Which transport backs rooms. `local` keeps state in the browser so the app
    * is playable before the API exists; `remote` calls `playroomApiUrl`.
-   * Defaults to `local` deliberately — pointing at an endpoint that does not
+   * Defaults to `local` deliberately, pointing at an endpoint that does not
    * answer yet would make every screen fail rather than degrade.
    */
   playroomTransport: oneOf(
@@ -142,7 +142,7 @@ export const env = {
  *
  * `NEXT_PUBLIC_APP_URL` is intentionally NOT required. Cloud Run only generates
  * the service URL after the first deploy, and `NEXT_PUBLIC_*` values are inlined
- * at build time — so making it mandatory would fail the first deploy's health
+ * at build time, so making it mandatory would fail the first deploy's health
  * check before the URL can exist. `appUrl` above falls back to a safe default,
  * and the deploy workflow inlines the real value on the next build.
  */

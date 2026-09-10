@@ -47,7 +47,7 @@
             │  <region>-docker     │──▶│  service: <name>         │
             │    .pkg.dev          │   │  revision: <sha>         │
             │  repo: containers    │   │  100% traffic            │
-            │  image:<sha>,:latest │   │  min=0  max=10           │
+            │  image:<sha>:latest │   │  min=0  max=10           │
             └──────────────────────┘   │  concurrency=80          │
                                        │  runtime SA (minimal)    │
                                        └────────┬─────────────────┘
@@ -102,13 +102,13 @@ Step ⑧ is what makes a green result meaningful. Without it, "deployed" only me
 
 | Dimension         | Setting                | Effect                                                                                                                |
 | ----------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Minimum instances | `0`                    | Scales fully to zero. No idle cost; first request after idle pays a cold start (~1–3s here, helped by `--cpu-boost`). |
+| Minimum instances | `0`                    | Scales fully to zero. No idle cost; first request after idle pays a cold start (~1-3s here, helped by `--cpu-boost`). |
 | Maximum instances | `10`                   | Hard ceiling. Bounds both a traffic spike's blast radius and the monthly bill.                                        |
 | Concurrency       | `80` requests/instance | Node is single-threaded but I/O-bound work overlaps well. Lower it if CPU-bound rendering causes queueing.            |
-| CPU allocation    | Request-based          | CPU is throttled between requests, which is why background timers are unreliable — use Cloud Tasks.                   |
+| CPU allocation    | Request-based          | CPU is throttled between requests, which is why background timers are unreliable: use Cloud Tasks.                    |
 | Scaling signal    | Concurrency and CPU    | Cloud Run adds instances when existing ones approach the concurrency limit.                                           |
 
-**Capacity, roughly:** 10 instances × 80 concurrent requests = 800 in-flight requests. At 100ms each that is ~8,000 req/s — far beyond what most applications need before other bottlenecks appear.
+**Capacity, roughly:** 10 instances × 80 concurrent requests = 800 in-flight requests. At 100ms each that is ~8,000 req/s: far beyond what most applications need before other bottlenecks appear.
 
 ## Environments
 
@@ -182,4 +182,4 @@ Today
   OpenTelemetry → Cloud Trace; Cloud Error Reporting; SLO-based alerting
 ```
 
-Each of these changes the diagram at the top of this file. Update it in the same PR — see rule 9 in `.github/instructions/coding-rules.md`.
+Each of these changes the diagram at the top of this file. Update it in the same PR: see rule 9 in `.github/instructions/coding-rules.md`.

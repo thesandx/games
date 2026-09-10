@@ -11,7 +11,7 @@ export interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>,
 /**
  * A selectable pill, used for the browse filters and the rules tabs.
  *
- * Selection is announced, not just coloured in — but with the right attribute
+ * Selection is announced, not just coloured in, but with the right attribute
  * for the role. A toggle uses `aria-pressed`; a tab uses `aria-selected`, which
  * the caller supplies. Setting both would describe two different widgets at
  * once, so `aria-pressed` is omitted when this chip is acting as a tab.

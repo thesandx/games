@@ -26,7 +26,7 @@ const SURFACES: Record<CardSurface, string> = {
  * The rounded 20px panel the whole design is built from.
  *
  * Signature colours (`coral`, `forest`) and the pastels are whole-card surfaces
- * by design-system rule — never small accents or borders.
+ * by design-system rule, never small accents or borders.
  */
 export function Card({ surface = 'white', outlined = true, className, children }: CardProps) {
   return (

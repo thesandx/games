@@ -27,7 +27,7 @@ const NEARLY_UP = 5;
  * The count ticks locally between reads rather than stepping down two seconds
  * at a time as the poll lands. It is anchored to the server's number every time
  * that number changes, so it can drift by at most one poll interval and cannot
- * disagree about whether the turn has actually run out — the server decides
+ * disagree about whether the turn has actually run out. The server decides
  * that, and it decides it for players whose browser is not there to be asked.
  */
 export function TurnBanner({
@@ -36,7 +36,7 @@ export function TurnBanner({
   secondsRemaining = null,
   className,
 }: TurnBannerProps) {
-  // Only the ticked value is state. Render stays pure — reading a clock during
+  // Only the ticked value is state. Render stays pure, reading a clock during
   // render is not, and the React compiler is right to refuse it.
   const [remaining, setRemaining] = useState<number | null>(secondsRemaining);
 
@@ -47,7 +47,7 @@ export function TurnBanner({
     const update = (): void => setRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
 
     // The first correction is scheduled rather than called inline, which keeps
-    // the effect body free of state updates — the same reason `useRoom`
+    // the effect body free of state updates, the same reason `useRoom`
     // schedules its first read instead of making it.
     const first = window.setTimeout(update, 0);
     // Four times a second, so the number never appears to skip one.
@@ -87,7 +87,7 @@ export function TurnBanner({
         {current === undefined
           ? 'Waiting for the next turn'
           : isYourTurn
-            ? 'Your turn — pick a number'
+            ? 'Your turn: pick a number'
             : `${current.name}'s turn`}
       </span>
 

@@ -14,7 +14,7 @@ export function TransportNotice() {
   return (
     <div className="bg-cream border-b border-hairline">
       <p className="text-ink-2 mx-auto max-w-[1120px] px-5 py-2 text-sm">
-        Preview mode — rooms live in this browser only. Open a second tab to play as another player.
+        Preview mode: rooms live in this browser only. Open a second tab to play as another player.
         Cross-device play starts once the rooms API is connected.
       </p>
     </div>

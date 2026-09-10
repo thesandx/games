@@ -36,7 +36,7 @@ docker build "${BUILD_ARGS[@]}" --tag "$FULL_TAG" --progress=plain .
 
 echo
 SIZE="$(docker image inspect "$FULL_TAG" --format='{{.Size}}' | awk '{printf "%.0f MB", $1/1024/1024}')"
-echo "Built ${FULL_TAG} — ${SIZE}"
+echo "Built ${FULL_TAG}, ${SIZE}"
 echo
 echo "Run it:      ./scripts/docker-run.sh ${TAG}"
 echo "Inspect it:  docker history ${FULL_TAG}"

@@ -55,7 +55,7 @@ cleanup_on_failure() {
 echo -n "Waiting for health"
 for _ in $(seq 1 30); do
   if curl -fsS "http://localhost:${HOST_PORT}/api/health" >/dev/null 2>&1; then
-    echo " — healthy"
+    echo ", healthy"
     echo
     curl -s "http://localhost:${HOST_PORT}/api/health" | (command -v jq >/dev/null && jq || cat)
     echo
@@ -69,6 +69,6 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 
-echo " — failed"
+echo ": failed"
 cleanup_on_failure
 exit 1

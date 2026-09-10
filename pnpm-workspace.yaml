@@ -20,7 +20,7 @@ allowBuilds:
 # Refuses to install any package version published less than this many minutes
 # ago (1440 = 24 hours). This is the single most effective defence against the
 # dominant npm attack pattern: a maintainer account is compromised, a malicious
-# version is published, and it is yanked within hours — but not before CI jobs
+# version is published, and it is yanked within hours, but not before CI jobs
 # worldwide have installed it. Waiting a day means someone else finds it first.
 #
 # Set explicitly rather than inherited, so the value is reviewable and does not
@@ -29,7 +29,7 @@ allowBuilds:
 # ⚠ Raising this is not free. The gate is evaluated at install time against
 #   every entry in the lockfile, including transitive ones you never chose. A
 #   window wider than the age of the youngest package in pnpm-lock.yaml breaks
-#   `pnpm install --frozen-lockfile` — which is CI and the Docker build. If you
+#   `pnpm install --frozen-lockfile`, which is CI and the Docker build. If you
 #   raise it, regenerate the lockfile and verify the container still builds.
 #
 # ⚠ This interacts with Dependabot. A bot PR raised the day a version ships
@@ -45,7 +45,7 @@ minimumReleaseAge: 1440
 #
 # Treat every entry as a deliberate, temporary exception: it means "I chose to
 # install this before it had aged". Prune entries once the version is older
-# than minimumReleaseAge — they are then redundant, and a stale list quietly
+# than minimumReleaseAge. They are then redundant, and a stale list quietly
 # widens the hole. Empty is the healthy steady state.
 minimumReleaseAgeExclude:
   - "@testing-library/jest-dom@7.0.0"

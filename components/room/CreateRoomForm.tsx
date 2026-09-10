@@ -22,7 +22,7 @@ import type { AvatarColor, GameId } from '@/types/playroom';
  * panel therefore summarises the setup and the key is revealed in the lobby,
  * one screen later.
  *
- * There is no settings section. Rounds, capacity and who may join are fixed —
+ * There is no settings section. Rounds, capacity and who may join are fixed:
  * see `DEFAULT_ROOM_SETTINGS`. They were controls that asked the host to decide
  * something before they had any reason to care.
  */
@@ -46,7 +46,7 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
 
   /**
    * The submit button stays enabled on an empty nickname. A disabled button
-   * gives no reason for being disabled — pressing it and being shown the field
+   * gives no reason for being disabled, pressing it and being shown the field
    * that needs filling is how a person finds out what is missing.
    */
   async function handleSubmit(event: React.FormEvent): Promise<void> {
@@ -71,7 +71,7 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
       });
       // Hand the identity to the room screen before navigating, so the player
       // arrives as a member rather than a stranger. The token comes back once
-      // and only here — it is never in a room payload, so losing it means
+      // and only here. It is never in a room payload, so losing it means
       // rejoining as somebody new.
       rememberPlayerIdentity(room.key, playerId, playerToken);
       router.push(`/room/${room.key}`);

@@ -17,7 +17,7 @@ const SURFACES: Record<GameDefinition['surface'], string> = {
 /**
  * A game on the browse screen.
  *
- * A `building` game renders the design's "In build — not playable yet" line
+ * A `building` game renders the design's "In build, not playable yet" line
  * instead of a create button. That is a deliberate dead end: routing someone
  * into a room for a game with no rules implemented would strand them in a
  * lobby that can never start.
@@ -54,7 +54,7 @@ export function GameCard({ game, className }: GameCardProps) {
           </ButtonLink>
         </div>
       ) : (
-        <span className="text-ink-3 text-sm font-medium">In build — not playable yet</span>
+        <span className="text-ink-3 text-sm font-medium">In build: not playable yet</span>
       )}
     </div>
   );

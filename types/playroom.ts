@@ -63,7 +63,7 @@ export interface BingoState {
    */
   selected: readonly number[];
   /**
-   * Boards, keyed by player id — but only the ones the caller may see.
+   * Boards, keyed by player id, but only the ones the caller may see.
    *
    * During a round this holds the caller's own board and nothing else: a player
    * never sees another player's grid. Once somebody wins, the winner's board is
@@ -80,14 +80,14 @@ export interface BingoState {
   /** Set once someone calls a verified bingo. */
   winnerId: string | null;
   /**
-   * The completed lines the win was awarded for — five or more, since one line
+   * The completed lines the win was awarded for, five or more, since one line
    * is not a win. Empty while the round is still running. Shown highlighted on
    * the winner's board.
    */
   winningLines: readonly WinningLine[];
   /**
    * Seconds left for the player on turn, or `null` when nothing is on the
-   * clock — a finished round, or the browser-only transport, which has no
+   * clock, a finished round, or the browser-only transport, which has no
    * server to play a turn out on somebody's behalf.
    *
    * A duration rather than a deadline, and that is deliberate. `expiresAt` can
@@ -149,7 +149,7 @@ export interface JoinRoomInput {
  * Identifies the caller to the transport for player-scoped actions.
  *
  * `playerId` and `playerToken` are deliberately two different things. The id is
- * public — it appears in `hostId`, in `bingo.turnOrder` and on every entry in
+ * public, it appears in `hostId`, in `bingo.turnOrder` and on every entry in
  * `players`, so every player in a room can read every other player's id. If the
  * id were also the credential, any player could take another player's turn or
  * claim their bingo. The token is the credential, it is returned exactly once
@@ -192,7 +192,7 @@ export interface RoomTransport {
   /**
    * Takes a number on the caller's turn. The transport rejects the call when it
    * is not their turn, when the number is already taken, or when the round is
-   * not running — the client's view of whose turn it is never decides this.
+   * not running. The client's view of whose turn it is never decides this.
    */
   selectNumber(identity: PlayerIdentity, value: number): Promise<Room>;
   claimBingo(identity: PlayerIdentity): Promise<Room>;
@@ -207,7 +207,7 @@ export interface RoomTransport {
    *
    * Optional, because not every transport has one: the browser store has no
    * server to stream from and relies on its `storage` events instead. Callers
-   * must keep polling either way — a push that never arrives has to degrade to
+   * must keep polling either way. A push that never arrives has to degrade to
    * a room that is at most one poll interval stale, never to a stuck screen.
    *
    * Returns an unsubscribe function.

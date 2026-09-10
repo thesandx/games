@@ -1,5 +1,5 @@
 /**
- * Room state machine — pure reducers over a `Room`.
+ * Room state machine: pure reducers over a `Room`.
  *
  * Every rule of a session lives here: whose turn it is, which numbers are
  * still free, when a bingo claim is good, how points are awarded. Nothing in
@@ -8,7 +8,7 @@
  *
  * These functions are the authority, not the UI. A client that sends a
  * selection out of turn, a number someone already took, or a bingo claim on an
- * incomplete board is rejected here — the screens only decide what to *offer*.
+ * incomplete board is rejected here. The screens only decide what to *offer*.
  *
  * Each function returns a NEW room and never mutates its argument, so a
  * transport can keep the previous value for optimistic-update rollback.
@@ -135,7 +135,7 @@ export function joinRoom(
   if (room.players.length >= room.settings.maxPlayers) {
     throw new RoomError(
       'room-full',
-      `This room is full — it holds ${room.settings.maxPlayers} players.`,
+      `This room is full. It holds ${room.settings.maxPlayers} players.`,
     );
   }
   if (room.settings.privacy === 'Locked after start' && room.phase !== 'lobby') {
@@ -269,7 +269,7 @@ export function selectNumber(
  * Claims bingo.
  *
  * The claim is checked against the board and the globally selected numbers, so
- * a client cannot win by asserting which of its cells are marked — marking is
+ * a client cannot win by asserting which of its cells are marked, marking is
  * derived, never sent.
  *
  * Near-simultaneous calls are safe because the first valid claim sets
@@ -291,13 +291,13 @@ export function claimBingo(room: Room, playerId: string, now: number = Date.now(
   if (!card) throw new RoomError('not-in-room', 'You have no board for this round.');
 
   // Five lines, not one. Lines may share cells, so a single number can finish
-  // two at once — the count is what matters, not which ones.
+  // two at once. The count is what matters, not which ones.
   const lines = findWinningLines(card, bingo.selected);
   if (lines.length < LINES_TO_WIN) {
     const short = LINES_TO_WIN - lines.length;
     throw new RoomError(
       'invalid-claim',
-      `You need ${LINES_TO_WIN} complete lines to call bingo. You have ${lines.length} — ${short} to go.`,
+      `You need ${LINES_TO_WIN} complete lines to call bingo. You have ${lines.length}, so ${short} to go.`,
     );
   }
 

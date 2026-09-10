@@ -29,7 +29,7 @@ function parse(raw: string | null): StoredIdentity | null {
   } catch {
     // An older tab stored a bare player id, which is no longer enough to act
     // with. Treat it as "not a member": the room screen offers the join form,
-    // which is the only recovery — a lost token cannot be recovered by design.
+    // which is the only recovery. A lost token cannot be recovered by design.
     return null;
   }
 }
@@ -41,7 +41,7 @@ function parse(raw: string | null): StoredIdentity | null {
  * before the room screen mounts, and writing it here keeps the key format from
  * being spelled out in three files.
  *
- * The token is a credential, so it goes to session storage and nowhere else —
+ * The token is a credential, so it goes to session storage and nowhere else,
  * never to a URL, a log line, or the page.
  */
 export function rememberPlayerIdentity(
@@ -76,7 +76,7 @@ function subscribe(onChange: () => void): () => void {
  * Stored in `sessionStorage`, not `localStorage`, and that choice is
  * load-bearing three times over. Session storage is per-tab, so opening a
  * second tab makes you a second player instead of hijacking the host's
- * identity — which is what lets one browser test a real multi-player room. It
+ * identity, which is what lets one browser test a real multi-player room. It
  * is also what makes the product's promise true: close the tab and the identity
  * is gone, because nothing was kept against you.
  *

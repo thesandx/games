@@ -1,5 +1,5 @@
 /**
- * Bingo rules — pure functions, no I/O, no randomness the caller cannot control.
+ * Bingo rules, pure functions, no I/O, no randomness the caller cannot control.
  *
  * The board is a 5x5 grid holding the numbers 1 to 25, each exactly once,
  * shuffled independently for every player. There is no free square: all 25
@@ -9,18 +9,18 @@
  * that has not been taken; that number is then marked on EVERY board in the
  * room, wherever it appears. Nobody marks their own cells.
  *
- * A player wins by completing FIVE lines — any mix of rows, columns and
+ * A player wins by completing FIVE lines, any mix of rows, columns and
  * diagonals, out of the twelve that exist. That is where the name comes from:
  * one letter of B-I-N-G-O per completed line. Lines share cells, so a single
  * number can complete two lines at once. Filling the whole card is not
  * required, and one line is not a win.
  *
  * Cells are stored row-major, so index `i` sits at row `i / 5` and column
- * `i % 5` — the same order the 5-column CSS grid renders them in.
+ * `i % 5`. The same order the 5-column CSS grid renders them in.
  */
 
 export const GRID_SIZE = 5;
-/** Lines needed to win — one per letter of B-I-N-G-O. */
+/** Lines needed to win, one per letter of B-I-N-G-O. */
 export const LINES_TO_WIN = 5;
 /** Earned left to right, one letter per completed line. */
 export const BINGO_LETTERS = ['B', 'I', 'N', 'G', 'O'] as const;
@@ -57,8 +57,8 @@ export type RandomInt = (max: number) => number;
 /**
  * Deals one board: the numbers 1..25 in a random order.
  *
- * Fisher-Yates, so every arrangement is equally likely and — because the pool
- * is a permutation of 1..25 — every number appears exactly once by construction
+ * Fisher-Yates, so every arrangement is equally likely and, because the pool
+ * is a permutation of 1..25, every number appears exactly once by construction
  * rather than by a uniqueness check afterwards.
  */
 export function createCard(random: RandomInt = defaultRandom): BingoCard {
@@ -135,7 +135,7 @@ export function availableNumbers(selected: readonly number[]): readonly number[]
  * Cell indices that are marked on this board.
  *
  * Marking is derived from the globally selected numbers rather than stored per
- * player, which is what makes every board agree by construction — there is no
+ * player, which is what makes every board agree by construction. There is no
  * per-player mark state that could drift out of sync.
  */
 export function markedCells(card: BingoCard, selected: readonly number[]): readonly number[] {

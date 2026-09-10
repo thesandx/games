@@ -21,13 +21,13 @@ We will deploy to **Google Cloud Run**, as a container built by GitHub Actions a
 
 ## Alternatives considered
 
-### Option A — Cloud Run (chosen)
+### Option A: Cloud Run (chosen)
 
 Fully managed containers. Scales to zero, bills per 100ms of request time, terminates TLS, and integrates natively with GitHub OIDC, Cloud Logging and Secret Manager.
 
 The container abstraction is the deciding factor: what runs in CI, in a local `docker compose`, and in production is byte-identical. That eliminates an entire class of "works locally" failure.
 
-### Option B — Vercel
+### Option B: Vercel
 
 The path of least resistance for Next.js: zero configuration, best-in-class DX, and features (ISR, edge middleware, image optimisation) that are first-party rather than approximated.
 
@@ -35,21 +35,21 @@ Rejected because it splits the stack. Application logs live in one vendor and ev
 
 Worth revisiting for a project that is purely a marketing site with no Google Cloud dependencies.
 
-### Option C — Google Kubernetes Engine
+### Option C: Google Kubernetes Engine
 
 Maximum control, and the right answer for a system of many services with complex networking.
 
 Rejected as disproportionate. A cluster is a thing that must be upgraded, secured, monitored and paid for even when nothing is running. For a single stateless web frontend, that is operational cost with no corresponding benefit.
 
-### Option D — App Engine
+### Option D: App Engine
 
 Also serverless, also Google Cloud. Rejected because it is effectively in maintenance mode for new workloads: Cloud Run is where the platform investment goes, the container model is more portable, and the local-development story is better.
 
-### Option E — A VM on Compute Engine
+### Option E: A VM on Compute Engine
 
 Cheapest at steady high load, and completely under our control.
 
-Rejected because it means owning OS patching, process supervision, TLS certificate renewal, log shipping and a load balancer — all of which Cloud Run provides. It also does not scale to zero, so idle cost is constant.
+Rejected because it means owning OS patching, process supervision, TLS certificate renewal, log shipping and a load balancer. All of which Cloud Run provides. It also does not scale to zero, so idle cost is constant.
 
 ## Consequences
 
@@ -61,13 +61,13 @@ Rejected because it means owning OS patching, process supervision, TLS certifica
 - Managed TLS and a URL on the first deploy.
 - Container parity between local, CI and production.
 - Native Workload Identity Federation, so the pipeline needs no stored credentials (see [ADR-0002](./0002-use-workload-identity-federation.md)).
-- Rollback is a traffic shift to an existing revision — seconds, no rebuild.
+- Rollback is a traffic shift to an existing revision: seconds, no rebuild.
 
 **Bad**
 
-- Cold starts. Mitigated with `--cpu-boost` and, where latency matters, `--min-instances=1` at roughly $10–15/month.
+- Cold starts. Mitigated with `--cpu-boost` and, where latency matters, `--min-instances=1` at roughly $10-15/month.
 - We own the Dockerfile and the pipeline. That is more initial work than `git push` to Vercel.
-- Next.js features that assume Vercel's infrastructure — edge middleware, ISR at the CDN layer — need adaptation or do not apply.
+- Next.js features that assume Vercel's infrastructure, edge middleware, ISR at the CDN layer, need adaptation or do not apply.
 - 300s maximum request duration. Long-running work must move to Cloud Tasks.
 - No built-in CDN. A global audience needs Cloud Load Balancer plus Cloud CDN in front.
 
@@ -80,7 +80,7 @@ Rejected because it means owning OS patching, process supervision, TLS certifica
 
 - The application needs sub-100ms responses worldwide, and a load balancer plus CDN is not enough.
 - Cold starts become user-visible even with `--min-instances`.
-- The system grows into many interdependent services with service-mesh requirements — at which point GKE earns its operational cost.
+- The system grows into many interdependent services with service-mesh requirements, at which point GKE earns its operational cost.
 - A project has no other Google Cloud dependencies, making Vercel's DX advantage free of the split-stack penalty.
 
 ## References

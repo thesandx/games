@@ -8,11 +8,11 @@
  * exercise real rules rather than fixtures.
  *
  * What it genuinely supports: one browser profile, across as many tabs and
- * windows as you like — open a second tab, join with the key, and the two play
+ * windows as you like, open a second tab, join with the key, and the two play
  * against each other. Writes propagate through the `storage` event.
  *
  * What it cannot do: reach another device. That is what the remote transport is
- * for. Nothing here should grow features the HTTP API will not also have —
+ * for. Nothing here should grow features the HTTP API will not also have,
  * when the endpoint lands, flip `NEXT_PUBLIC_PLAYROOM_TRANSPORT` to `remote`
  * and this file stops being reachable.
  */
@@ -132,7 +132,7 @@ function freeRoomKey(): string {
 /**
  * Persists the reducer's result, then returns it narrowed to the caller.
  *
- * The full room — every board — is what gets stored. What comes back is scoped,
+ * The full room, every board, is what gets stored. What comes back is scoped,
  * so a player only ever holds their own grid. A real server does the same on
  * the way out of the handler.
  */
@@ -147,7 +147,7 @@ function mutateAndScope(roomKey: string, playerId: string, reducer: (room: Room)
  * them. JavaScript is single-threaded per tab and `localStorage` writes are
  * synchronous, so no other tab can observe or overwrite the half-applied state:
  * this read-modify-write is atomic in practice. That is what lets two numbers
- * chosen at the same instant serialise — the second call reads the first one's
+ * chosen at the same instant serialise. The second call reads the first one's
  * result and is rejected by the engine.
  *
  * A real server gets this from its own transaction. Nothing here relies on the

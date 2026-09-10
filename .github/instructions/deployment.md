@@ -13,7 +13,7 @@ Cloud Run runs your container. In exchange it demands exactly four things. Break
 Cloud Run injects `PORT` (8080 by default) and waits for the container to accept connections on it. A hardcoded port is the single most common deployment failure.
 
 ```dockerfile
-ENV PORT=8080          # a default, not a constant — Cloud Run overrides it
+ENV PORT=8080          # a default, not a constant. Cloud Run overrides it
 ```
 
 The Next.js standalone server reads `process.env.PORT` automatically. Do not add `-p 3000` anywhere.
@@ -77,7 +77,7 @@ Three kinds, with three different lifecycles. Confusing them wastes hours.
 | Secrets           | Secret Manager → `--set-secrets`       | Runtime    | A new revision       |
 | Platform-injected | Cloud Run itself (`PORT`, `K_SERVICE`) | Runtime    | Nothing              |
 
-### Adding a variable — all four steps, same PR
+### Adding a variable: all four steps, same PR
 
 1. Document it in `.env.example`, with its purpose, valid values and default.
 2. Declare and validate it in `lib/env.ts`.
@@ -127,7 +127,7 @@ The pipeline deploys the **commit SHA tag**, never `:latest`. That makes a revis
 
 ## Rollback
 
-No rebuild needed — the previous image is still in Artifact Registry and the previous revision still exists:
+No rebuild needed. The previous image is still in Artifact Registry and the previous revision still exists:
 
 ```bash
 gcloud run revisions list --service SERVICE --region REGION

@@ -15,7 +15,7 @@ import { formatIst } from '@/lib/utils';
  * that fails when a downstream dependency blips will make Cloud Run kill a
  * perfectly healthy container and amplify the outage. Add a separate
  * `/api/health/deep` endpoint for dependency checks if you need one, and point
- * only dashboards — never the orchestrator — at it.
+ * only dashboards, never the orchestrator, at it.
  */
 
 // Never cached, never statically prerendered: a cached "ok" is worthless.

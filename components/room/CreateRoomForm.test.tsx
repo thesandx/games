@@ -13,7 +13,7 @@ beforeEach(() => {
 });
 
 describe('CreateRoomForm', () => {
-  it('offers no room settings — they are fixed', () => {
+  it('offers no room settings. They are fixed', () => {
     render(<CreateRoomForm initialGame="bingo" />);
     expect(screen.queryByText('Room settings')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/rounds/i)).not.toBeInTheDocument();

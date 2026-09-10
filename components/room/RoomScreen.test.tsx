@@ -12,7 +12,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
  * The transport is stubbed rather than driven, because the failure this file is
  * about cannot be produced through the UI: the screen only offers a move it
  * believes is legal, and the browser store is synchronous, so client and server
- * never disagree there. The disagreement is the whole point — the player taps a
+ * never disagree there. The disagreement is the whole point. The player taps a
  * number that was legal when the board was painted and is not legal by the time
  * the request lands.
  */
@@ -93,7 +93,7 @@ describe('RoomScreen', () => {
   /**
    * From a real game. A player takes a number just as somebody else calls
    * bingo, so the server correctly refuses it with "This round is already
-   * over." The host then plays again, and that sentence is still on screen —
+   * over." The host then plays again, and that sentence is still on screen,
    * over a freshly dealt board with one number taken.
    *
    * The message was true when it was written and nonsense a moment later,
@@ -129,7 +129,7 @@ describe('RoomScreen', () => {
     // cannot pass by never producing an error in the first place.
     await waitFor(() => expect(transport.selectNumber).toHaveBeenCalled());
 
-    // Wait for the room to move on FIRST — the assertion below is a negative,
+    // Wait for the room to move on FIRST. The assertion below is a negative,
     // and checking it before the screen changes would pass without proving
     // anything at all.
     await screen.findByText(/called bingo/i);

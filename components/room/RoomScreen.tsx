@@ -39,7 +39,7 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
    * Carrying the round is what stops a message outliving its own truth. Take a
    * number just as somebody else calls bingo and the server answers, correctly,
    * "This round is already over." Ten seconds later the host has played again
-   * and that sentence is sitting over a freshly dealt board — right when it was
+   * and that sentence is sitting over a freshly dealt board, right when it was
    * written, nonsense by the time it is read.
    *
    * It is derived rather than cleared by an effect, so there is no window where
@@ -99,7 +99,7 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
       <div className="mx-auto max-w-[460px] text-center">
         <h1 className="font-display text-ink-1 text-2xl font-normal">No room with that key</h1>
         <p className="text-ink-3 mt-3 text-sm">
-          Room {roomKey} does not exist, or it expired — keys stop working two hours after the last
+          Room {roomKey} does not exist, or it expired. Keys stop working two hours after the last
           round.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">

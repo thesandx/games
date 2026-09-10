@@ -8,7 +8,7 @@
 
 Playroom is a multiplayer party-game app. A host opens a room, shares a six-character key, and other players join. Every player must see the same room: the same lobby, the same taken numbers, the same scoreboard.
 
-That state has to live somewhere both players can reach. At the time of building, the intended home for it — the rooms API at `https://api.sandeep.app/games` — did not exist yet.
+That state has to live somewhere both players can reach. At the time of building, the intended home for it, the rooms API at `https://api.sandeep.app/games`, did not exist yet.
 
 This left a problem. Every screen in the design depends on room state. Building them against an endpoint that does not answer produces an application where nothing can be reviewed, demonstrated, or tested. Waiting for the API to exist before building any screen wastes the time the API takes to build.
 
@@ -18,8 +18,8 @@ A second constraint applies regardless of timing. Game rules must be enforced by
 
 We will define a single `RoomTransport` interface in `types/playroom.ts` and give it two implementations:
 
-- `services/playroom-api.ts` — HTTP against the rooms API.
-- `services/local-room-store.ts` — the browser's `localStorage`.
+- `services/playroom-api.ts`: HTTP against the rooms API.
+- `services/local-room-store.ts`, the browser's `localStorage`.
 
 `services/room-transport.ts` selects between them from `NEXT_PUBLIC_PLAYROOM_TRANSPORT`. No screen imports either implementation directly.
 
@@ -46,24 +46,24 @@ The rules themselves live in `lib/room-engine.ts` as pure reducers over a `Room`
 
 ## Alternatives considered
 
-### Option A — Transport interface with a local fallback (chosen)
+### Option A: Transport interface with a local fallback (chosen)
 
 Described above.
 
-### Option B — Build against the API only, and wait
+### Option B: Build against the API only, and wait
 
 Honest about where state belongs, and no second implementation to maintain. Rejected because it makes every screen unreviewable until the API is finished, and defers the discovery of interface problems to the point where they are most expensive to fix.
 
-### Option C — Mock the HTTP layer with fixtures
+### Option C: Mock the HTTP layer with fixtures
 
 Intercept `fetch` and return canned rooms. Cheaper than a real store, and a common pattern. Rejected because fixtures do not enforce rules: a fixture can return a room where a player has won, but it cannot decide whether a bingo claim is valid. The result exercises the layout and nothing else, and the game logic would stay unverified until the API arrived.
 
-### Option D — Ship a real server route in this app
+### Option D: Ship a real server route in this app
 
 Implement rooms in `app/api/rooms/` with an in-memory store. Real multiplayer across devices, immediately. Rejected because the state would not survive a restart and would not be shared between Cloud Run instances, forcing `max-instances=1`. It also builds a rooms service in the wrong repository, given that one is already planned elsewhere.
 
 ## References
 
-- `types/playroom.ts` — the interface and the domain model
-- `lib/room-engine.ts` — the rules, as pure reducers
-- `cloud/environment-variables.md` — the endpoint contract and the switch-over procedure
+- `types/playroom.ts`, the interface and the domain model
+- `lib/room-engine.ts`, the rules, as pure reducers
+- `cloud/environment-variables.md`, the endpoint contract and the switch-over procedure

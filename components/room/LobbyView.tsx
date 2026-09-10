@@ -51,7 +51,7 @@ export function LobbyView({ room, isHost, onStart, onOpenHostControls, busy }: L
             </p>
           ) : null}
           <p className="text-ink-2 mt-3.5 text-sm">
-            Share the key or the link — anyone with it lands straight in this lobby.
+            Share the key or the link. Anyone with it lands straight in this lobby.
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export function LobbyView({ room, isHost, onStart, onOpenHostControls, busy }: L
           </div>
         ) : (
           <p className="bg-cream rounded-card text-ink-2 p-3.5 text-sm">
-            Waiting for the host to start. You are in — your card is dealt the moment the round
+            Waiting for the host to start. You are in. Your card is dealt the moment the round
             begins.
           </p>
         )}
