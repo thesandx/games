@@ -140,6 +140,7 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
           busy={busy}
           onNextRound={() => void run((id) => roomTransport.nextRound(id))}
           onEndSession={() => void run((id) => roomTransport.endSession(id))}
+          onPlayAgain={() => void run((id) => roomTransport.replaySession(id))}
         />
       ) : null}
 

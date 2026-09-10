@@ -11,11 +11,20 @@ export interface ResultsViewProps {
   isHost: boolean;
   onNextRound: () => void;
   onEndSession: () => void;
+  /** Restarts the session in this room, keeping the players, zeroing scores. */
+  onPlayAgain: () => void;
   busy: boolean;
 }
 
 /** The round-results screen, shown between rounds. */
-export function ResultsView({ room, isHost, onNextRound, onEndSession, busy }: ResultsViewProps) {
+export function ResultsView({
+  room,
+  isHost,
+  onNextRound,
+  onEndSession,
+  onPlayAgain,
+  busy,
+}: ResultsViewProps) {
   const winner = room.players.find((player) => player.id === room.bingo?.winnerId);
   const lines = room.bingo?.winningLines ?? [];
   const isFinalRound = room.round >= room.settings.rounds;
@@ -68,7 +77,19 @@ export function ResultsView({ room, isHost, onNextRound, onEndSession, busy }: R
 
       {isHost ? (
         <div className="mt-5 flex flex-wrap gap-3">
-          {isFinalRound ? null : (
+          {/*
+            On the last round this screen IS the end of the session, so the
+            thing most groups want next — another game with the same people —
+            is offered here rather than only one screen further on. Mid-session
+            it is deliberately absent: "Next round" is already the way to carry
+            on, and a session reset sitting beside it is a wiped scoreboard one
+            mis-tap away.
+          */}
+          {isFinalRound ? (
+            <Button onClick={onPlayAgain} disabled={busy}>
+              {busy ? 'Resetting…' : 'Play again, same room'}
+            </Button>
+          ) : (
             <Button onClick={onNextRound} disabled={busy}>
               {busy ? 'Dealing…' : 'Next round'}
             </Button>
@@ -79,7 +100,9 @@ export function ResultsView({ room, isHost, onNextRound, onEndSession, busy }: R
         </div>
       ) : (
         <p className="bg-cream rounded-card text-ink-2 mt-5 p-3.5 text-sm">
-          Waiting for the host to deal the next round.
+          {isFinalRound
+            ? 'Waiting for the host to start another game or show the scoreboard.'
+            : 'Waiting for the host to deal the next round.'}
         </p>
       )}
     </div>
