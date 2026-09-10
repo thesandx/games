@@ -67,6 +67,7 @@ function room(overrides: Partial<Room> = {}): Room {
       currentTurnIndex: 0,
       winnerId: null,
       winningLines: [],
+      turnSecondsRemaining: 20,
     },
     lastRound: null,
     createdAt: '2026-09-10T10:00:00.000Z',

@@ -211,6 +211,9 @@ export function startRound(
         currentTurnIndex: 0,
         winnerId: null,
         winningLines: [],
+        // No clock in the browser: a turn is played out by the server when the
+        // player who owns it has gone, and there is no server here.
+        turnSecondsRemaining: null,
       },
     },
     now,

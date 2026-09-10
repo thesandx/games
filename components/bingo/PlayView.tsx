@@ -142,7 +142,11 @@ export function PlayView({
             card, so on a phone you scrolled past it to reach the board and then
             could not see whose turn it was without scrolling back.
           */}
-          <TurnBanner current={currentPlayer} isYourTurn={isYourTurn} />
+          <TurnBanner
+            current={currentPlayer}
+            isYourTurn={isYourTurn}
+            secondsRemaining={bingo?.turnSecondsRemaining ?? null}
+          />
 
           <p className="text-ink-3 text-sm">
             {isYourTurn

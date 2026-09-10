@@ -85,6 +85,18 @@ export interface BingoState {
    * the winner's board.
    */
   winningLines: readonly WinningLine[];
+  /**
+   * Seconds left for the player on turn, or `null` when nothing is on the
+   * clock — a finished round, or the browser-only transport, which has no
+   * server to play a turn out on somebody's behalf.
+   *
+   * A duration rather than a deadline, and that is deliberate. `expiresAt` can
+   * afford to be an absolute time because a device clock a minute out changes
+   * nothing about a two-hour window. A twenty-second turn cannot survive that:
+   * the same skew would show a player four seconds when they have twenty. A
+   * duration is measured against the clock that set it.
+   */
+  turnSecondsRemaining: number | null;
 }
 
 export type { WinningLine } from '@/lib/bingo';
