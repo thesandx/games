@@ -55,6 +55,7 @@ function room(): Room {
       currentTurnIndex: 0,
       winnerId: WINNER,
       winningLines: [{ kind: 'row', index: 1, cells: [0, 1, 2, 3, 4] }],
+      turnSecondsRemaining: null,
     },
     lastRound: [
       { playerId: WINNER, name: 'Sandy', initial: 'S', color: 'mint', note: 'Bingo', gain: 100 },
