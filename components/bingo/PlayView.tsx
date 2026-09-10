@@ -82,11 +82,17 @@ export function PlayView({
 
       <PlayerScoreStrip players={room.players} currentTurnId={turnPlayerId} />
 
-      <TurnBanner current={currentPlayer} isYourTurn={isYourTurn} />
-
       <div className="border-ink-1 rounded-card mt-4 flex flex-wrap items-center justify-between gap-4 border-2 p-5">
         <BingoProgress earned={Math.min(myLines.length, LINES_TO_WIN)} />
-        <p className="text-ink-3 max-w-[34ch] text-sm">
+        {/*
+          Explanatory copy, not state, so a phone drops it. On a small screen it
+          pushed the board below the fold, and the board is what a player came
+          for. The letters and the "n of 5 lines" count stay at every width —
+          those are state, and the same rule is why the count is text beside a
+          row of coloured tiles rather than colour alone. The full rule is one
+          tap away under Rules.
+        */}
+        <p className="text-ink-3 hidden max-w-[34ch] text-sm sm:block">
           One letter per completed row, column or diagonal. Lines share numbers, so a single pick
           can fill more than one letter.
         </p>
@@ -130,10 +136,18 @@ export function PlayView({
             canPick={isYourTurn && !busy}
           />
 
+          {/*
+            Directly under the board, because that is where a player is looking.
+            At the top of the page it sat above the score strip and the progress
+            card, so on a phone you scrolled past it to reach the board and then
+            could not see whose turn it was without scrolling back.
+          */}
+          <TurnBanner current={currentPlayer} isYourTurn={isYourTurn} />
+
           <p className="text-ink-3 text-sm">
             {isYourTurn
               ? 'Tap any free number to take it. It is marked on every board in the room.'
-              : `Waiting for ${currentPlayer?.name ?? 'the next player'}. Numbers are marked here as they are taken.`}
+              : 'Numbers are marked here as they are taken.'}
           </p>
         </div>
 
