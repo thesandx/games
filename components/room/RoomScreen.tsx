@@ -159,6 +159,7 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
       {room.phase === 'round-results' ? (
         <ResultsView
           room={room}
+          playerId={identity.playerId}
           isHost={isHost}
           busy={busy}
           onNextRound={() => void run((id) => roomTransport.nextRound(id))}
