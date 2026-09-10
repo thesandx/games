@@ -116,15 +116,25 @@ jobs:
       - name: Resolve image tags
         id: image
         # Two tags per build:
-        #   :<sha>  immutable, what actually gets deployed and rolled back to
-        #   :latest a moving pointer for humans, never referenced by a revision
+        #   :<sha>-<run>  immutable, what actually gets deployed and rolled back to
+        #   :latest       a moving pointer for humans, never referenced by a revision
+        #
+        # The build number is part of the tag because a commit is NOT a build.
+        # This image bakes in NEXT_PUBLIC_* values as build args, so the same
+        # commit built after a repository variable changes is a different image.
+        # Tagging both with the bare SHA would silently overwrite what that tag
+        # means, and a later "rollback to that commit" would fetch something the
+        # commit never produced.
         run: |
           set -euo pipefail
           REGISTRY="${GCP_REGION}-docker.pkg.dev"
           BASE="${REGISTRY}/${GCP_PROJECT_ID}/${ARTIFACT_REPOSITORY}/${SERVICE_NAME}"
           echo "registry=${REGISTRY}" >> "$GITHUB_OUTPUT"
-          echo "sha_tag=${BASE}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=${BASE}:${GITHUB_SHA}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "latest_tag=${BASE}:latest" >> "$GITHUB_OUTPUT"
+          # Cloud Run revision names are capped at 63 characters including the
+          # service name, so the revision carries a short SHA rather than all 40.
+          echo "revision_suffix=${GITHUB_SHA:0:12}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Configure Docker for Artifact Registry
         # Uses the federated credentials from the auth step — no key file.
@@ -145,11 +155,23 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false # keeps the Artifact Registry listing to one entry
+          # These are NEXT_PUBLIC_*, so they are inlined into the JavaScript
+          # here, at build time. Changing them on the Cloud Run service does
+          # nothing — the value is already inside the bundle users downloaded.
+          # Flipping a deployment to the real rooms API therefore means setting
+          # the repository variables and then RE-RUNNING this workflow:
+          #
+          #   PLAYROOM_TRANSPORT=remote
+          #   PLAYROOM_API_URL=https://<the anuvia service>/games/v1
+          #
+          # Leave PLAYROOM_TRANSPORT unset and the app keeps rooms in the
+          # browser and says so on screen, which is the right default while the
+          # rooms API is not reachable at that URL.
           build-args: |
             NEXT_PUBLIC_APP_URL=${{ vars.APP_URL }}
             NEXT_PUBLIC_APP_NAME=${{ vars.APP_NAME || 'Next.js on Cloud Run' }}
             NEXT_PUBLIC_APP_VERSION=${{ github.sha }}
-            NEXT_PUBLIC_PLAYROOM_API_URL=${{ vars.PLAYROOM_API_URL || 'https://api.sandeep.app/games' }}
+            NEXT_PUBLIC_PLAYROOM_API_URL=${{ vars.PLAYROOM_API_URL || 'https://api.sandeep.app/games/v1' }}
             NEXT_PUBLIC_PLAYROOM_TRANSPORT=${{ vars.PLAYROOM_TRANSPORT || 'local' }}
 
       - name: Deploy to Cloud Run
@@ -167,6 +189,14 @@ jobs:
             GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}
             GCP_REGION=${{ env.GCP_REGION }}
             DEPLOYED_AT=${{ steps.meta.outputs.deployed_at }}
+          # `--revision-suffix` is unique per build, not per commit. Cloud Run
+          # rejects a second revision with an existing name and a different
+          # configuration, so a suffix of the SHA alone makes workflow_dispatch
+          # — a manual redeploy of the current main — fail with ALREADY_EXISTS.
+          # That is exactly the case a build-arg change needs.
+          #
+          # Nothing below may carry a `#` comment: `>-` is a folded scalar, so
+          # every indented line is literal text passed to gcloud as an argument.
           flags: >-
             --allow-unauthenticated
             --port=8080
@@ -178,7 +208,7 @@ jobs:
             --timeout=300
             --execution-environment=gen2
             --cpu-boost
-            --revision-suffix=${{ github.sha }}
+            --revision-suffix=${{ steps.image.outputs.revision_suffix }}
 
       - name: Verify the deployment serves traffic
         # The deploy step succeeding only means Cloud Run accepted the revision.
