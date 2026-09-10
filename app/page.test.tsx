@@ -5,7 +5,7 @@ import HomePage from '@/app/page';
 
 /**
  * `HomePage` is a synchronous Server Component, so React Testing Library can
- * render it directly. Async Server Components cannot be rendered this way —
+ * render it directly. Async Server Components cannot be rendered this way,
  * test their data helpers in `lib/` or `services/` instead. See docs/testing.md.
  */
 describe('HomePage', () => {

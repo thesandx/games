@@ -49,7 +49,7 @@ describe('TurnBanner', () => {
 
   /**
    * A count that changes every second inside `aria-live` would announce itself
-   * over and over and bury the thing that actually changed — whose turn it is.
+   * over and over and bury the thing that actually changed, whose turn it is.
    */
   it('keeps the ticking number out of the live region', async () => {
     render(<TurnBanner current={player} isYourTurn secondsRemaining={12} />);

@@ -17,7 +17,7 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
 /**
  * Two things the source design system is explicit about, and both are easy to
  * get wrong: the primary fill is near-black `ink-1` and NEVER the link blue,
- * and there are no hover states — only default and active/pressed.
+ * and there are no hover states, only default and active/pressed.
  */
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:

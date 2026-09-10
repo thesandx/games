@@ -23,7 +23,7 @@ body:
     id: alternatives
     attributes:
       label: Alternatives considered
-      description: Including "do nothing" — say why it is not enough.
+      description: Including "do nothing", say why it is not enough.
 
   - type: dropdown
     id: area

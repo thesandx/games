@@ -27,7 +27,7 @@ Colocation makes a test hard to overlook when you change the implementation. Whe
 This is less limiting than it first appears. An async Server Component is usually two separable things:
 
 ```tsx
-// app/orders/page.tsx  — thin, mostly composition
+// app/orders/page.tsx, thin, mostly composition
 export default async function OrdersPage() {
   const orders = await getOrders(); // ← the logic worth testing
   return <OrderList orders={orders} />; // ← the rendering worth testing
@@ -36,7 +36,7 @@ export default async function OrdersPage() {
 
 Test `getOrders()` as a unit in `services/`, and `<OrderList>` as a component. An end-to-end test covers the page that combines them, if the project has one.
 
-**Synchronous** Server Components — like `app/page.tsx` in this template — render fine. See `app/page.test.tsx`.
+**Synchronous** Server Components: like `app/page.tsx` in this template , render fine. See `app/page.test.tsx`.
 
 ## Writing tests
 
@@ -78,16 +78,16 @@ describe('Button', () => {
 
 Query priority, best to worst:
 
-1. `getByRole` with a name — matches how assistive technology finds elements
-2. `getByLabelText` — form fields
-3. `getByText` — non-interactive content
-4. `getByTestId` — last resort
+1. `getByRole` with a name, matches how assistive technology finds elements
+2. `getByLabelText`: form fields
+3. `getByText`: non-interactive content
+4. `getByTestId`, last resort
 
 If a query is hard to write, the markup is probably inaccessible. Fix the markup instead of using a test id.
 
 ## Testing services
 
-Mock at the network boundary, not the module boundary — mocking your own module tests the mock.
+Mock at the network boundary, not the module boundary, mocking your own module tests the mock.
 
 ```ts
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -128,7 +128,7 @@ describe('getUser', () => {
 
 ## Route handlers
 
-Route handlers are plain functions — call them directly.
+Route handlers are plain functions: call them directly.
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -155,7 +155,7 @@ describe('GET /api/health', () => {
 pnpm test:coverage
 ```
 
-No threshold is enforced, deliberately. A coverage gate reliably produces tests that only satisfy the gate — assertions on getters, snapshot tests of static markup. They cost maintenance and catch nothing.
+No threshold is enforced, deliberately. A coverage gate reliably produces tests that only satisfy the gate, assertions on getters, snapshot tests of static markup. They cost maintenance and catch nothing.
 
 Use coverage as a map of what is untested, then decide what is worth testing. If your team wants a floor anyway, add `thresholds` to `vitest.config.ts`. Start it _below_ the current number, so it rises over time instead of blocking work immediately.
 
@@ -171,6 +171,6 @@ Use coverage as a map of what is untested, then decide what is worth testing. If
 
 ## Not included
 
-**End-to-end tests.** Playwright against a running container is the right next step when the app has real user journeys — a login, a checkout, a multi-step form. Adding it before there is a journey to test is a maintenance cost with no return.
+**End-to-end tests.** Playwright against a running container is the right next step when the app has real user journeys: a login, a checkout, a multi-step form. Adding it before there is a journey to test is a maintenance cost with no return.
 
 When you add it: run it against `docker compose up`, so it exercises the production image rather than the dev server.

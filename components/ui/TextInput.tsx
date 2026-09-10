@@ -22,7 +22,7 @@ export interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElemen
 /**
  * Labelled text field.
  *
- * The label is always rendered — never a placeholder standing in for one, which
+ * The label is always rendered, never a placeholder standing in for one, which
  * disappears the moment someone types and leaves screen-reader users with an
  * unnamed input.
  */

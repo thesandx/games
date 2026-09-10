@@ -28,7 +28,7 @@ Your editor is using a different TypeScript version. In VS Code: Command Palette
 
 ### `ERR_PNPM_OUTDATED_LOCKFILE`
 
-`package.json` and `pnpm-lock.yaml` disagree — usually a hand-edited dependency, or a merge that resolved one file but not the other.
+`package.json` and `pnpm-lock.yaml` disagree, usually a hand-edited dependency, or a merge that resolved one file but not the other.
 
 ```bash
 pnpm install
@@ -38,18 +38,18 @@ git add pnpm-lock.yaml
 ### `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` / `Lockfile failed supply-chain policy check`
 
 ```
-lightningcss@1.33.0 was published at ..., within the minimumReleaseAge cutoff
+lightningcss@1.33.0 was published at ... within the minimumReleaseAge cutoff
 ```
 
 `minimumReleaseAge: 1440` in `pnpm-workspace.yaml` refuses packages published in the last 24 hours. This is a deliberate defence against compromised versions that maintainers remove within hours of publication.
 
 The gate applies to **every entry in the lockfile**, including transitive dependencies you never chose. So it fires in three situations:
 
-| Situation                                                                       | Fix                                                                                                                                                    |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A Dependabot PR proposes a brand-new release                                    | Should not happen — `cooldown` in `.github/dependabot.yml` is set above the pnpm window. If it does, the two configs have drifted apart; realign them. |
-| You installed a fresh package locally                                           | pnpm adds it to `minimumReleaseAgeExclude` automatically. Commit that, and prune the entry once the version ages past the window.                      |
-| Someone raised `minimumReleaseAge` above the age of the youngest lockfile entry | Lower it, or regenerate the lockfile — then verify the **Docker build**, not just a local install.                                                     |
+| Situation                                                                       | Fix                                                                                                                                                   |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A Dependabot PR proposes a brand-new release                                    | Should not happen. `cooldown` in `.github/dependabot.yml` is set above the pnpm window. If it does, the two configs have drifted apart; realign them. |
+| You installed a fresh package locally                                           | pnpm adds it to `minimumReleaseAgeExclude` automatically. Commit that, and prune the entry once the version ages past the window.                     |
+| Someone raised `minimumReleaseAge` above the age of the youngest lockfile entry | Lower it, or regenerate the lockfile, then verify the **Docker build**, not just a local install.                                                     |
 
 Beware a false pass locally: pnpm caches the verification result for a while, so a local `pnpm install --frozen-lockfile` may print `verified Nm ago` without re-checking. `docker build --no-cache` is the honest test.
 
@@ -75,10 +75,10 @@ Text content did not match. Server: "..." Client: "..."
 
 Something rendered differently on the server and in the browser. The usual causes:
 
-- `new Date()` or `Date.now()` rendered directly — use a fixed format and UTC (`formatUtc` in `lib/utils.ts`)
+- `new Date()` or `Date.now()` rendered directly, use a fixed format and UTC (`formatUtc` in `lib/utils.ts`)
 - `Math.random()` in render
-- Reading `window` or `localStorage` during the first render — move it into `useEffect`, or use `useSyncExternalStore` with a server snapshot
-- A browser extension injecting markup — check in an incognito window before debugging further
+- Reading `window` or `localStorage` during the first render, move it into `useEffect`, or use `useSyncExternalStore` with a server snapshot
+- A browser extension injecting markup, check in an incognito window before debugging further
 
 ### Stale behaviour after a config change
 
@@ -94,7 +94,7 @@ Changes to `next.config.ts`, `tsconfig.json` paths and Tailwind config are not a
 
 ### Build fails: `frozen-lockfile` mismatch
 
-The lockfile in the build context does not match `package.json`. Run `pnpm install` and commit the lockfile — the Docker build deliberately refuses to resolve different versions than CI tested.
+The lockfile in the build context does not match `package.json`. Run `pnpm install` and commit the lockfile. The Docker build deliberately refuses to resolve different versions than CI tested.
 
 ### Build succeeds, container exits immediately
 
@@ -104,7 +104,7 @@ docker logs <container>
 
 Almost always one of:
 
-- `lib/env.ts` threw an `EnvValidationError` — a required variable is unset. The error message names it.
+- `lib/env.ts` threw an `EnvValidationError`. A required variable is unset. The error message names it.
 - A top-level `await` in a module failed.
 - `server.js` is missing, because `output: 'standalone'` was removed from `next.config.ts`.
 
@@ -114,11 +114,11 @@ Almost always one of:
 
 ### Container runs but pages have no styling
 
-`.next/static` was not copied into the runtime stage. The standalone output does **not** include it — that is why the Dockerfile has a separate `COPY --from=builder /app/.next/static ./.next/static` line.
+`.next/static` was not copied into the runtime stage. The standalone output does **not** include it. That is why the Dockerfile has a separate `COPY --from=builder /app/.next/static ./.next/static` line.
 
 ### `EACCES: permission denied`
 
-The app is trying to write to its own filesystem while running as uid 1001 with a read-only root. It should not need to — Cloud Run instances are ephemeral. Write to `/tmp` (mounted as tmpfs) or, properly, to Cloud Storage.
+The app is trying to write to its own filesystem while running as uid 1001 with a read-only root. It should not need to. Cloud Run instances are ephemeral. Write to `/tmp` (mounted as tmpfs) or, properly, to Cloud Storage.
 
 ### Image is enormous (1 GB+)
 
@@ -137,7 +137,7 @@ Inspect layer by layer: `docker history <image>`.
 The OIDC exchange failed. In order of likelihood:
 
 1. **`permissions: id-token: write` missing** from the job. This is the cause most of the time.
-2. `WIF_PROVIDER` is wrong — it must be the full `projects/<NUMBER>/locations/global/workloadIdentityPools/.../providers/...` path, using the project **number**, not the id.
+2. `WIF_PROVIDER` is wrong. It must be the full `projects/<NUMBER>/locations/global/workloadIdentityPools/.../providers/...` path, using the project **number**, not the id.
 3. The provider's `attribute-condition` does not match your repository string.
 4. The `principalSet://` binding is missing on the deployer service account.
 
@@ -166,7 +166,7 @@ Either the deployer lacks `roles/artifactregistry.writer` on the repository, or 
 
 ### A job hangs until it is killed
 
-Something is waiting for input — an unattended `gcloud` command without `--quiet`, or an interactive prompt. Every job here has `timeout-minutes` so this fails in minutes rather than hours.
+Something is waiting for input, an unattended `gcloud` command without `--quiet`, or an interactive prompt. Every job here has `timeout-minutes` so this fails in minutes rather than hours.
 
 ---
 
@@ -178,7 +178,7 @@ The single most common Cloud Run failure. In order:
 
 1. **Not binding `0.0.0.0`.** `ENV HOSTNAME=0.0.0.0` must be in the runtime stage. Binding localhost inside a container is unreachable from outside.
 2. **Hardcoded port.** The server must read `process.env.PORT`.
-3. **Startup exceeded the deadline.** Check the logs for a crash during boot — usually env validation or a hanging top-level `await`.
+3. **Startup exceeded the deadline.** Check the logs for a crash during boot: usually env validation or a hanging top-level `await`.
 
 ```bash
 gcloud run services logs read SERVICE --region REGION --limit 100
@@ -214,7 +214,7 @@ gcloud run services logs read SERVICE --region REGION --limit 50
 # → EnvValidationError: <NAME> is required but was not set
 ```
 
-Do not make a value that is only known after the first deploy — such as the Cloud Run URL — a startup requirement. `NEXT_PUBLIC_APP_URL` is a build-time-inlined value, so requiring it would fail the first deploy before the URL can exist. Keep such values optional with a safe fallback in `lib/env.ts`.
+Do not make a value that is only known after the first deploy, such as the Cloud Run URL, a startup requirement. `NEXT_PUBLIC_APP_URL` is a build-time-inlined value, so requiring it would fail the first deploy before the URL can exist. Keep such values optional with a safe fallback in `lib/env.ts`.
 
 ### `Image not found` / `Container image not found`
 
@@ -228,10 +228,10 @@ Usually a wrong region or a wrong repository name in the variables.
 
 ### Cold starts are slow
 
-- Set `--min-instances=1` to keep one instance warm (costs ~$10–15/month).
-- Confirm `--cpu-boost` is set — it is in the template's flags.
+- Set `--min-instances=1` to keep one instance warm (costs ~$10-15/month).
+- Confirm `--cpu-boost` is set. It is in the template's flags.
 - Confirm the Artifact Registry region matches the Cloud Run region; a cross-region pull adds seconds.
-- Check for expensive module-level work — it runs on every cold start.
+- Check for expensive module-level work, it runs on every cold start.
 
 ### Requests time out at exactly 300 seconds
 
@@ -239,7 +239,7 @@ That is `--timeout`. Long-running work does not belong in a request; move it to 
 
 ### Traffic is being throttled / 429s
 
-Instance count is pinned at `--max-instances`. Raise it — but understand that the ceiling also bounds your bill, so raise it deliberately and set a budget alert.
+Instance count is pinned at `--max-instances`. Raise it, but understand that the ceiling also bounds your bill, so raise it deliberately and set a budget alert.
 
 ### Environment variable change had no effect
 
@@ -259,7 +259,7 @@ This takes seconds, with no rebuild. Then fix forward with a normal PR.
 
 ## Still stuck
 
-1. What does `/api/health` say? The `version` field is the commit SHA serving traffic — confirm it is the code you expect.
+1. What does `/api/health` say? The `version` field is the commit SHA serving traffic, confirm it is the code you expect.
 2. What do the logs say? `gcloud run services logs read SERVICE --region REGION --limit 100`
-3. Does it reproduce in the local container? `docker compose up --build` — if yes, it is not a Cloud Run problem.
+3. Does it reproduce in the local container? `docker compose up --build`, if yes, it is not a Cloud Run problem.
 4. Did it work before? `git log` the Dockerfile, the workflow and `next.config.ts`.

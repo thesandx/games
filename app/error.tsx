@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 /**
  * Route-segment error boundary.
  *
- * Must be a Client Component — React needs `componentDidCatch` semantics and an
+ * Must be a Client Component. React needs `componentDidCatch` semantics and an
  * interactive retry. This is one of the few legitimate `'use client'` files in
  * the template.
  *

@@ -1,5 +1,5 @@
 /**
- * Room keys — the six characters a host reads out to the group chat.
+ * Room keys. The six characters a host reads out to the group chat.
  *
  * The alphabet deliberately omits `I`, `O`, `0` and `1`. Keys get spoken aloud
  * and typed from memory, and those four are the pairs people transcribe wrong.

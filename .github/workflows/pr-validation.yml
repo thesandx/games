@@ -2,7 +2,7 @@ name: PR Validation
 
 # Runs on every pull request into main, and on direct pushes to main as a
 # safety net. Nothing here touches Google Cloud, so the job needs no cloud
-# credentials at all — keep it that way.
+# credentials at all: keep it that way.
 on:
   pull_request:
     branches: [main]
@@ -93,7 +93,7 @@ jobs:
 
       - name: Build image
         # Proves the production image still builds on every PR. Nothing is
-        # pushed — a broken Dockerfile should fail review, not deploy day.
+        # pushed. A broken Dockerfile should fail review, not deploy day.
         uses: docker/build-push-action@v7
         with:
           context: .

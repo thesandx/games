@@ -19,7 +19,7 @@ Multi-stage Docker build · Keyless CI/CD via Workload Identity Federation · St
 
 Most Next.js templates give you an application. This one also gives you **the path to production**. You get a container that runs on Cloud Run, a pipeline that deploys it without storing a single credential, and documentation that explains each decision.
 
-The application is **Playroom** — party games played from a shared six-character room key. Everything around it is the reusable part.
+The application is **Playroom**, party games played from a shared six-character room key. Everything around it is the reusable part.
 
 **What you get**
 
@@ -27,12 +27,12 @@ The application is **Playroom** — party games played from a shared six-charact
 | ---------------------------- | ----------------------------------------------------------------------------------- |
 | ⚡ **Next.js 16 + React 19** | App Router, Server Components by default, TypeScript in strict mode                 |
 | 🐳 **Optimised container**   | Multi-stage build, ~65 MB, non-root user, health checks, correct signal handling    |
-| 🔐 **Keyless deployment**    | Workload Identity Federation — no JSON service account keys, anywhere               |
+| 🔐 **Keyless deployment**    | Workload Identity Federation, no JSON service account keys, anywhere                |
 | 🚀 **CI/CD that verifies**   | PR validation builds and smoke-tests the real container; deploys probe the live URL |
 | ☁️ **Cloud Run native**      | Honours `$PORT`, binds `0.0.0.0`, autoscales, scales to zero                        |
-| 🧭 **AI-assistant ready**    | `.github/instructions/` — rules that keep generated code consistent across projects |
+| 🧭 **AI-assistant ready**    | `.github/instructions/`, rules that keep generated code consistent across projects  |
 | 📐 **Enterprise structure**  | Clear layer boundaries, absolute imports, enforced import ordering                  |
-| 📚 **Documented**            | Runbooks, ADRs, troubleshooting — not just a list of commands                       |
+| 📚 **Documented**            | Runbooks, ADRs, troubleshooting, not just a list of commands                        |
 
 ---
 
@@ -51,17 +51,17 @@ Playroom is a party-game app for a group chat. One person creates a room and get
 
 The room screen covers the lobby, play, round results and the final scoreboard. These are phases of one room rather than four routes, because the host starting a round has to move every player at once.
 
-**Bingo is playable**, and it is turn-based rather than called. Every player gets the numbers 1 to 25 on a 5x5 board, shuffled independently — no free square. On your turn you tap any free number **on your own board** to claim it, and it is marked on every board in the room at once. There is no separate number pad: every board already holds all 25 numbers, so the board is the picker. Nobody marks their own cells either — marking is derived from one shared list of taken numbers, so boards cannot disagree.
+**Bingo is playable**, and it is turn-based rather than called. Every player gets the numbers 1 to 25 on a 5x5 board, shuffled independently: no free square. On your turn you tap any free number **on your own board** to claim it, and it is marked on every board in the room at once. There is no separate number pad: every board already holds all 25 numbers, so the board is the picker. Nobody marks their own cells either , marking is derived from one shared list of taken numbers, so boards cannot disagree.
 
-Each completed row, column or diagonal fills one letter of **B-I-N-G-O**. Lines share cells, so a single pick can fill two letters at once. **Five** completed lines win the round — one line is not a win, and filling the whole board is not required. The winner must press **Call Bingo**; the claim is validated against the board and the taken numbers, and only the first valid claim wins.
+Each completed row, column or diagonal fills one letter of **B-I-N-G-O**. Lines share cells, so a single pick can fill two letters at once. **Five** completed lines win the round, one line is not a win, and filling the whole board is not required. The winner must press **Call Bingo**; the claim is validated against the board and the taken numbers, and only the first valid claim wins.
 
-A room takes up to eight players, runs a single round, and locks when the game starts — fixed settings rather than a setup screen, since none of them was a decision worth asking a host to make before a game of Bingo.
+A room takes up to eight players, runs a single round, and locks when the game starts, fixed settings rather than a setup screen, since none of them was a decision worth asking a host to make before a game of Bingo.
 
-**You see your own board and nobody else's.** That is enforced in the payload, not the interface: `scopeRoomForPlayer` in [`lib/room-engine.ts`](./lib/room-engine.ts) narrows `bingo.cards` to the caller before the transport returns it, so another player's grid is not merely hidden — it is never sent. The winner's board is revealed to the room when the round ends.
+**You see your own board and nobody else's.** That is enforced in the payload, not the interface: `scopeRoomForPlayer` in [`lib/room-engine.ts`](./lib/room-engine.ts) narrows `bingo.cards` to the caller before the transport returns it, so another player's grid is not merely hidden: it is never sent. The winner's board is revealed to the room when the round ends.
 
 Turn order, the taken-number set and bingo validation are all enforced in [`lib/room-engine.ts`](./lib/room-engine.ts), not in the UI. A client that picks out of turn, picks a number already gone, or claims bingo on an incomplete board is rejected.
 
-Scribble and Tic-tac-toe appear in the catalogue and say `In build — not playable yet`, which is deliberate: routing someone into a room for a game with no rules would strand them in a lobby that cannot start.
+Scribble and Tic-tac-toe appear in the catalogue and say `In build, not playable yet`, which is deliberate: routing someone into a room for a game with no rules would strand them in a lobby that cannot start.
 
 ### Where room state lives
 
@@ -72,7 +72,7 @@ Rooms sit behind a `RoomTransport` interface with two implementations, selected 
 | `local`  | The browser (`localStorage`)   | No           |
 | `remote` | `NEXT_PUBLIC_PLAYROOM_API_URL` | Yes          |
 
-`local` is the default while the rooms API is being built. The app is fully playable — open a second tab, join with the key, and the two tabs play a real game — but rooms cannot leave the browser, and a banner says so. Switching to `remote` is one variable and a rebuild; no screen changes. The endpoint contract is in [`cloud/environment-variables.md`](./cloud/environment-variables.md), and the reasoning is [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
+`local` is the default while the rooms API is being built. The app is fully playable, open a second tab, join with the key, and the two tabs play a real game, but rooms cannot leave the browser, and a banner says so. Switching to `remote` is one variable and a rebuild; no screen changes. The endpoint contract is in [`cloud/environment-variables.md`](./cloud/environment-variables.md), and the reasoning is [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
 
 The game rules live in [`lib/room-engine.ts`](./lib/room-engine.ts) as pure reducers, so both transports enforce the same rules and one set of tests covers both.
 
@@ -121,7 +121,7 @@ The game rules live in [`lib/room-engine.ts`](./lib/room-engine.ts) as pure redu
                                        certificate)
 ```
 
-Deeper detail — request path, scaling behaviour, security boundaries, evolution path — in [`cloud/architecture.md`](./cloud/architecture.md).
+Deeper detail, request path, scaling behaviour, security boundaries, evolution path, in [`cloud/architecture.md`](./cloud/architecture.md).
 
 ---
 
@@ -138,7 +138,7 @@ gh repo create my-app --template thesandx/nextjs-cloudrun-template --private --c
 cd my-app
 ```
 
-> **Use the template button, not `git clone`.** Templates start with clean history and no upstream remote — you get your project, not a fork of this one.
+> **Use the template button, not `git clone`.** Templates start with clean history and no upstream remote. You get your project, not a fork of this one.
 
 ### 2. Rename it
 
@@ -168,10 +168,10 @@ One command, idempotent, no keys created:
   --project my-gcp-project \
   --region asia-southeast1 \
   --repo my-github-org/my-app \
-  --service my-app            # keep this to 22 characters or fewer — see the note below
+  --service my-app            # keep this to 22 characters or fewer, see the note below
 ```
 
-> **Keep `--service` to 22 characters or fewer.** The script derives the runtime service account id as `<service>-runtime`, and a Google service account id must be 6–30 characters. A longer service name fails with `does not have a length between 6 and 30`.
+> **Keep `--service` to 22 characters or fewer.** The script derives the runtime service account id as `<service>-runtime`, and a Google service account id must be 6-30 characters. A longer service name fails with `does not have a length between 6 and 30`.
 
 It enables APIs, creates the Artifact Registry repository, sets up Workload Identity Federation, creates least-privilege service accounts, and prints the exact `gh secret` / `gh variable` commands to run.
 
@@ -191,14 +191,14 @@ That is the whole deployment procedure. The pipeline builds the image, pushes it
 .
 ├── app/                    # Routes, layouts, route handlers (App Router)
 │   ├── api/health/         #   Liveness probe for Docker + Cloud Run
-│   ├── layout.tsx          #   Root layout — a Server Component, keep it that way
+│   ├── layout.tsx          #   Root layout. A Server Component, keep it that way
 │   ├── page.tsx            #   The Hello World page
 │   ├── error.tsx           #   Error boundary
 │   └── not-found.tsx       #   404
 │
 ├── components/             # Reusable components (ui/, layout/, <feature>/)
 ├── hooks/                  # Reusable React hooks
-├── lib/                    # Pure utilities — no I/O
+├── lib/                    # Pure utilities, no I/O
 │   ├── env.ts              #   Validated env vars; the ONLY reader of process.env
 │   ├── logger.ts           #   Structured logging for Cloud Logging
 │   └── utils.ts
@@ -267,18 +267,18 @@ pnpm docker:run
 | Stage     | Role                                                                                |
 | --------- | ----------------------------------------------------------------------------------- |
 | `base`    | Pinned Node 22 + Alpine, corepack, `dumb-init`                                      |
-| `deps`    | `pnpm install` from manifests only — caches independently of source                 |
+| `deps`    | `pnpm install` from manifests only, caches independently of source                  |
 | `builder` | `pnpm build`, producing `.next/standalone`                                          |
 | `runner`  | Standalone output + static assets only. No source, no dev deps, no package manager. |
 
 `output: 'standalone'` in `next.config.ts` traces the modules reachable at runtime. This takes the image from ~1.2 GB to ~65 MB.
 
-> Sizes quoted here are what a registry stores and Cloud Run pulls (`docker save` / `docker image inspect`). Docker Desktop's containerd image store displays the _unpacked_ size instead — around 280 MB for the same image. Both numbers are correct. They measure different things.
+> Sizes quoted here are what a registry stores and Cloud Run pulls (`docker save` / `docker image inspect`). Docker Desktop's containerd image store displays the _unpacked_ size instead, around 280 MB for the same image. Both numbers are correct. They measure different things.
 
 **Cloud Run compliance, built in**
 
-- Listens on `$PORT` — never a hardcoded port
-- Binds `0.0.0.0` — the fix for the common _"container failed to start and listen on the port"_ error
+- Listens on `$PORT`, never a hardcoded port
+- Binds `0.0.0.0`, the fix for the common _"container failed to start and listen on the port"_ error
 - Runs as non-root (uid 1001)
 - `dumb-init` as PID 1, so `SIGTERM` is honoured and in-flight requests drain
 - `HEALTHCHECK` against `/api/health`
@@ -294,7 +294,7 @@ pnpm docker:run
 merge  →  build  →  push to Artifact Registry  →  deploy revision  →  probe /api/health  →  ✅
 ```
 
-The pipeline tags each image with the commit SHA and deploys it by that immutable tag — never `:latest`. So a rollback is a traffic shift, not a rebuild:
+The pipeline tags each image with the commit SHA and deploys it by that immutable tag, never `:latest`. So a rollback is a traffic shift, not a rebuild:
 
 ```bash
 gcloud run revisions list --service my-app --region asia-southeast1
@@ -304,27 +304,27 @@ gcloud run services update-traffic my-app --region asia-southeast1 \
 
 This takes seconds. Then you can fix forward without time pressure.
 
-**Tunable via repository variables** — no workflow edits needed:
+**Tunable via repository variables**: no workflow edits needed:
 
 | Variable            | Default           |                                           |
 | ------------------- | ----------------- | ----------------------------------------- |
 | `GCP_REGION`        | `asia-southeast1` | Cloud Run + Artifact Registry region      |
 | `CLOUD_RUN_SERVICE` | repository name   | Service name                              |
-| `MIN_INSTANCES`     | `0`               | `1` removes cold starts (~$10–15/month)   |
+| `MIN_INSTANCES`     | `0`               | `1` removes cold starts (~$10-15/month)   |
 | `MAX_INSTANCES`     | `10`              | Bounds both a traffic spike and your bill |
 | `LOG_LEVEL`         | `info`            | Runtime log verbosity                     |
 
-Full runbook — first deploy, custom domains, gradual rollout, making the service private, cleanup: [`cloud/deployment.md`](./cloud/deployment.md).
+Full runbook, first deploy, custom domains, gradual rollout, making the service private, cleanup: [`cloud/deployment.md`](./cloud/deployment.md).
 
 ---
 
 ## GitHub Actions
 
-| Workflow                                                     | Runs on        | Does                                                                                                                                   |
-| ------------------------------------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [`pr-validation.yml`](./.github/workflows/pr-validation.yml) | Every PR       | Format check, lint, build, typecheck, test — **plus** builds the real Docker image and boots it to verify the health endpoint responds |
-| [`deploy.yml`](./.github/workflows/deploy.yml)               | Push to `main` | Build → push → deploy → probe the live URL. Fails if the deployed revision does not actually serve.                                    |
-| [`codeql.yml`](./.github/workflows/codeql.yml)               | PRs and weekly | Static security analysis into the Security tab                                                                                         |
+| Workflow                                                     | Runs on        | Does                                                                                                                                  |
+| ------------------------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| [`pr-validation.yml`](./.github/workflows/pr-validation.yml) | Every PR       | Format check, lint, build, typecheck, test, **plus** builds the real Docker image and boots it to verify the health endpoint responds |
+| [`deploy.yml`](./.github/workflows/deploy.yml)               | Push to `main` | Build → push → deploy → probe the live URL. Fails if the deployed revision does not actually serve.                                   |
+| [`codeql.yml`](./.github/workflows/codeql.yml)               | PRs and weekly | Static security analysis into the Security tab                                                                                        |
 
 PR validation deliberately needs **no cloud credentials**, so pull requests from forks work.
 
@@ -341,7 +341,7 @@ The container smoke test in PR validation is the step most templates omit. It ca
 | `WIF_PROVIDER`        | `projects/<number>/locations/global/workloadIdentityPools/github/providers/github` |
 | `WIF_SERVICE_ACCOUNT` | `github-deployer@<project>.iam.gserviceaccount.com`                                |
 
-Neither is a credential — both are resource identifiers, useless without a valid OIDC token from this repository.
+Neither is a credential. Both are resource identifiers, useless without a valid OIDC token from this repository.
 
 **There is no `GCP_SA_KEY`, and there must never be one.** A downloaded service account key never expires, works from anywhere, and nothing revokes it when someone leaves. See [ADR-0002](./docs/adr/0002-use-workload-identity-federation.md).
 
@@ -365,7 +365,7 @@ Full model: [`cloud/environment-variables.md`](./cloud/environment-variables.md)
 
 ## For AI coding assistants
 
-[`.github/instructions/`](./.github/instructions/) is a rulebook written for Claude Code, Copilot, Cursor and anything else that writes code here — and it works just as well for new human contributors.
+[`.github/instructions/`](./.github/instructions/) is a rulebook written for Claude Code, Copilot, Cursor and anything else that writes code here, and it works just as well for new human contributors.
 
 | Document                                                              | Covers                                                      |
 | --------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -409,7 +409,7 @@ README.md                      you are here
 <details>
 <summary><b>Why Cloud Run instead of Vercel?</b></summary>
 
-Vercel has better DX for Next.js. Cloud Run wins when the rest of your stack is already on Google Cloud: one IAM model, one billing account, one audit trail, one console during an incident. You also keep full control of the container and the pipeline — which matters most when something is broken.
+Vercel has better DX for Next.js. Cloud Run wins when the rest of your stack is already on Google Cloud: one IAM model, one billing account, one audit trail, one console during an incident. You also keep full control of the container and the pipeline, which matters most when something is broken.
 
 Full reasoning and the rejected alternatives: [ADR-0001](./docs/adr/0001-use-cloud-run-for-hosting.md).
 
@@ -442,7 +442,7 @@ Cloud Run's least helpful error message. Three causes, in order of likelihood:
 
 1. Not binding `0.0.0.0` (localhost inside a container is unreachable from outside). The Dockerfile sets `ENV HOSTNAME=0.0.0.0` for this reason.
 2. A hardcoded port instead of `process.env.PORT`.
-3. Startup exceeded the deadline — usually env validation failing, or a hanging top-level `await`.
+3. Startup exceeded the deadline, usually env validation failing, or a hanging top-level `await`.
 
 `docker compose up --build` reproduces all three locally.
 
@@ -451,7 +451,7 @@ Cloud Run's least helpful error message. Three causes, in order of likelihood:
 <details>
 <summary><b>I changed a NEXT_PUBLIC_ variable in Cloud Run and nothing happened.</b></summary>
 
-`NEXT_PUBLIC_*` values are inlined into the JavaScript bundle at **build time**. The value is already inside the file users downloaded. Rebuild the image — updating the service does nothing.
+`NEXT_PUBLIC_*` values are inlined into the JavaScript bundle at **build time**. The value is already inside the file users downloaded. Rebuild the image, updating the service does nothing.
 
 This also means `NEXT_PUBLIC_*` is public. Never put a credential behind that prefix.
 
@@ -483,7 +483,7 @@ Deliberately absent. Those choices are project-specific. A template that picks t
 
 With `--min-instances=0`, an idle service costs nothing. Cloud Run's free tier covers 2M requests and 360k vCPU-seconds per month. That is more than most side projects and many internal tools ever use. Artifact Registry storage is cents per GB.
 
-The one thing that costs real money is `--min-instances=1` (~$10–15/month) to eliminate cold starts. Set a budget alert either way — `scripts/gcp-bootstrap.sh` prints the command.
+The one thing that costs real money is `--min-instances=1` (~$10-15/month) to eliminate cold starts. Set a budget alert either way: `scripts/gcp-bootstrap.sh` prints the command.
 
 </details>
 
@@ -499,7 +499,7 @@ Concretely:
 - CodeQL and Dependabot run continuously.
 - Environment configuration fails loudly at startup, not silently at runtime.
 
-What it does not have — because these are project-specific — is a database, authentication, rate limiting, tracing, or end-to-end tests. Each is listed with a recommended approach in [`.github/instructions/architecture.md`](./.github/instructions/architecture.md#what-is-not-here-and-when-to-add-it).
+What it does not have, because these are project-specific, is a database, authentication, rate limiting, tracing, or end-to-end tests. Each is listed with a recommended approach in [`.github/instructions/architecture.md`](./.github/instructions/architecture.md#what-is-not-here-and-when-to-add-it).
 
 </details>
 
@@ -509,16 +509,16 @@ What it does not have — because these are project-specific — is a database, 
 
 Ordered roughly by how often the need comes up.
 
-- [ ] **Terraform modules** — Artifact Registry, Cloud Run, WIF, service accounts. Layout already planned in [`cloud/terraform.md`](./cloud/terraform.md); waiting on a project with more than one environment.
+- [ ] **Terraform modules**. Artifact Registry, Cloud Run, WIF, service accounts. Layout already planned in [`cloud/terraform.md`](./cloud/terraform.md); waiting on a project with more than one environment.
 - [ ] **Playwright end-to-end tests**, running against `docker compose` so they exercise the production image.
-- [ ] **Staging environment** — a second GCP project with GitHub Environments and required reviewers.
+- [ ] **Staging environment**, a second GCP project with GitHub Environments and required reviewers.
 - [ ] **OpenTelemetry → Cloud Trace**, once there is more than one service to correlate.
-- [ ] **Preview deployments per PR** — one Cloud Run revision per pull request, torn down on merge.
+- [ ] **Preview deployments per PR**, one Cloud Run revision per pull request, torn down on merge.
 - [ ] **Cloud Load Balancer + Cloud CDN** recipe for global audiences.
-- [ ] **Binary Authorization** — block unsigned or unscanned images from deploying.
+- [ ] **Binary Authorization**, block unsigned or unscanned images from deploying.
 - [ ] **Cloud Build alternative pipeline**, for teams that prefer to keep CI inside GCP.
 
-Suggestions welcome — open an issue.
+Suggestions welcome: open an issue.
 
 ---
 
@@ -532,7 +532,7 @@ Found a vulnerability? See [SECURITY.md](./SECURITY.md). Please do not open a pu
 
 ## License
 
-[MIT](./LICENSE) — use it, change it, ship it.
+[MIT](./LICENSE): use it, change it, ship it.
 
 ---
 

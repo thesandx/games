@@ -22,7 +22,7 @@ const SIZES: Record<AvatarSize, string> = {
 /**
  * A player's pastel disc.
  *
- * The initial is decorative — the nickname is almost always rendered beside it,
+ * The initial is decorative. The nickname is almost always rendered beside it,
  * so the disc carries the name in `aria-label` and hides the letter from the
  * accessibility tree rather than reading "R" twice.
  */

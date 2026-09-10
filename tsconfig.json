@@ -6,7 +6,7 @@
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
-    /* Strictness — do not weaken these. See .github/instructions/coding-rules.md */
+    /* Strictness: do not weaken these. See .github/instructions/coding-rules.md */
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -16,7 +16,7 @@
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
     "useUnknownInCatchVariables": true,
-    /* Interop and emit — Next.js compiles, tsc only type-checks */
+    /* Interop and emit, Next.js compiles, tsc only type-checks */
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -25,7 +25,7 @@
     "incremental": true,
     "noEmit": true,
     /* Absolute imports: `@/lib/env` resolves to `./lib/env`.
-       Deliberately no `baseUrl` — it is deprecated (TS5101) and stops working
+       Deliberately no `baseUrl`, it is deprecated (TS5101) and stops working
        in TypeScript 7. `paths` entries resolve relative to this file, so it
        was never needed here. */
     "paths": {

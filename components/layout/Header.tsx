@@ -7,7 +7,7 @@ import Link from 'next/link';
  * between artboards in the design canvas, and in a shipped app its job is done
  * by the routes themselves.
  *
- * A Server Component — with the dropdown gone there is no state left to hold.
+ * A Server Component, with the dropdown gone there is no state left to hold.
  */
 export function Header({ brandName }: { brandName: string }) {
   return (

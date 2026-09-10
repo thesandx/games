@@ -2,8 +2,8 @@
 #
 # Rename this template to a real project.
 #
-# Replaces the template name everywhere it appears — package.json,
-# docker-compose.yml, documentation, issue templates — and optionally resets
+# Replaces the template name everywhere it appears, package.json,
+# docker-compose.yml, documentation, issue templates, and optionally resets
 # git history so the new project starts from a single clean commit.
 #
 # Usage:

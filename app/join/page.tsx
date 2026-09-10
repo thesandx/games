@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 /**
  * Accepts `?key=PLZ4K9` so the lobby's "Copy link" lands someone here with the
- * key already filled in — they only pick a nickname.
+ * key already filled in. They only pick a nickname.
  */
 export default async function JoinPage({
   searchParams,

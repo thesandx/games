@@ -1,6 +1,6 @@
 # Local harness for the *production* image.
 #
-# This is not the development server — use `pnpm dev` for that. The value here
+# This is not the development server: use `pnpm dev` for that. The value here
 # is running the exact artefact Cloud Run will run, so port binding, non-root
 # permissions, health checks and signal handling are verified before deploy.
 #

@@ -6,7 +6,7 @@ utilities from the token names, so `--color-mint` gives `bg-mint`, `text-mint` a
 
 ## Colour
 
-### Ink — type and the primary action
+### Ink: type and the primary action
 
 | Token               | Value     | Utility                                | Use for                                                 |
 | ------------------- | --------- | -------------------------------------- | ------------------------------------------------------- |
@@ -20,13 +20,13 @@ utilities from the token names, so `--color-mint` gives `bg-mint`, `text-mint` a
 | Token                 | Value     | Use for                                 |
 | --------------------- | --------- | --------------------------------------- |
 | `--color-white`       | `#ffffff` | The canvas, and secondary button fill   |
-| `--color-neutral-50`  | `#f8fafc` | Inert surfaces — an untaken board cell  |
+| `--color-neutral-50`  | `#f8fafc` | Inert surfaces, an untaken board cell   |
 | `--color-neutral-200` | `#e0e2e6` | Strong surface                          |
 | `--color-neutral-300` | `#dddddd` | Aliased as `hairline`                   |
 | `--color-neutral-500` | `#9297a0` | Disabled borders and inert cell borders |
 | `--color-neutral-900` | `#1d1f25` | Elevated dark surface                   |
 
-### Signature palette — whole-card surfaces only
+### Signature palette: whole-card surfaces only
 
 | Token             | Value     | Text on it | Typical use                                           |
 | ----------------- | --------- | ---------- | ----------------------------------------------------- |
@@ -58,7 +58,7 @@ utilities from the token names, so `--color-mint` gives `bg-mint`, `text-mint` a
 
 Huninn is loaded through `next/font/google` in `app/layout.tsx` and exposed as `--font-huninn`, which
 `--font-display` and `--font-text` both point at. It is the licensed Haas Grotesk family's stand-in
-and **ships one weight (400)** — every 500 is synthesised by the browser.
+and **ships one weight (400)**, every 500 is synthesised by the browser.
 
 Scale in use: body `text-sm` (14px) · titles `text-lg` · card headings `text-[26px]` · page headings
 `text-[clamp(1.75rem,5vw,2.5rem)]` · hero `text-[clamp(2.125rem,7vw,3rem)]`.
@@ -71,18 +71,18 @@ Scale in use: body `text-sm` (14px) · titles `text-lg` · card headings `text-[
 | `--radius-pill`   | `999px`                     | `rounded-pill`  | Buttons, filter chips, avatar chips                 |
 | `--radius-input`  | `14px`                      | `rounded-input` | Text inputs, small controls                         |
 | `--radius-cell`   | `16px`                      | `rounded-cell`  | Board cells, BINGO letter tiles                     |
-| `--ease-standard` | `cubic-bezier(0.2,0,0.2,1)` | —               | The only easing. 120–180ms, colour and border only. |
+| `--ease-standard` | `cubic-bezier(0.2,0,0.2,1)` | -               | The only easing. 120-180ms, colour and border only. |
 
 ## Component inventory
 
 Reuse these. Adding a second variant of one of them is almost always the wrong move.
 
-### `components/ui/` — generic, no data fetching, props in
+### `components/ui/`: generic, no data fetching, props in
 
 | Component        | Notes                                                                                                                                     |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `Button`         | `variant` primary/secondary, `size` md (52px) / sm (44px), `block`. Exports `buttonClasses` so links can share the styling.               |
-| `ButtonLink`     | A real `<a>` that looks like a button. Use for navigation — never a `<Link>` inside a `<button>`.                                         |
+| `ButtonLink`     | A real `<a>` that looks like a button. Use for navigation, never a `<Link>` inside a `<button>`.                                          |
 | `TextInput`      | Always-visible label, optional `hint` and `error`, wired via `aria-describedby`. Takes a `ref` so a form can focus the field it rejected. |
 | `Card`           | `surface` white/cream/peach/mint/yellow/coral/forest, `outlined` for the 2px ink border.                                                  |
 | `Avatar`         | Pastel disc, sizes sm/md/lg. Name goes in `aria-label`; the initial is `aria-hidden`.                                                     |
@@ -95,10 +95,10 @@ Reuse these. Adding a second variant of one of them is almost always the wrong m
 
 ### Feature components
 
-`components/bingo/` — `BingoBoard` (read-only or interactive), `BingoProgress`, `TurnBanner`, `PlayView`
-`components/room/` — `LobbyView`, `ResultsView`, `ScoreboardView`, `RoomScreen`, `HostDrawer`,
+`components/bingo/`, `BingoBoard` (read-only or interactive), `BingoProgress`, `TurnBanner`, `PlayView`
+`components/room/`, `LobbyView`, `ResultsView`, `ScoreboardView`, `RoomScreen`, `HostDrawer`,
 `PlayerList`, `PlayerScoreStrip`, `ScoreTable`, `AvatarPicker`, `CreateRoomForm`, `JoinRoomForm`
-`components/games/` — `GameCard`, `GameBrowser`, `HowToPlayTabs`
+`components/games/`, `GameCard`, `GameBrowser`, `HowToPlayTabs`
 
 ## Where a new file goes
 
@@ -120,6 +120,6 @@ Naming: components `PascalCase.tsx`, hooks `camelCase.ts`, utilities `kebab-case
 
 ## Server versus client
 
-Default to a Server Component. `'use client'` needs state, effects, event handlers or browser APIs —
-nothing else qualifies, and it belongs at the leaves. Never in `app/layout.tsx`: that turns the whole
+Default to a Server Component. `'use client'` needs state, effects, event handlers or browser APIs.
+Nothing else qualifies, and it belongs at the leaves. Never in `app/layout.tsx`: that turns the whole
 application into a client bundle.

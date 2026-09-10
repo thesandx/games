@@ -24,7 +24,7 @@ GitHub Actions builds the Next.js application into a small, non-root container i
 | **Cloud Run**                          | Runs the container, autoscales, terminates TLS | Serverless containers: no cluster to operate, scale-to-zero, per-request billing                |
 | **Artifact Registry**                  | Stores container images                        | Regional, IAM-integrated, vulnerability scanning; the supported successor to Container Registry |
 | **IAM + Workload Identity Federation** | Keyless CI authentication                      | Removes long-lived key material from the threat model entirely                                  |
-| **Cloud Logging**                      | Log aggregation and search                     | Automatic — Cloud Run forwards stdout/stderr with no agent                                      |
+| **Cloud Logging**                      | Log aggregation and search                     | Automatic. Cloud Run forwards stdout/stderr with no agent                                       |
 | **Secret Manager**                     | Secret storage (when needed)                   | Versioned, IAM-controlled, audit-logged; mounted into Cloud Run as env vars                     |
 | **Cloud Monitoring**                   | Metrics, uptime checks, alerts                 | Built-in Cloud Run metrics with no instrumentation                                              |
 
@@ -51,9 +51,9 @@ Indicative for a low-traffic service (1 vCPU, 512 MiB, scale to zero):
 | ---------------------------------------------- | ------------------------------------------ |
 | Under the free tier (2M requests, 360k vCPU-s) | $0                                         |
 | ~100k requests/month, 100ms each               | Cents                                      |
-| `--min-instances=1` (no cold starts)           | ~$10–15/month for the always-warm instance |
+| `--min-instances=1` (no cold starts)           | ~$10-15/month for the always-warm instance |
 
-Artifact Registry charges for storage — a few cents per GB per month. The retention policy in [artifact-registry.md](./artifact-registry.md) keeps that from growing without bound.
+Artifact Registry charges for storage, a few cents per GB per month. The retention policy in [artifact-registry.md](./artifact-registry.md) keeps that from growing without bound.
 
 Set a budget alert before the first deploy. `scripts/gcp-bootstrap.sh` prints the command.
 

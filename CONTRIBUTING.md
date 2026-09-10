@@ -25,7 +25,7 @@ gh pr create
 
 ## Conventions
 
-The rules live in [`.github/instructions/`](./.github/instructions/) — the same rulebook AI assistants follow. Start with [`coding-rules.md`](./.github/instructions/coding-rules.md).
+The rules live in [`.github/instructions/`](./.github/instructions/): the same rulebook AI assistants follow. Start with [`coding-rules.md`](./.github/instructions/coding-rules.md).
 
 The rules people miss most often:
 
@@ -48,7 +48,7 @@ chore(deps): bump next to 16.2.11
 
 Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `perf`.
 
-The subject line says what changed. The body says **why** — that is the part git blame cannot reconstruct.
+The subject line says what changed. The body says **why**. That is the part git blame cannot reconstruct.
 
 ## Pull requests
 
@@ -56,18 +56,18 @@ The [PR template](./.github/pull_request_template.md) has the checklist. The par
 
 - **Why**, not just what. Link the issue.
 - **One logical change per PR.** A reviewer cannot review a 40-file PR well if it renames things and fixes a bug together.
-- **Explain the judgement calls** — a new dependency, a client boundary, a data-flow change.
+- **Explain the judgement calls**: a new dependency, a client boundary, a data-flow change.
 - **Deployment notes** if anything must happen outside the PR: a new secret, an IAM grant, a variable.
 
 ## Dependencies
 
 Read [rule 8](./.github/instructions/coding-rules.md#8-avoid-unnecessary-dependencies) before adding one. If it is still justified, say so in the PR: what it does, why the platform cannot, and what it costs the bundle.
 
-Commit the updated `pnpm-lock.yaml` — CI installs with `--frozen-lockfile`.
+Commit the updated `pnpm-lock.yaml`: CI installs with `--frozen-lockfile`.
 
 ## Documentation
 
-Documentation changes ship with the code change, not after it. There is no separate docs backlog, on purpose — a docs backlog quickly becomes inaccurate.
+Documentation changes ship with the code change, not after it. There is no separate docs backlog, on purpose. A docs backlog quickly becomes inaccurate.
 
 | Changed                      | Update                                                          |
 | ---------------------------- | --------------------------------------------------------------- |
@@ -77,7 +77,7 @@ Documentation changes ship with the code change, not after it. There is no separ
 | A workflow                   | `.github/instructions/github-workflows.md`, README              |
 | An environment variable      | `.env.example`, `lib/env.ts`, `cloud/environment-variables.md`  |
 
-For decisions that will outlive the PR, add an ADR — [`docs/adr/`](./docs/adr/).
+For decisions that will outlive the PR, add an ADR: [`docs/adr/`](./docs/adr/).
 
 ## Reporting bugs
 

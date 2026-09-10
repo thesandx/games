@@ -15,7 +15,7 @@ export default function GamesPage() {
           Pick a game
         </h1>
         <p className="text-ink-3 mt-2.5 text-sm">
-          Bingo is playable now. The rest are in build — everything runs in the browser on any
+          Bingo is playable now. The rest are in build. Everything runs in the browser on any
           screen size.
         </p>
         <GameBrowser />

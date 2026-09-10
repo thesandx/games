@@ -21,7 +21,7 @@ export default function HowToPlayPage() {
           <h2 className="text-ink-1 mb-1.5 text-lg font-medium">Rooms and keys</h2>
           <p className="text-ink-2 text-sm leading-relaxed">
             Keys are six characters and case-insensitive. They expire two hours after the last
-            round. Nothing is stored against you — close the tab and the nickname is gone.
+            round. Nothing is stored against you: close the tab and the nickname is gone.
           </p>
         </div>
       </div>

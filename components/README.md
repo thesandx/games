@@ -1,6 +1,6 @@
 # `components/`
 
-Reusable React components. Intentionally empty in the template — the Hello World page needs none.
+Reusable React components. Intentionally empty in the template. The Hello World page needs none.
 
 ## Layout
 

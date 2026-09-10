@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * `searchParams` is a Promise in Next 16, so this page is async — which is why
+ * `searchParams` is a Promise in Next 16, so this page is async, which is why
  * the interactive form lives in its own Client Component rather than here.
  */
 export default async function CreateRoomPage({

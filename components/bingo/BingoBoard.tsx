@@ -29,7 +29,7 @@ export interface BingoBoardProps {
  * A player's 5x5 board.
  *
  * Marking is derived from the globally taken numbers, never stored per player
- * and never toggled by hand — that is what guarantees every board in the room
+ * and never toggled by hand. That is what guarantees every board in the room
  * agrees without any synchronisation step.
  *
  * Rendered as a table because the structure carries meaning: wins are rows,

@@ -29,7 +29,7 @@ export interface PlayViewProps {
  * One grid, not two. The board is the picker: every board already holds all 25
  * numbers, so a separate number pad would be the same 25 buttons twice. Free
  * cells are tappable on your turn; taken cells are filled and inert. That also
- * removes the need for a "taken" list — the board already shows what has gone.
+ * removes the need for a "taken" list. The board already shows what has gone.
  *
  * You see your own board and nobody else's. The other players' grids are not
  * merely hidden here: the transport does not send them, so there is nothing to
@@ -56,7 +56,7 @@ export function PlayView({
   const isYourTurn = turnPlayerId === playerId;
 
   // Recomputed from the board and the taken numbers, exactly as the engine
-  // does — so the button only appears when a claim would actually be accepted.
+  // does, so the button only appears when a claim would actually be accepted.
   const myLines = findWinningLines(card, selected);
   const canCallBingo = myLines.length >= LINES_TO_WIN;
 
@@ -87,8 +87,8 @@ export function PlayView({
         {/*
           Explanatory copy, not state, so a phone drops it. On a small screen it
           pushed the board below the fold, and the board is what a player came
-          for. The letters and the "n of 5 lines" count stay at every width —
-          those are state, and the same rule is why the count is text beside a
+          for. The letters and the "n of 5 lines" count stay at every width.
+          Those are state, and the same rule is why the count is text beside a
           row of coloured tiles rather than colour alone. The full rule is one
           tap away under Rules.
         */}

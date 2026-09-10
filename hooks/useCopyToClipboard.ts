@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * "Copy key" then "Copied" the way the lobby design does.
  *
  * Uses the async Clipboard API and reports failure rather than falling back to
- * the deprecated `execCommand` path — an insecure origin or a denied permission
+ * the deprecated `execCommand` path, an insecure origin or a denied permission
  * should tell the user, not silently do nothing.
  */
 export function useCopyToClipboard(resetAfterMs = 1_600): {

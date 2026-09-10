@@ -24,8 +24,8 @@
  * draft of this file and both changed for a reason:
  *
  * **The caller is identified by `Authorization: Bearer <playerToken>`, not by
- * an `X-Player-Id` header.** A player id is public — it is in `hostId`, in
- * `bingo.turnOrder` and on every entry in `players` — so an id-as-credential
+ * an `X-Player-Id` header.** A player id is public, it is in `hostId`, in
+ * `bingo.turnOrder` and on every entry in `players`, so an id-as-credential
  * lets any player in a room act as any other. See `PlayerIdentity`.
  *
  * **Every in-game move goes to one action endpoint** carrying
@@ -33,11 +33,11 @@
  * lets a second game be added without adding routes to this file.
  *
  * The server owns board visibility, turn order, the taken-number set and bingo
- * validation. `bingo.cards` comes back holding only the caller's board — plus
- * the winner's once the round is over — because the server scoped it, not
+ * validation. `bingo.cards` comes back holding only the caller's board, plus
+ * the winner's once the round is over, because the server scoped it, not
  * because this client hid anything.
  *
- * A rule violation comes back as 4xx with `{ "code": ..., "message": ... }`
+ * A rule violation comes back as 4xx with `{ "code": ... "message": ... }`
  * where `code` is one of `RoomErrorCode`. That is what lets the UI show
  * "It is not your turn yet" instead of a generic failure.
  */
@@ -118,7 +118,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
         ...init.headers,
       },
       // `no-store` by default: a mutation must never be answered from a cache.
-      // The room read overrides it — see `getRoom`.
+      // The room read overrides it: see `getRoom`.
       cache: init.cache ?? 'no-store',
     });
   } catch (cause) {
@@ -181,7 +181,7 @@ function action(identity: PlayerIdentity, type: string, payload: object = {}): P
  * Reads a Server-Sent Events stream with `fetch` rather than `EventSource`.
  *
  * `EventSource` cannot set request headers, so using it would mean putting the
- * player's token in the query string — into access logs, proxy logs and browser
+ * player's token in the query string, into access logs, proxy logs and browser
  * history. Reading the body as a stream keeps the credential in a header. The
  * cost is that reconnection is this function's job rather than the browser's,
  * which is what the backoff below is.
@@ -236,7 +236,7 @@ function subscribeToRoom(
 
         // The server closes the stream deliberately for a room that no longer
         // exists, or a token that no longer belongs to it. Retrying that is
-        // pointless — stop, and let the poll render the real answer.
+        // pointless, stop, and let the poll render the real answer.
         if (frame.includes('event: closed')) {
           stopped = true;
           controller.abort();
@@ -313,7 +313,7 @@ export const playroomApi: RoomTransport = {
    *
    * Sending the validator by hand instead does not work: with `no-store` the
    * browser has nothing to revalidate, so Chrome fails the request outright
-   * rather than surfacing the `304` — which silently breaks the poll, and the
+   * rather than surfacing the `304`, which silently breaks the poll, and the
    * poll is the fallback that has to work when the event stream does not.
    *
    * The server pairs this with `Vary: Authorization`, so two players reading

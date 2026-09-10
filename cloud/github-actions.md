@@ -8,13 +8,13 @@ How CI authenticates to Google Cloud without a single stored credential, and wha
 
 The obvious approach is `gcloud iam service-accounts keys create key.json`, then paste it into a GitHub secret. It works, and it is the wrong answer.
 
-| Service account key                                        | Workload Identity Federation                         |
-| ---------------------------------------------------------- | ---------------------------------------------------- |
-| Never expires — valid until someone remembers to revoke it | Token lives ~1 hour, scoped to one workflow run      |
-| Works from anywhere on the internet                        | Only a token from _this repository_ can be exchanged |
-| Sits in GitHub, in someone's downloads, in a Slack thread  | No key material exists to leak                       |
-| Rotation is a manual chore nobody does                     | Rotation is automatic and invisible                  |
-| A leak is silent                                           | Every exchange is in Cloud Audit Logs                |
+| Service account key                                       | Workload Identity Federation                         |
+| --------------------------------------------------------- | ---------------------------------------------------- |
+| Never expires, valid until someone remembers to revoke it | Token lives ~1 hour, scoped to one workflow run      |
+| Works from anywhere on the internet                       | Only a token from _this repository_ can be exchanged |
+| Sits in GitHub, in someone's downloads, in a Slack thread | No key material exists to leak                       |
+| Rotation is a manual chore nobody does                    | Rotation is automatic and invisible                  |
+| A leak is silent                                          | Every exchange is in Cloud Audit Logs                |
 
 Google's own guidance is to avoid downloading keys, and many organisations disable key creation by org policy (`constraints/iam.disableServiceAccountKeyCreation`). **This repository must never contain one.**
 
@@ -115,7 +115,7 @@ github-deployer@<project>.iam.gserviceaccount.com    ← CI impersonates this
 
 ### Tightening further
 
-`roles/run.admin` is broad — it can delete services and modify IAM. For a hardened setup, use `roles/run.developer` plus explicit bindings, or a custom role limited to:
+`roles/run.admin` is broad. It can delete services and modify IAM. For a hardened setup, use `roles/run.developer` plus explicit bindings, or a custom role limited to:
 
 ```
 run.services.get
@@ -132,7 +132,7 @@ Start with `run.admin`, verify the pipeline works, then narrow. If you narrow fi
 
 ## Restricting which refs can deploy
 
-The default attribute condition allows any workflow in the repository — including one on a feature branch — to obtain deploy credentials. To require `main`:
+The default attribute condition allows any workflow in the repository, including one on a feature branch, to obtain deploy credentials. To require `main`:
 
 ```bash
 gcloud iam workload-identity-pools providers update-oidc github \
@@ -181,7 +181,7 @@ gcloud projects get-iam-policy "$PROJECT_ID" \
 The exchange failed. Almost always one of:
 
 1. **`id-token: write` missing** from the job's `permissions`. The most common cause by far.
-2. **Wrong `WIF_PROVIDER`** — check it uses the project _number_ and the full `projects/.../providers/...` path.
+2. **Wrong `WIF_PROVIDER`**: check it uses the project _number_ and the full `projects/.../providers/...` path.
 3. **`attribute-condition` does not match.** Compare the exact `owner/repo` string, including case.
 4. **Missing `roles/iam.workloadIdentityUser`** binding on the deployer SA for the `principalSet://` member.
 
@@ -194,7 +194,7 @@ Inspect what GitHub actually asserted by adding a temporary debug step:
       | jq -r '.value' | cut -d. -f2 | base64 -d 2>/dev/null | jq
 ```
 
-This prints the JWT claims (no signature, so it is safe) — compare `repository` and `ref` against your condition. **Remove the step afterwards.**
+This prints the JWT claims (no signature, so it is safe), compare `repository` and `ref` against your condition. **Remove the step afterwards.**
 
 ### `Permission 'iam.serviceAccounts.getAccessToken' denied`
 
@@ -214,7 +214,7 @@ Missing `roles/artifactregistry.writer` on the repository, or `gcloud auth confi
 
 ### Auth works for one workflow but not another
 
-Check `permissions:` in the failing workflow. Job-level permissions override workflow-level ones — a job that redeclares `permissions:` without `id-token: write` loses it.
+Check `permissions:` in the failing workflow. Job-level permissions override workflow-level ones. A job that redeclares `permissions:` without `id-token: write` loses it.
 
 ---
 

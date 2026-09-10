@@ -15,7 +15,7 @@ on:
 # `id-token: write` is what makes keyless auth work: it lets the job mint a
 # short-lived GitHub OIDC token that Google exchanges for an access token.
 # There is no JSON service account key anywhere in this pipeline, and there
-# must never be one — a leaked key is a permanent credential, an OIDC token
+# must never be one. A leaked key is a permanent credential, an OIDC token
 # expires in minutes and is scoped to this repository.
 permissions:
   contents: read
@@ -137,7 +137,7 @@ jobs:
           echo "revision_suffix=${GITHUB_SHA:0:12}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Configure Docker for Artifact Registry
-        # Uses the federated credentials from the auth step — no key file.
+        # Uses the federated credentials from the auth step: no key file.
         run: gcloud auth configure-docker ${{ steps.image.outputs.registry }} --quiet
 
       - name: Set up Buildx
@@ -157,7 +157,7 @@ jobs:
           provenance: false # keeps the Artifact Registry listing to one entry
           # These are NEXT_PUBLIC_*, so they are inlined into the JavaScript
           # here, at build time. Changing them on the Cloud Run service does
-          # nothing — the value is already inside the bundle users downloaded.
+          # nothing. The value is already inside the bundle users downloaded.
           # Flipping a deployment to the real rooms API therefore means setting
           # the repository variables and then RE-RUNNING this workflow:
           #
@@ -192,7 +192,7 @@ jobs:
           # `--revision-suffix` is unique per build, not per commit. Cloud Run
           # rejects a second revision with an existing name and a different
           # configuration, so a suffix of the SHA alone makes workflow_dispatch
-          # — a manual redeploy of the current main — fail with ALREADY_EXISTS.
+          #, a manual redeploy of the current main, fail with ALREADY_EXISTS.
           # That is exactly the case a build-arg change needs.
           #
           # Nothing below may carry a `#` comment: `>-` is a folded scalar, so
@@ -213,7 +213,7 @@ jobs:
       - name: Verify the deployment serves traffic
         # The deploy step succeeding only means Cloud Run accepted the revision.
         # Hit the live URL to confirm it is actually healthy before declaring
-        # success — this is what turns a green tick into a real signal.
+        # success. This is what turns a green tick into a real signal.
         run: |
           set -euo pipefail
           URL="${{ steps.deploy.outputs.url }}"

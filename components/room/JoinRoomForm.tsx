@@ -51,7 +51,7 @@ export function JoinRoomForm({ initialKey }: { initialKey: string }) {
         ? null
         : key.trim() === ''
           ? 'Enter the six-character key the host gave you.'
-          : `Keys are ${ROOM_KEY_LENGTH} characters, letters and numbers.`,
+          : `Keys are ${ROOM_KEY_LENGTH} characters: letters and numbers.`,
     );
     setNickError(nickOk ? null : 'Enter a nickname so the room knows who you are.');
 
@@ -69,7 +69,7 @@ export function JoinRoomForm({ initialKey }: { initialKey: string }) {
       const room = await roomTransport.getRoom(normalised);
       if (!room) {
         setError(
-          'No room with that key. Check it with the host — keys expire two hours after the last round.',
+          'No room with that key. Check it with the host. Keys expire two hours after the last round.',
         );
         setSubmitting(false);
         return;

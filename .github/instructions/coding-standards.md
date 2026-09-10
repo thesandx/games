@@ -35,11 +35,11 @@ const normalised: string = title.trim().toLowerCase();
 - **Discriminated unions over optional-field soup:**
 
   ```ts
-  // Good — impossible states are unrepresentable
+  // Good, impossible states are unrepresentable
   type Fetch<T> =
     { status: 'loading' } | { status: 'error'; error: Error } | { status: 'ok'; data: T };
 
-  // Bad — what does { loading: true, data: {...} } mean?
+  // Bad, what does { loading: true, data: {...} } mean?
   type Fetch<T> = { loading?: boolean; error?: Error; data?: T };
   ```
 
@@ -72,10 +72,10 @@ export class UpstreamError extends Error {
 - Independent awaits run concurrently:
 
   ```ts
-  // Good — one round trip's worth of latency
+  // Good, one round trip's worth of latency
   const [user, orders] = await Promise.all([getUser(id), getOrders(id)]);
 
-  // Bad — sequential for no reason
+  // Bad, sequential for no reason
   const user = await getUser(id);
   const orders = await getOrders(id);
   ```
@@ -89,7 +89,7 @@ export class UpstreamError extends Error {
 ### Server Components are the default
 
 ```tsx
-// app/orders/page.tsx — Server Component. Runs on the server, ships no JS.
+// app/orders/page.tsx: Server Component. Runs on the server, ships no JS.
 import { getOrders } from '@/services/order.service';
 
 import { OrderFilters } from './OrderFilters'; // 'use client' lives in there
@@ -129,7 +129,7 @@ export function Badge({ label, tone = 'neutral', className }: BadgeProps) {
 - Export the props interface.
 - Destructure props with defaults in the signature.
 - Accept `className` on anything reusable so callers can adjust spacing without a wrapper `<div>`.
-- **`key` must be a stable id, never an array index** — index keys corrupt state on reorder.
+- **`key` must be a stable id, never an array index**: index keys corrupt state on reorder.
 
 ### Data fetching
 
@@ -147,7 +147,7 @@ export function Badge({ label, tone = 'neutral', className }: BadgeProps) {
 
 - `'use client'` on the first line, above imports.
 - Keep them leaf-shaped and prop-driven.
-- Every effect cleans up. Every dependency array is honest — do not silence the lint rule.
+- Every effect cleans up. Every dependency array is honest: do not silence the lint rule.
 - Prefer `useSyncExternalStore` over `useEffect` + `useState` for reading browser state; it avoids hydration mismatches.
 
 ### Accessibility
@@ -166,8 +166,8 @@ Not optional. `eslint-plugin-jsx-a11y` runs as part of `eslint-config-next` and 
 
 - Tailwind utilities in `className`. No inline `style` except for genuinely dynamic values (a computed width).
 - Colours come from the tokens in `styles/globals.css`. No raw hex in a component.
-- Mobile-first: unprefixed utilities are the small screen, `sm:` and up widen it — never the reverse. Prefer fluid widths (`w-full`, `max-w-*`) over fixed pixel widths, keep interactive targets ≥44px, never let the body scroll horizontally, and verify the layout at ~320px and at desktop width. See rule 11 in [coding-rules.md](./coding-rules.md).
-- When a `className` string becomes unreadable, that is a signal to extract a component — not to reach for `@apply`.
+- Mobile-first: unprefixed utilities are the small screen, `sm:` and up widen it, never the reverse. Prefer fluid widths (`w-full`, `max-w-*`) over fixed pixel widths, keep interactive targets ≥44px, never let the body scroll horizontally, and verify the layout at ~320px and at desktop width. See rule 11 in [coding-rules.md](./coding-rules.md).
+- When a `className` string becomes unreadable, that is a signal to extract a component, not to reach for `@apply`.
 
 ---
 
@@ -176,18 +176,18 @@ Not optional. `eslint-plugin-jsx-a11y` runs as part of `eslint-config-next` and 
 Comment **why**, not **what**. The code already says what it does.
 
 ```ts
-// Good — explains a decision the code cannot
+// Good, explains a decision the code cannot
 // Cloud Run kills the container 10s after SIGTERM, so flush before that.
 const FLUSH_TIMEOUT_MS = 8_000;
 
-// Bad — restates the line below it
+// Bad, restates the line below it
 // set the flush timeout to 8000
 const FLUSH_TIMEOUT_MS = 8_000;
 ```
 
 - JSDoc on exported functions whose purpose is not obvious from the signature.
 - No commented-out code. Git remembers it.
-- A `TODO` must name the condition that resolves it, or it is not a TODO — it is a bug.
+- A `TODO` must name the condition that resolves it, or it is not a TODO. It is a bug.
 
 ---
 
@@ -197,7 +197,7 @@ const FLUSH_TIMEOUT_MS = 8_000;
 - Query by role and accessible name (`getByRole('button', { name: 'Save' })`), not by test id. If the query is hard to write, the markup is probably inaccessible.
 - One assertion concept per test; a descriptive name that reads as a sentence.
 - Test the failure paths. Most incidents come from a failure path, not the happy path.
-- Async Server Components cannot be rendered by React Testing Library — test their `services/` and `lib/` helpers directly instead.
+- Async Server Components cannot be rendered by React Testing Library, test their `services/` and `lib/` helpers directly instead.
 
 ---
 

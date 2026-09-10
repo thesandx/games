@@ -8,7 +8,7 @@
 
 GitHub Actions needs to push container images to Artifact Registry and deploy revisions to Cloud Run. Both require Google Cloud credentials.
 
-The conventional approach — and the one most tutorials, including our own earlier projects, use — is:
+The conventional approach, and the one most tutorials, including our own earlier projects, use, is:
 
 ```bash
 gcloud iam service-accounts keys create key.json --iam-account=...
@@ -23,7 +23,7 @@ gh secret set GCP_SA_KEY < key.json
 
 It works immediately, which is exactly why it is so widespread.
 
-The problem is what that key _is_: a permanent, bearer credential. It does not expire. It grants its permissions to anyone holding the bytes, from anywhere on the internet. Once created it exists in more places than anyone tracks — a GitHub secret, the laptop it was downloaded to, a password manager, possibly a Slack thread. Nothing revokes it when a person leaves the team. And a leak is silent: the first sign is usually the bill or the breach.
+The problem is what that key _is_: a permanent, bearer credential. It does not expire. It grants its permissions to anyone holding the bytes, from anywhere on the internet. Once created it exists in more places than anyone tracks. A GitHub secret, the laptop it was downloaded to, a password manager, possibly a Slack thread. Nothing revokes it when a person leaves the team. And a leak is silent: the first sign is usually the bill or the breach.
 
 Many organisations now block key creation entirely with the `constraints/iam.disableServiceAccountKeyCreation` org policy. That makes this approach not just unwise but unavailable.
 
@@ -39,27 +39,27 @@ assertion.repository == 'owner/repository'
 
 ## Alternatives considered
 
-### Option A — Workload Identity Federation (chosen)
+### Option A: Workload Identity Federation (chosen)
 
 GitHub mints a short-lived, signed OIDC token describing the workflow run. Google's Security Token Service validates it against the configured provider, checks the attribute condition, and returns a federated token that impersonates the deployer service account. The credential lives for the duration of the job.
 
 No key material exists at any point. A stolen token is useless within the hour and only ever came from one repository.
 
-### Option B — Service account key in a GitHub secret
+### Option B: Service account key in a GitHub secret
 
-Rejected. Every property that makes it convenient — permanence, portability, no setup — is the same property that makes it dangerous. The setup cost it saves is roughly ten minutes, one time, and is automated in `scripts/gcp-bootstrap.sh` anyway.
+Rejected. Every property that makes it convenient, permanence, portability, no setup, is the same property that makes it dangerous. The setup cost it saves is roughly ten minutes, one time, and is automated in `scripts/gcp-bootstrap.sh` anyway.
 
-### Option C — A self-hosted runner on Compute Engine
+### Option C: A self-hosted runner on Compute Engine
 
-A runner on a VM with an attached service account gets credentials from the metadata server automatically — also keyless.
+A runner on a VM with an attached service account gets credentials from the metadata server automatically: also keyless.
 
 Rejected because it trades one operational burden for a larger one: a VM to patch, a runner to keep updated, and a machine with deploy permissions sitting on the network permanently. It also does not scale to zero. Reasonable for organisations that already run self-hosted runners for other reasons; not worth introducing for this.
 
-### Option D — Deploy from Cloud Build instead of GitHub Actions
+### Option D: Deploy from Cloud Build instead of GitHub Actions
 
 Cloud Build runs inside Google Cloud and needs no federation at all.
 
-Rejected because CI would then be split across two systems: PR validation on GitHub (where the code review happens) and deployment on Cloud Build. Contributors would need Google Cloud console access to see why a deploy failed. The template stays compatible with Cloud Build for teams that prefer it — see `cloud/README.md` — but GitHub Actions is the default.
+Rejected because CI would then be split across two systems: PR validation on GitHub (where the code review happens) and deployment on Cloud Build. Contributors would need Google Cloud console access to see why a deploy failed. The template stays compatible with Cloud Build for teams that prefer it, see `cloud/README.md`, but GitHub Actions is the default.
 
 ## Consequences
 
@@ -80,11 +80,11 @@ Rejected because CI would then be split across two systems: PR validation on Git
 
 **Neutral**
 
-- Two GitHub secrets (`WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT`) are still needed, but neither is a credential — both are resource identifiers, useless without a valid token from this repository.
+- Two GitHub secrets (`WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT`) are still needed, but neither is a credential. Both are resource identifiers, useless without a valid token from this repository.
 
 ## Revisit when
 
-Nothing foreseeable makes stored keys the better choice again. If Google ships a more direct GitHub integration, or GitHub ships native GCP OIDC support that removes the pool and provider setup, adopt it — the principle (no long-lived credentials) stays, only the mechanism changes.
+Nothing foreseeable makes stored keys the better choice again. If Google ships a more direct GitHub integration, or GitHub ships native GCP OIDC support that removes the pool and provider setup, adopt it. The principle (no long-lived credentials) stays, only the mechanism changes.
 
 ## References
 

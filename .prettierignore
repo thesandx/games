@@ -7,5 +7,5 @@ pnpm-lock.yaml
 next-env.d.ts
 *.tsbuildinfo
 
-# Source design canvas — reference material, not project source.
+# Source design canvas: reference material, not project source.
 games/

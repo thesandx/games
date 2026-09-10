@@ -6,7 +6,7 @@ import type { CreateRoomInput, PlayerIdentity, Room } from '@/types/playroom';
 
 /**
  * Drives the real transport against jsdom's `localStorage`, so the whole path a
- * screen takes — create, join, deal, take turns, claim — is exercised rather
+ * screen takes, create, join, deal, take turns, claim, is exercised rather
  * than just the pure reducers underneath it.
  */
 
@@ -25,7 +25,7 @@ beforeEach(() => {
  * The identity a transport call needs.
  *
  * The token is a placeholder. This store does not check credentials and says
- * so in its module comment — there is no trust boundary inside one browser, so
+ * so in its module comment. There is no trust boundary inside one browser, so
  * a check here would be theatre. The field exists so the same call shape works
  * against the real service, which does check it.
  */
@@ -45,7 +45,7 @@ function bingoNumbers(room: Room, playerId: string): number[] {
   return CELLS_5_LINES.map((cell) => card[cell] as number);
 }
 
-/** The player's top row — one line, deliberately not enough to win. */
+/** The player's top row, one line, deliberately not enough to win. */
 function topRow(room: Room, playerId: string): number[] {
   return (room.bingo?.cards[playerId] ?? []).slice(0, 5) as number[];
 }
@@ -202,7 +202,7 @@ describe('localRoomStore', () => {
     const started = await localRoomStore.startRound(identity);
 
     // Two players, so turns alternate. Marking is global, so it does not
-    // matter who takes each number — it lands on the host's board either way.
+    // matter who takes each number. It lands on the host's board either way.
     let onTurn = hostId;
     for (const value of bingoNumbers(started, hostId)) {
       await localRoomStore.selectNumber(identityFor(room.key, onTurn), value);

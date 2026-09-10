@@ -38,7 +38,7 @@ describe('createCard', () => {
     );
   });
 
-  it('has no empty cell — there is no free square', () => {
+  it('has no empty cell. There is no free square', () => {
     const card = createCard();
     expect(card.every((value) => typeof value === 'number')).toBe(true);
     expect(card).not.toContain(null);
@@ -165,7 +165,7 @@ describe('findWinningLines', () => {
 });
 
 describe('hasBingo', () => {
-  it('is false for one line — one line is not a win', () => {
+  it('is false for one line, one line is not a win', () => {
     expect(findWinningLines(ORDERED, [1, 2, 3, 4, 5])).toHaveLength(1);
     expect(hasBingo(ORDERED, [1, 2, 3, 4, 5])).toBe(false);
   });

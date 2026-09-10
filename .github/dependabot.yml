@@ -48,7 +48,7 @@ updates:
       prefix-development: "chore(deps-dev)"
 
   # ---------------------------------------------------------------------------
-  # GitHub Actions — pinned action versions go stale silently and are a real
+  # GitHub Actions, pinned action versions go stale silently and are a real
   # supply-chain surface. Keep them current.
   # ---------------------------------------------------------------------------
   - package-ecosystem: github-actions
@@ -65,7 +65,7 @@ updates:
       prefix: "chore(ci)"
 
   # ---------------------------------------------------------------------------
-  # Base image — a stale Node/Alpine base is the most common source of
+  # Base image. A stale Node/Alpine base is the most common source of
   # inherited CVEs in a container.
   # ---------------------------------------------------------------------------
   - package-ecosystem: docker

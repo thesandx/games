@@ -7,14 +7,14 @@ import { defineConfig } from 'vitest/config';
  * enough to run on every PR without a cache.
  *
  * Server Components that are `async` cannot be rendered by React Testing
- * Library today — test their data-fetching helpers in `lib/` or `services/`
+ * Library today, test their data-fetching helpers in `lib/` or `services/`
  * directly and reserve component tests for Client Components and sync
  * Server Components. See docs/testing.md.
  */
 export default defineConfig({
   plugins: [react()],
   // Reuses the `@/*` alias from tsconfig.json, so tests and application code
-  // resolve imports identically. Native since Vite 7 — no plugin needed.
+  // resolve imports identically. Native since Vite 7: no plugin needed.
   resolve: { tsconfigPaths: true },
   test: {
     environment: 'jsdom',

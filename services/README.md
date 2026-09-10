@@ -4,7 +4,7 @@ The integration layer: every call that leaves this process lives here. Intention
 
 ## Why this layer exists
 
-Without it, `fetch` calls, retry logic, auth headers and response parsing spread across pages and components. Named modules keep them in one place: the rest of the app calls `userService.getById(id)` — a typed function — and knows nothing about transport. A change from REST to gRPC, or a new cache, then touches one file.
+Without it, `fetch` calls, retry logic, auth headers and response parsing spread across pages and components. Named modules keep them in one place: the rest of the app calls `userService.getById(id)`, a typed function, and knows nothing about transport. A change from REST to gRPC, or a new cache, then touches one file.
 
 ## `services/` vs `lib/`
 
@@ -16,7 +16,7 @@ Without it, `fetch` calls, retry logic, auth headers and response parsing spread
 
 ## Rules
 
-1. **Server-side only.** Files here may read secrets and MUST NOT be imported from a `'use client'` component. Add `import 'server-only';` at the top of any module holding credentials — the build then fails loudly if a client component imports it.
+1. **Server-side only.** Files here may read secrets and MUST NOT be imported from a `'use client'` component. Add `import 'server-only';` at the top of any module holding credentials: the build then fails loudly if a client component imports it.
 2. **One module per external system**, named `<domain>.service.ts` or `<system>.client.ts`.
 3. **Validate at the boundary.** Never assume an external payload matches its declared type; parse and narrow, then return your own domain type from `types/`.
 4. **Return `Result<T>` (see `types/index.ts`) or throw a typed error.** Do not return `null` to mean three different failures.

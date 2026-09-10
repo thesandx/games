@@ -163,7 +163,7 @@ sleep 5
 step "IAM roles for the deployer"
 # ---------------------------------------------------------------------------
 
-# Push images — scoped to the one repository, not the whole project.
+# Push images, scoped to the one repository, not the whole project.
 gcloud artifacts repositories add-iam-policy-binding "$AR_REPOSITORY" \
   --location="$REGION" \
   --member="serviceAccount:${DEPLOYER_SA}" \
@@ -172,7 +172,7 @@ gcloud artifacts repositories add-iam-policy-binding "$AR_REPOSITORY" \
 ok "artifactregistry.writer on ${AR_REPOSITORY}"
 
 # Manage Cloud Run services. Narrow this to run.developer or a custom role
-# once the pipeline is proven — see cloud/github-actions.md.
+# once the pipeline is proven: see cloud/github-actions.md.
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:${DEPLOYER_SA}" \
   --role="roles/run.admin" \
