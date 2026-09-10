@@ -32,7 +32,23 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
   const { room, error, apply, refresh } = useRoom(roomKey, identity ?? undefined);
   const [hostOpen, setHostOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  /**
+   * The last rejected action, remembered together with the round it happened
+   * in.
+   *
+   * Carrying the round is what stops a message outliving its own truth. Take a
+   * number just as somebody else calls bingo and the server answers, correctly,
+   * "This round is already over." Ten seconds later the host has played again
+   * and that sentence is sitting over a freshly dealt board — right when it was
+   * written, nonsense by the time it is read.
+   *
+   * It is derived rather than cleared by an effect, so there is no window where
+   * the two disagree: the message is simply not shown once its round is gone.
+   */
+  const [actionError, setActionError] = useState<{ message: string; round: string } | null>(null);
+
+  /** Identifies the round on screen. A message about another one is stale. */
+  const roundKey = room ? `${room.phase}:${room.round}` : '';
 
   /**
    * Runs a transport call, applies the room it returns, and turns a rule
@@ -46,15 +62,22 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
       try {
         apply(await action(identity));
       } catch (cause) {
-        setActionError(cause instanceof Error ? cause.message : 'That did not work.');
+        setActionError({
+          message: cause instanceof Error ? cause.message : 'That did not work.',
+          round: roundKey,
+        });
         // Re-read: the local optimistic view may now disagree with the truth.
         await refresh();
       } finally {
         setBusy(false);
       }
     },
-    [apply, busy, identity, refresh],
+    [apply, busy, identity, refresh, roundKey],
   );
+
+  /** The message, but only while the round it complains about is still here. */
+  const visibleError =
+    actionError !== null && actionError.round === roundKey ? actionError.message : null;
 
   const isHost = room !== null && room !== undefined && room.hostId === identity?.playerId;
 
@@ -126,7 +149,7 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
           playerId={identity.playerId}
           isHost={isHost}
           busy={busy}
-          actionError={actionError}
+          actionError={visibleError}
           onSelectNumber={(value) => void run((id) => roomTransport.selectNumber(id, value))}
           onClaimBingo={() => void run((id) => roomTransport.claimBingo(id))}
           onOpenHostControls={() => setHostOpen(true)}
@@ -152,9 +175,9 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
         />
       ) : null}
 
-      {actionError !== null && room.phase !== 'playing' ? (
+      {visibleError !== null && room.phase !== 'playing' ? (
         <p role="alert" className="text-coral mx-auto mt-4 max-w-[1120px] text-sm">
-          {actionError}
+          {visibleError}
         </p>
       ) : null}
 
