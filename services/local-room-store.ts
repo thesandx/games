@@ -35,6 +35,7 @@ import {
 import { createRoomKey } from '@/lib/room-key';
 import type {
   CreateRoomInput,
+  JoinedRoom,
   JoinRoomInput,
   PlayerIdentity,
   Room,
@@ -103,6 +104,22 @@ function newId(): string {
   return globalThis.crypto.randomUUID();
 }
 
+/**
+ * Mints a placeholder credential so this store satisfies `RoomTransport`.
+ *
+ * It is never checked. There is no trust boundary inside one browser: the rooms
+ * live in `localStorage`, which the person holding the keyboard can read and
+ * rewrite at will, so a token checked here would be theatre rather than
+ * security. The real transport hashes the token and looks the player up by it.
+ *
+ * It is still minted per player rather than left blank, because the screens
+ * store and pass it, and a value that is always the empty string would let a
+ * missing-token bug pass unnoticed here and fail against the service.
+ */
+function newToken(): string {
+  return `local-${globalThis.crypto.randomUUID()}`;
+}
+
 /** Generates a key that is not already taken in this browser. */
 function freeRoomKey(): string {
   for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -148,21 +165,21 @@ function mutate(roomKey: string, reducer: (room: Room) => Room): Room {
  * rejection and makes the local store behave exactly like the HTTP one.
  */
 export const localRoomStore: RoomTransport = {
-  async createRoom(input: CreateRoomInput) {
+  async createRoom(input: CreateRoomInput): Promise<JoinedRoom> {
     const playerId = newId();
     const room = write(applyCreate(input, freeRoomKey(), playerId));
-    return { room: scopeRoomForPlayer(room, playerId), playerId };
+    return { room: scopeRoomForPlayer(room, playerId), playerId, playerToken: newToken() };
   },
 
-  async joinRoom(input: JoinRoomInput) {
+  async joinRoom(input: JoinRoomInput): Promise<JoinedRoom> {
     const playerId = newId();
     const room = mutate(input.key, (current) => applyJoin(current, input, playerId));
-    return { room: scopeRoomForPlayer(room, playerId), playerId };
+    return { room: scopeRoomForPlayer(room, playerId), playerId, playerToken: newToken() };
   },
 
-  async getRoom(key: string, playerId?: string) {
+  async getRoom(key: string, viewer?: PlayerIdentity) {
     const room = read(key);
-    return room === null ? null : scopeRoomForPlayer(room, playerId ?? null);
+    return room === null ? null : scopeRoomForPlayer(room, viewer?.playerId ?? null);
   },
 
   async startRound(identity: PlayerIdentity) {

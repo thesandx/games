@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CARD_SIZE, LINES_TO_WIN } from '@/lib/bingo';
 import { localRoomStore } from '@/services/local-room-store';
-import type { CreateRoomInput, Room } from '@/types/playroom';
+import type { CreateRoomInput, PlayerIdentity, Room } from '@/types/playroom';
 
 /**
  * Drives the real transport against jsdom's `localStorage`, so the whole path a
@@ -20,6 +20,18 @@ const INPUT: CreateRoomInput = {
 beforeEach(() => {
   window.localStorage.clear();
 });
+
+/**
+ * The identity a transport call needs.
+ *
+ * The token is a placeholder. This store does not check credentials and says
+ * so in its module comment — there is no trust boundary inside one browser, so
+ * a check here would be theatre. The field exists so the same call shape works
+ * against the real service, which does check it.
+ */
+function identityFor(roomKey: string, playerId: string): PlayerIdentity {
+  return { roomKey, playerId, playerToken: `local-${playerId}` };
+}
 
 /**
  * Cells that put a board on five completed lines: rows 1-3, then the two cells
@@ -62,11 +74,11 @@ describe('localRoomStore', () => {
       name: 'Dev',
       color: 'mint',
     });
-    await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
+    await localRoomStore.startRound(identityFor(room.key, hostId));
 
     // Each player reads their own view, and each sees a complete board.
     for (const id of [hostId, guestId]) {
-      const view = await localRoomStore.getRoom(room.key, id);
+      const view = await localRoomStore.getRoom(room.key, identityFor(room.key, id));
       const card = view?.bingo?.cards[id] ?? [];
       expect([...card].sort((a, b) => a - b)).toEqual(
         Array.from({ length: CARD_SIZE }, (_, index) => index + 1),
@@ -81,10 +93,12 @@ describe('localRoomStore', () => {
       name: 'Dev',
       color: 'mint',
     });
-    await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
+    await localRoomStore.startRound(identityFor(room.key, hostId));
 
-    const hostCard = (await localRoomStore.getRoom(room.key, hostId))?.bingo?.cards[hostId];
-    const guestCard = (await localRoomStore.getRoom(room.key, guestId))?.bingo?.cards[guestId];
+    const hostCard = (await localRoomStore.getRoom(room.key, identityFor(room.key, hostId)))?.bingo
+      ?.cards[hostId];
+    const guestCard = (await localRoomStore.getRoom(room.key, identityFor(room.key, guestId)))
+      ?.bingo?.cards[guestId];
     expect(hostCard).not.toEqual(guestCard);
   });
 
@@ -95,13 +109,13 @@ describe('localRoomStore', () => {
       name: 'Dev',
       color: 'mint',
     });
-    const started = await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
+    const started = await localRoomStore.startRound(identityFor(room.key, hostId));
 
     // The host's own view, straight off a mutation.
     expect(Object.keys(started.bingo?.cards ?? {})).toEqual([hostId]);
 
     // And off a read.
-    const guestView = await localRoomStore.getRoom(room.key, guestId);
+    const guestView = await localRoomStore.getRoom(room.key, identityFor(room.key, guestId));
     expect(Object.keys(guestView?.bingo?.cards ?? {})).toEqual([guestId]);
 
     // A caller with no identity sees no board at all.
@@ -116,28 +130,22 @@ describe('localRoomStore', () => {
       name: 'Dev',
       color: 'mint',
     });
-    await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
+    await localRoomStore.startRound(identityFor(room.key, hostId));
 
     // The guest cannot move first.
-    await expect(
-      localRoomStore.selectNumber({ roomKey: room.key, playerId: guestId }, 11),
-    ).rejects.toThrow(/not your turn/i);
-
-    const afterHost = await localRoomStore.selectNumber(
-      { roomKey: room.key, playerId: hostId },
-      11,
+    await expect(localRoomStore.selectNumber(identityFor(room.key, guestId), 11)).rejects.toThrow(
+      /not your turn/i,
     );
+
+    const afterHost = await localRoomStore.selectNumber(identityFor(room.key, hostId), 11);
     expect(afterHost.bingo?.selected).toEqual([11]);
 
     // Now the host cannot move again.
-    await expect(
-      localRoomStore.selectNumber({ roomKey: room.key, playerId: hostId }, 12),
-    ).rejects.toThrow(/not your turn/i);
-
-    const afterGuest = await localRoomStore.selectNumber(
-      { roomKey: room.key, playerId: guestId },
-      12,
+    await expect(localRoomStore.selectNumber(identityFor(room.key, hostId), 12)).rejects.toThrow(
+      /not your turn/i,
     );
+
+    const afterGuest = await localRoomStore.selectNumber(identityFor(room.key, guestId), 12);
     expect(afterGuest.bingo?.selected).toEqual([11, 12]);
   });
 
@@ -148,19 +156,19 @@ describe('localRoomStore', () => {
       name: 'Dev',
       color: 'mint',
     });
-    await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
-    await localRoomStore.selectNumber({ roomKey: room.key, playerId: hostId }, 7);
+    await localRoomStore.startRound(identityFor(room.key, hostId));
+    await localRoomStore.selectNumber(identityFor(room.key, hostId), 7);
 
-    await expect(
-      localRoomStore.selectNumber({ roomKey: room.key, playerId: guestId }, 7),
-    ).rejects.toThrow(/already been taken/i);
+    await expect(localRoomStore.selectNumber(identityFor(room.key, guestId), 7)).rejects.toThrow(
+      /already been taken/i,
+    );
 
     expect((await localRoomStore.getRoom(room.key))?.bingo?.selected).toEqual([7]);
   });
 
   it('rejects a number outside 1 to 25', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
-    const identity = { roomKey: room.key, playerId: hostId };
+    const identity = identityFor(room.key, hostId);
     await localRoomStore.startRound(identity);
     await expect(localRoomStore.selectNumber(identity, 99)).rejects.toThrow(/between 1 and 25/i);
   });
@@ -172,12 +180,12 @@ describe('localRoomStore', () => {
       name: 'Dev',
       color: 'mint',
     });
-    await localRoomStore.startRound({ roomKey: room.key, playerId: hostId });
-    await localRoomStore.selectNumber({ roomKey: room.key, playerId: hostId }, 13);
+    await localRoomStore.startRound(identityFor(room.key, hostId));
+    await localRoomStore.selectNumber(identityFor(room.key, hostId), 13);
 
     // Marking is derived from one shared list, so it cannot differ per player.
     for (const id of [hostId, guestId]) {
-      const view = await localRoomStore.getRoom(room.key, id);
+      const view = await localRoomStore.getRoom(room.key, identityFor(room.key, id));
       expect(view?.bingo?.selected).toContain(13);
       expect(view?.bingo?.cards[id]).toContain(13);
     }
@@ -190,26 +198,26 @@ describe('localRoomStore', () => {
       name: 'Dev',
       color: 'mint',
     });
-    const identity = { roomKey: room.key, playerId: hostId };
+    const identity = identityFor(room.key, hostId);
     const started = await localRoomStore.startRound(identity);
 
     // Two players, so turns alternate. Marking is global, so it does not
     // matter who takes each number — it lands on the host's board either way.
     let onTurn = hostId;
     for (const value of bingoNumbers(started, hostId)) {
-      await localRoomStore.selectNumber({ roomKey: room.key, playerId: onTurn }, value);
+      await localRoomStore.selectNumber(identityFor(room.key, onTurn), value);
       onTurn = onTurn === hostId ? guestId : hostId;
     }
     await localRoomStore.claimBingo(identity);
 
-    const guestView = await localRoomStore.getRoom(room.key, guestId);
+    const guestView = await localRoomStore.getRoom(room.key, identityFor(room.key, guestId));
     expect(Object.keys(guestView?.bingo?.cards ?? {}).sort()).toEqual([guestId, hostId].sort());
     expect(guestView?.bingo?.winnerId).toBe(hostId);
   });
 
   it('rejects a bingo claim with no complete line', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
-    const identity = { roomKey: room.key, playerId: hostId };
+    const identity = identityFor(room.key, hostId);
     await localRoomStore.startRound(identity);
     await localRoomStore.selectNumber(identity, 1);
 
@@ -220,7 +228,7 @@ describe('localRoomStore', () => {
 
   it('rejects a claim on a single completed line', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
-    const identity = { roomKey: room.key, playerId: hostId };
+    const identity = identityFor(room.key, hostId);
     const started = await localRoomStore.startRound(identity);
 
     for (const value of topRow(started, hostId)) {
@@ -233,7 +241,7 @@ describe('localRoomStore', () => {
 
   it('plays a solo round through to a validated five-line win', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
-    const identity = { roomKey: room.key, playerId: hostId };
+    const identity = identityFor(room.key, hostId);
     const started = await localRoomStore.startRound(identity);
 
     for (const value of bingoNumbers(started, hostId)) {
@@ -249,7 +257,7 @@ describe('localRoomStore', () => {
 
   it('blocks selections and a second claim once the round is won', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
-    const identity = { roomKey: room.key, playerId: hostId };
+    const identity = identityFor(room.key, hostId);
     const started = await localRoomStore.startRound(identity);
     for (const value of bingoNumbers(started, hostId)) {
       await localRoomStore.selectNumber(identity, value);
@@ -270,14 +278,14 @@ describe('localRoomStore', () => {
       name: 'Dev',
       color: 'mint',
     });
-    await expect(
-      localRoomStore.startRound({ roomKey: room.key, playerId: guestId }),
-    ).rejects.toThrow(/host/i);
+    await expect(localRoomStore.startRound(identityFor(room.key, guestId))).rejects.toThrow(
+      /host/i,
+    );
   });
 
   it('persists across reads, so another tab sees the same state', async () => {
     const { room, playerId: hostId } = await localRoomStore.createRoom(INPUT);
-    const identity = { roomKey: room.key, playerId: hostId };
+    const identity = identityFor(room.key, hostId);
     await localRoomStore.startRound(identity);
     await localRoomStore.selectNumber(identity, 5);
 

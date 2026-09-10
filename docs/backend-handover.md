@@ -1,12 +1,17 @@
 # Playroom rooms API — backend handover
 
-This document specifies the service that replaces the placeholder at `https://api.sandeep.app/games`.
+This document specifies the service behind `https://api.sandeep.app/games`.
 
 - **Stack:** FastAPI, Neon Postgres.
-- **Audience:** the backend engineer who builds it.
-- **Status of the client:** complete and working. It runs against a browser-local transport today. See [ADR-0003](./adr/0003-abstract-room-state-behind-a-transport.md).
+- **Status:** **built.** The service is the `playroom` app in the `anuvia`
+  repository, at `app/apps/playroom/`. It is mounted at `/games`, so the client
+  base URL is `<host>/games/v1`.
+- **Status of the client:** complete, and switched over. `PlayerIdentity` now
+  carries a token — see [ADR-0005](./adr/0005-split-the-player-id-from-the-player-token.md).
 
-Read [Two decisions you must make first](#two-decisions-you-must-make-first) before you write code. Both change the contract.
+This document stays as the contract. Where the implementation departs from the
+SQL below it says so, in `app/apps/playroom/models.py`, and the reasons are
+listed under [What was built differently](#what-was-built-differently).
 
 ---
 
@@ -51,6 +56,9 @@ The client is not trusted. It disables an out-of-turn button as a convenience, b
 
 ## Two decisions you must make first
 
+Both were taken as this section recommends. They are kept here because they
+explain why the contract has the shape it does.
+
 ### 1. The current auth header is not safe
 
 Today the client sends `X-Player-Id: <uuid>`. That value is also public: it appears in the room payload as `hostId`, in `bingo.turnOrder`, in `bingo.cards` keys, and on every entry in `players`.
@@ -66,6 +74,8 @@ The client sends `Authorization: Bearer <playerToken>`. The server looks up the 
 
 This needs a small frontend change: `identityHeaders()` in `services/playroom-api.ts`, and the `PlayerIdentity` type gains a `playerToken` field. It is roughly twenty lines. Do not build the unsafe version and plan to fix it later.
 
+**Done.** See [ADR-0005](./adr/0005-split-the-player-id-from-the-player-token.md).
+
 ### 2. The product promises no data is kept
 
 The "How to play" screen says:
@@ -79,6 +89,10 @@ Analytics must not contradict this. Concretely:
 - Do **not** retain IP addresses beyond a short abuse window.
 
 You can still answer almost every product question. See [Analytics](#analytics). If the business needs cross-session tracking, the copy must change first. That is a product decision, not yours.
+
+**Done.** There is no user table, no device id and no stored address. The rate
+limiter hashes the caller's address with a per-process salt and keeps only that
+hash for the length of the window.
 
 ---
 
@@ -613,13 +627,29 @@ Anonymising rather than deleting keeps every aggregate correct while honouring t
 
 ## Switch-over checklist
 
-1. Implement the endpoints. `GET /v1/rooms/{key}` and `POST /v1/rooms` first — they unblock everything.
-2. Apply the token change in `services/playroom-api.ts` and `types/playroom.ts`.
+1. ~~Implement the endpoints.~~ Done — `app/apps/playroom/` in `anuvia`.
+2. ~~Apply the token change in `services/playroom-api.ts` and `types/playroom.ts`.~~ Done — [ADR-0005](./adr/0005-split-the-player-id-from-the-player-token.md).
 3. Point the client at the service:
    - `NEXT_PUBLIC_PLAYROOM_API_URL=https://api.sandeep.app/games/v1`
    - `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote`
 4. **Rebuild the image.** Both are `NEXT_PUBLIC_*`, so they are inlined at build time. Changing them on the Cloud Run service alone does nothing. See CLAUDE.md, trap 8.
 5. Verify with two browsers on two devices, not two tabs. Two tabs pass against the local transport too, so they prove nothing about the service.
+
+Steps 3 to 5 are a deploy decision, not a code change: the transport stays
+`local` in `.env.example` until the service is live at that URL, so a checkout
+is playable with no backend running.
+
+To run both halves locally:
+
+```bash
+# anuvia
+alembic upgrade head
+uvicorn app.main:app --reload            # serves /games/v1 on :8000
+
+# games
+NEXT_PUBLIC_PLAYROOM_API_URL=http://localhost:8000/games/v1 \
+NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote pnpm dev
+```
 
 The preview banner disappears on its own when the transport becomes `remote`.
 
@@ -627,10 +657,92 @@ The preview banner disappears on its own when the transport becomes `remote`.
 
 ## Open questions
 
-Answer these with the product owner before you finish.
+These were answered with the product owner before the service shipped. They are
+recorded here because each one is a rule a future change could break by
+accident.
 
-1. **A round with no winner.** Five lines takes roughly 19 of the 25 numbers, and a room of eight gets about three turns each — so a full room is the likely case where all 25 go with nobody having claimed. Every board then holds all twelve lines and no selection is possible. End the round with no winner and no points? Award the player with the most lines? Deal again and continue? The client has no screen for this, and it is the most likely of these questions to be hit in real play.
-2. **The host leaves.** Only the host can start a round or advance past the results, and nothing promotes a replacement — so a lobby whose host closed the tab is stuck before it begins. Promote the longest-present player, or end the session?
-3. **Reconnect.** Session storage is cleared when the tab closes, and the player is then a stranger to their own room. Is that acceptable, or is a short-lived rejoin token wanted? A rejoin token weakens the privacy promise.
-4. **Does a spectator exist?** `GET /v1/rooms/{key}` works without a token and returns the room with `bingo.cards` empty — turn order, scores and taken numbers, but no board. Anyone with a key can watch on those terms. Confirm that is intended, or require the token.
-5. **Analytics retention.** Is 7 days the right window before names are dropped? Legal may have a view.
+1. **A round with no winner. — Answered: the round ends and the closing player
+   takes it.**
+
+   When the twenty-fifth number is taken the round ends by itself. The player
+   who took it wins 100 points; nobody else scores.
+
+   The reason for that tiebreak is worth stating, because "award the player with
+   the most lines" sounds better and cannot work. Once all 25 numbers are gone
+   every board is complete, so every board holds all twelve lines — the line
+   count is a twelve-way tie by construction and can decide nothing. The player
+   who closed the board out is the one deterministic, seat-neutral answer
+   available at that moment.
+
+   Line points are not paid on an exhausted round either. They exist to reward a
+   near miss, and at exhaustion every board is complete, so 10 a line would hand
+   each non-winner 120 points against the winner's 100.
+
+   The client needs no new screen: the round moves to `round-results` as usual
+   and `lastRound` reads `Closed the board` for the winner and `No bingo called`
+   for everyone else. `board_exhausted` is emitted, so the real rate is
+   measurable rather than guessed.
+
+2. **The host leaves. — Answered: promote the longest-present player.**
+
+   A host who is removed, or who has not been seen for sixty seconds while
+   somebody else has, is replaced by the lowest remaining seat. `hostId` changes
+   in the room payload and the existing UI follows it, so no screen changed.
+
+   The "while somebody else has" condition matters: without it, a room where
+   everybody stepped away would churn its host on whoever came back first.
+
+   `last_seen_at` is refreshed on every authenticated request, and the client
+   polls every two seconds, so a minute of silence is a closed tab rather than a
+   slow network. A `host_promoted` event records each promotion and why.
+
+3. **Reconnect. — Answered: no recovery.**
+
+   A closed tab loses the identity and the player rejoins as somebody new. A
+   rejoin token needs something durable to key off, which is the device id the
+   "How to play" screen promises not to keep. Recovery and that promise cannot
+   both hold.
+
+4. **Does a spectator exist? — Answered: yes, and it is intended.**
+
+   `GET /v1/rooms/{key}` without a token returns the room with `bingo.cards`
+   empty: turn order, scores and taken numbers, but no board. Anyone with a key
+   can watch on those terms. A key is six characters from a 32-character
+   alphabet and is meant to be read out to a group, so this is the same trust
+   level as the key itself.
+
+   A token that resolves to nobody in the room is **not** treated as a
+   spectator. It is `not-in-room`, because it is almost always a stale tab, and
+   silently downgrading it would show that player a board-less room with no
+   explanation.
+
+5. **Analytics retention. — Answered: seven days, configurable.**
+
+   `PLAYROOM_RETENTION_DAYS` sets it. After the window the sweeper drops
+   nicknames, boards and selections, and keeps the rows and their ids, so every
+   aggregate stays correct while nothing identifying survives.
+
+---
+
+## What was built differently
+
+Three departures from the SQL above, all for one reason: this repository runs
+SQLite locally, in tests and in the CI container smoke test, and PostgreSQL in
+production. One model has to serve both.
+
+| In this document                | As built                                | Why                                                                                                                                       |
+| ------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `smallint[]`, `uuid[]`          | `jsonb` on PostgreSQL, `JSON` on SQLite | SQLite has no array type. Contents and invariants are unchanged.                                                                          |
+| `CREATE TYPE ... AS ENUM`       | `text` columns, validated in Python     | SQLite has no enums, and a PostgreSQL enum needs a migration to gain a value.                                                             |
+| `rooms`, `players`, `events`, … | the same, prefixed `playroom_`          | This is a modular monolith. `events` and `games` are names another product will want, and this document already prefixes per-game tables. |
+
+Two additions the document did not specify:
+
+- **`players.last_seen_at`**, which is what makes host promotion possible.
+- **`rounds.round_number` is a per-room sequence that never resets**, while the
+  round number the client sees (`rooms.round_number`) does. Replaying a session
+  would otherwise collide with the rounds of the session before it, and those
+  rows are the analytics.
+
+Everything that makes the game safe is unchanged, including the one that
+matters most: `PRIMARY KEY (round_id, number)` on selections.

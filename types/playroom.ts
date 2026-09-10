@@ -133,10 +133,29 @@ export interface JoinRoomInput {
   color: AvatarColor;
 }
 
-/** Identifies the caller to the transport for player-scoped actions. */
+/**
+ * Identifies the caller to the transport for player-scoped actions.
+ *
+ * `playerId` and `playerToken` are deliberately two different things. The id is
+ * public — it appears in `hostId`, in `bingo.turnOrder` and on every entry in
+ * `players`, so every player in a room can read every other player's id. If the
+ * id were also the credential, any player could take another player's turn or
+ * claim their bingo. The token is the credential, it is returned exactly once
+ * at create or join, and it never appears in a room payload.
+ */
 export interface PlayerIdentity {
   roomKey: string;
+  /** Public. Safe to render, safe to compare, useless as proof of identity. */
   playerId: string;
+  /** Secret. Sent as `Authorization: Bearer`, never logged, never displayed. */
+  playerToken: string;
+}
+
+/** What create and join hand back. The token is not repeated anywhere else. */
+export interface JoinedRoom {
+  room: Room;
+  playerId: string;
+  playerToken: string;
 }
 
 /**
@@ -146,13 +165,17 @@ export interface PlayerIdentity {
  * `services/local-room-store.ts` satisfies it in the browser.
  */
 export interface RoomTransport {
-  createRoom(input: CreateRoomInput): Promise<{ room: Room; playerId: string }>;
-  joinRoom(input: JoinRoomInput): Promise<{ room: Room; playerId: string }>;
+  createRoom(input: CreateRoomInput): Promise<JoinedRoom>;
+  joinRoom(input: JoinRoomInput): Promise<JoinedRoom>;
   /**
-   * Reads a room, scoped to the caller. `playerId` decides which boards come
+   * Reads a room, scoped to the caller. The viewer decides which boards come
    * back; omit it for a spectator, who sees none until the winner is revealed.
+   *
+   * It takes the whole identity rather than an id because the server decides
+   * scope from the credential. An id alone would let anyone name any player and
+   * be handed that player's board.
    */
-  getRoom(key: string, playerId?: string): Promise<Room | null>;
+  getRoom(key: string, viewer?: PlayerIdentity): Promise<Room | null>;
   startRound(identity: PlayerIdentity): Promise<Room>;
   /**
    * Takes a number on the caller's turn. The transport rejects the call when it
@@ -167,4 +190,19 @@ export interface RoomTransport {
   replaySession(identity: PlayerIdentity): Promise<Room>;
   lockRoom(identity: PlayerIdentity): Promise<Room>;
   removePlayer(identity: PlayerIdentity, targetPlayerId: string): Promise<Room>;
+  /**
+   * Opens a live channel that pushes the room on every change.
+   *
+   * Optional, because not every transport has one: the browser store has no
+   * server to stream from and relies on its `storage` events instead. Callers
+   * must keep polling either way — a push that never arrives has to degrade to
+   * a room that is at most one poll interval stale, never to a stuck screen.
+   *
+   * Returns an unsubscribe function.
+   */
+  subscribe?(
+    key: string,
+    viewer: PlayerIdentity | undefined,
+    onRoom: (room: Room) => void,
+  ): () => void;
 }

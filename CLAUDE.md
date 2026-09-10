@@ -29,7 +29,9 @@ It exists because several things here look wrong but are correct. Several obviou
 
 A production Next.js application deployed to Google Cloud Run, generated from a template.
 
-The application is **Playroom** — party games played from a shared six-character room key. Bingo is playable, and it is turn-based: players claim numbers from 1 to 25 and every claim marks that number on every board. Scribble and Tic-tac-toe are in the catalogue but not yet implemented. Room state sits behind a transport interface so it can move from the browser to the rooms API without changing a screen. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
+The application is **Playroom** — party games played from a shared six-character room key. Bingo is playable, and it is turn-based: players claim numbers from 1 to 25 and every claim marks that number on every board. Scribble and Tic-tac-toe are in the catalogue but not yet implemented. Room state sits behind a transport interface, so it moves between the browser and the rooms API without changing a screen. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
+
+**The rooms API exists.** It is the `playroom` app in the `anuvia` repository, and [`docs/backend-handover.md`](./docs/backend-handover.md) is its contract. Set `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote` to use it. The default stays `local` so a fresh checkout is playable with no backend running. A caller is identified by a bearer token, never by a player id — see [ADR-0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md).
 
 The template's purpose is that **the path to production already works**: a container that runs on Cloud Run, a pipeline that deploys it without storing any credential, and documentation that explains each decision. The application is deliberately trivial. Everything else is the reusable part — do not degrade it.
 
@@ -381,12 +383,13 @@ Full model in [`SECURITY.md`](./SECURITY.md).
 
 Recorded in [`docs/adr/`](./docs/adr/). Read before proposing a change to any of them.
 
-| ADR                                                               | Decision                                                         |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)              | Cloud Run for hosting — over Vercel, GKE, App Engine, a VM       |
-| [0002](./docs/adr/0002-use-workload-identity-federation.md)       | Workload Identity Federation — no service account keys, ever     |
-| [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md) | Room state behind a transport interface, with a browser fallback |
-| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)       | Turn-based Bingo on a 1-25 board — no host caller, no daubing    |
+| ADR                                                                  | Decision                                                         |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)                 | Cloud Run for hosting — over Vercel, GKE, App Engine, a VM       |
+| [0002](./docs/adr/0002-use-workload-identity-federation.md)          | Workload Identity Federation — no service account keys, ever     |
+| [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md)    | Room state behind a transport interface, with a browser fallback |
+| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)          | Turn-based Bingo on a 1-25 board — no host caller, no daubing    |
+| [0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md) | The player id is public; the credential is a separate token      |
 
 Add an ADR when a decision is expensive to reverse, affects how everyone works, or rejects an obvious alternative. Never edit an accepted ADR to change its decision — write a new one that supersedes it, and link both ways.
 
