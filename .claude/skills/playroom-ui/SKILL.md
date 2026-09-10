@@ -29,7 +29,9 @@ Six rules, and the first two are the ones people get wrong.
   colour only. Treating it as a button colour is the single most common misreading of this system.
 - **The signature palette and pastels are whole-card surfaces.** `coral`, `forest`, `cream`, `peach`,
   `mint`, `yellow`, `mustard` fill an entire card or band. They are not small accents, borders, icon
-  tints or left-edge stripes. (The B-I-N-G-O letter tiles are a deliberate, user-requested exception.
+  (Game tokens on the Bingo surface are the deliberate exception: the B-I-N-G-O letter tiles,
+  the yellow cells of a completed line, and the peach cell of the number just taken. They are
+  pieces in a game, not accents on a page, and they are the only exception.)
   They are game tokens, and they are the only one.)
 - **At most two non-white surface colours per band sequence.** Bands alternate: white → signature →
   white → cream. Two consecutive white bands read as a typography blog; two consecutive coloured

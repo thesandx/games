@@ -211,6 +211,7 @@ export function startRound(
         currentTurnIndex: 0,
         winnerId: null,
         winningLines: [],
+        lastPick: null,
         // No clock in the browser: a turn is played out by the server when the
         // player who owns it has gone, and there is no server here.
         turnSecondsRemaining: null,
@@ -258,6 +259,7 @@ export function selectNumber(
       bingo: {
         ...bingo,
         selected: [...bingo.selected, value],
+        lastPick: { value, playerId },
         currentTurnIndex: turnCount === 0 ? 0 : (bingo.currentTurnIndex + 1) % turnCount,
       },
     },

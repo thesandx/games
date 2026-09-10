@@ -15,6 +15,8 @@ export interface TurnBannerProps {
    * ever a smoothing of a value the server owns.
    */
   secondsRemaining?: number | null;
+  /** What went last, and who took it. Omit before anybody has taken one. */
+  lastPick?: { name: string; value: number; isYou: boolean } | null;
   className?: string;
 }
 
@@ -34,6 +36,7 @@ export function TurnBanner({
   current,
   isYourTurn,
   secondsRemaining = null,
+  lastPick = null,
   className,
 }: TurnBannerProps) {
   // Only the ticked value is state. Render stays pure, reading a clock during
@@ -79,17 +82,26 @@ export function TurnBanner({
         changes every second inside `aria-live` would announce itself over and
         over and bury the thing that actually changed.
       */}
-      <span
-        aria-live="polite"
-        aria-atomic="true"
-        className="font-display text-ink-1 text-lg leading-tight font-medium"
-      >
-        {current === undefined
-          ? 'Waiting for the next turn'
-          : isYourTurn
-            ? 'Your turn: pick a number'
-            : `${current.name}'s turn`}
-      </span>
+      {/*
+        Both lines sit inside the live region, and the countdown does not. They
+        change together, once a turn, so they announce as one sentence. The
+        count changes every second and would bury them.
+      */}
+      <div aria-live="polite" aria-atomic="true" className="flex flex-col gap-0.5">
+        <span className="font-display text-ink-1 text-lg leading-tight font-medium">
+          {current === undefined
+            ? 'Waiting for the next turn'
+            : isYourTurn
+              ? 'Your turn: pick a number'
+              : `${current.name}'s turn`}
+        </span>
+        {lastPick ? (
+          <span className="text-ink-3 text-sm">
+            {lastPick.isYou ? 'You took' : `${lastPick.name} took`}{' '}
+            <span className="text-ink-1 font-medium tabular-nums">{lastPick.value}</span>
+          </span>
+        ) : null}
+      </div>
 
       {shown !== null ? (
         <span

@@ -52,6 +52,8 @@ export function PlayView({
   const card: BingoCard = bingo?.cards[playerId] ?? [];
 
   const turnPlayerId = currentTurnPlayerId(room);
+  const lastPick = bingo?.lastPick ?? null;
+  const lastPicker = room.players.find((person) => person.id === lastPick?.playerId);
   const currentPlayer = room.players.find((player) => player.id === turnPlayerId);
   const isYourTurn = turnPlayerId === playerId;
 
@@ -134,6 +136,7 @@ export function PlayView({
             label="Your board"
             onPick={onSelectNumber}
             canPick={isYourTurn && !busy}
+            latest={lastPick?.value ?? null}
           />
 
           {/*
@@ -146,6 +149,17 @@ export function PlayView({
             current={currentPlayer}
             isYourTurn={isYourTurn}
             secondsRemaining={bingo?.turnSecondsRemaining ?? null}
+            lastPick={
+              lastPick
+                ? {
+                    // A player who has since left keeps their pick on the
+                    // board, so fall back rather than dropping the line.
+                    name: lastPicker?.name ?? 'A player who left',
+                    value: lastPick.value,
+                    isYou: lastPick.playerId === playerId,
+                  }
+                : null
+            }
           />
 
           <p className="text-ink-3 text-sm">

@@ -97,4 +97,45 @@ describe('BingoBoard', () => {
     render(<BingoBoard card={ORDERED} selected={[]} label="Dev's board" />);
     expect(screen.getByRole('table', { name: "Dev's board" })).toBeInTheDocument();
   });
+
+  /**
+   * The latest number is peach so the room can see what just happened. A cell
+   * in a completed line stays yellow, because a completed line is the thing
+   * worth seeing and the line under the banner already names the last pick.
+   */
+  it('marks the latest number, and lets a completed line outrank it', () => {
+    const card = Array.from({ length: 25 }, (_, index) => index + 1);
+    render(
+      <BingoBoard
+        card={card}
+        selected={[1, 2, 3, 4, 5]}
+        winningLines={[{ kind: 'row', index: 1, cells: [0, 1, 2, 3, 4] }]}
+        latest={5}
+        label="Winner board"
+      />,
+    );
+
+    // 5 is both the latest pick and part of the completed row: yellow wins.
+    const inLine = screen.getByText('5').parentElement;
+    expect(inLine?.className).toContain('bg-yellow');
+    expect(inLine?.className).not.toContain('bg-peach');
+  });
+
+  it('paints the latest number peach when it completes nothing', () => {
+    const card = Array.from({ length: 25 }, (_, index) => index + 1);
+    render(<BingoBoard card={card} selected={[7, 12]} latest={12} label="Board" />);
+
+    const latest = screen.getByText('12').parentElement;
+    expect(latest?.className).toContain('bg-peach');
+
+    // An older number stays plain ink.
+    const older = screen.getByText('7').parentElement;
+    expect(older?.className).toContain('bg-ink-1');
+  });
+
+  it('says which number is the latest without relying on colour', () => {
+    const card = Array.from({ length: 25 }, (_, index) => index + 1);
+    render(<BingoBoard card={card} selected={[7, 12]} latest={12} label="Board" />);
+    expect(screen.getByText(/12, taken, the most recent number/)).toBeInTheDocument();
+  });
 });
