@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-09
 - **Deciders:** Application engineering
-- **Relates to:** [ADR-0003](./0003-abstract-room-state-behind-a-transport.md), [`docs/backend-handover.md`](../backend-handover.md)
+- **Relates to:** [ADR-0003](./0003-abstract-room-state-behind-a-transport.md), [`docs/rooms-api.md`](../rooms-api.md)
 
 ## Context
 

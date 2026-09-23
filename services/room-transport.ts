@@ -3,7 +3,7 @@
  *
  * This indirection is the whole point of the `RoomTransport` interface: screens
  * import `roomTransport` and never learn whether state lives in this browser or
- * behind `https://api.sandeep.app/games`.
+ * behind the rooms API this app serves at `/api/v1`.
  *
  * To move to the real API, set `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote` and
  * rebuild. It is a `NEXT_PUBLIC_*` value, so it is inlined at build time. A

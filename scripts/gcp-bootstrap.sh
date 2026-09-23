@@ -2,15 +2,24 @@
 #
 # One-time Google Cloud setup for this template.
 #
-# Creates everything the deploy pipeline needs:
+# Creates everything the deploy pipeline and the app need:
 #   - required APIs
 #   - an Artifact Registry repository
 #   - a deployer service account (impersonated by GitHub Actions)
 #   - a runtime service account (the identity the app runs as)
-#   - a Workload Identity Pool + provider pinned to your repository
-#   - the IAM bindings that tie them together
+#   - a Workload Identity Pool + provider, shared by every repository you
+#     bootstrap into this project, and pinned to your GitHub owner
+#   - a Firestore database in NATIVE mode, named after the app
+#   - point-in-time recovery and a daily backup schedule on that database
+#   - the IAM bindings that tie them together, each scoped to ONE resource
+#     and pinned to this repository
 #
-# Every step is idempotent: re-running after a partial failure is safe.
+# Every step is idempotent: re-running after a partial failure is safe, and so
+# is running it again for a second repository in the same project. The provider
+# is shared, so the script refuses to overwrite a condition set by a different
+# owner rather than silently breaking their deploys. Running it again with a
+# different --service creates a second, separate database and touches none of
+# the first app's data.
 #
 # There are NO service account keys anywhere in this script, by design.
 # See cloud/github-actions.md for why.
@@ -18,12 +27,21 @@
 # Usage:
 #   ./scripts/gcp-bootstrap.sh \
 #     --project my-gcp-project \
-#     --region asia-southeast1 \
+#     --region asia-south1 \
 #     --repo owner/repository \
 #     --service my-app
 #
-set -euo pipefail
-
+# Options:
+#   --main-only               only refs/heads/main of this repository may deploy
+#   --pool / --provider       use a non-default pool or provider id
+#   --force-provider-update   overwrite a provider condition set by another
+#                             owner (this revokes their deploys, read ADR-0003)
+#   --database                override the derived database name
+#   --skip-data               no Firestore
+#
+# Playroom stores no files, so, unlike the template this repository came
+# from, this script creates no Cloud Storage bucket.
+#
 # ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
@@ -40,8 +58,47 @@ skip()  { printf '    %s·%s %s\n' "${YELLOW}" "${RESET}" "$*"; }
 warn()  { printf '%s[warn]%s %s\n' "${YELLOW}" "${RESET}" "$*" >&2; }
 die()   { printf '%s[error]%s %s\n' "${RED}" "${RESET}" "$*" >&2; exit 1; }
 
+# ---------------------------------------------------------------------------
+# Retry helper for Firestore's eventually-consistent control plane
+#
+# An update issued straight after `databases create` races the creation and
+# comes back `ABORTED: There are concurrent database changes, please try
+# again.` The database itself is fine, the write just arrived while Google was
+# still finishing. Retrying with backoff is the documented remedy.
+#
+# Only ABORTED is retried. Any other failure returns immediately, with the
+# real gcloud output, so a genuine error is never hidden behind five retries.
+#
+# FIRESTORE_RETRY_DELAY overrides the first delay, for tests.
+# ---------------------------------------------------------------------------
+retry_on_abort() {
+  local description="$1"; shift
+  local attempt output
+  local delay="${FIRESTORE_RETRY_DELAY:-5}"
+
+  for attempt in 1 2 3 4 5; do
+    if output="$("$@" 2>&1)"; then
+      return 0
+    fi
+    if ! grep -qiE 'ABORTED|concurrent database changes' <<<"$output"; then
+      printf '%s\n' "$output" >&2
+      return 1
+    fi
+    if [[ "$attempt" -lt 5 ]]; then
+      skip "${description}: database still settling, retrying in ${delay}s (${attempt}/5)"
+      sleep "$delay"
+      delay=$(( delay * 2 ))
+    fi
+  done
+
+  printf '%s\n' "$output" >&2
+  warn "${description} still reports concurrent changes after 5 attempts."
+  warn "The database exists and is usable. Re-run this script in a minute to finish."
+  return 1
+}
+
 usage() {
-  sed -n '3,25p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,43p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -49,24 +106,33 @@ usage() {
 # Arguments
 # ---------------------------------------------------------------------------
 PROJECT_ID=""
-REGION="asia-southeast1"
+REGION="asia-south1"
 GITHUB_REPO=""
 SERVICE_NAME=""
 AR_REPOSITORY="containers"
 POOL_ID="github"
 PROVIDER_ID="github"
 RESTRICT_TO_MAIN="false"
+DATABASE_ID=""
+BACKUP_RETENTION_DAYS="7"
+SKIP_DATA="false"
+FORCE_PROVIDER_UPDATE="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --project)    PROJECT_ID="${2:-}"; shift 2 ;;
-    --region)     REGION="${2:-}"; shift 2 ;;
-    --repo)       GITHUB_REPO="${2:-}"; shift 2 ;;
-    --service)    SERVICE_NAME="${2:-}"; shift 2 ;;
-    --ar-repo)    AR_REPOSITORY="${2:-}"; shift 2 ;;
-    --main-only)  RESTRICT_TO_MAIN="true"; shift ;;
-    -h|--help)    usage 0 ;;
-    *)            die "Unknown argument: $1 (try --help)" ;;
+    --project)       PROJECT_ID="${2:-}"; shift 2 ;;
+    --region)        REGION="${2:-}"; shift 2 ;;
+    --repo)          GITHUB_REPO="${2:-}"; shift 2 ;;
+    --service)       SERVICE_NAME="${2:-}"; shift 2 ;;
+    --ar-repo)       AR_REPOSITORY="${2:-}"; shift 2 ;;
+    --database)      DATABASE_ID="${2:-}"; shift 2 ;;
+    --skip-data)     SKIP_DATA="true"; shift ;;
+    --main-only)     RESTRICT_TO_MAIN="true"; shift ;;
+    --pool)          POOL_ID="${2:-}"; shift 2 ;;
+    --provider)      PROVIDER_ID="${2:-}"; shift 2 ;;
+    --force-provider-update) FORCE_PROVIDER_UPDATE="true"; shift ;;
+    -h|--help)       usage 0 ;;
+    *)               die "Unknown argument: $1 (try --help)" ;;
   esac
 done
 
@@ -74,6 +140,19 @@ done
 [[ -n "$GITHUB_REPO"  ]] || die "--repo is required (format: owner/repository)"
 [[ "$GITHUB_REPO" == */* ]] || die "--repo must be in owner/repository format"
 [[ -n "$SERVICE_NAME" ]] || die "--service is required"
+
+# The provider's attribute condition names the owner, not the repository.
+GITHUB_OWNER="${GITHUB_REPO%%/*}"
+
+# The app slug is the service name. One slug names the Cloud Run service, the
+# runtime service account and the database, so two apps in one
+# project can never reach each other's data by accident.
+DATABASE_ID="${DATABASE_ID:-${SERVICE_NAME}-db}"
+
+# Same shapes lib/env.ts validates at startup. Failing here is cheaper than
+# creating a resource the application will then refuse to talk to.
+[[ "$DATABASE_ID" =~ ^[a-z][a-z0-9-]{2,61}[a-z0-9]$ ]] \
+  || die "Database id '${DATABASE_ID}' is invalid: 4-63 lowercase letters, digits and hyphens."
 
 command -v gcloud >/dev/null 2>&1 || die "gcloud is not installed: https://cloud.google.com/sdk/docs/install"
 
@@ -99,6 +178,14 @@ ${BOLD}Google Cloud bootstrap${RESET}
   Deployer SA         ${DEPLOYER_SA}
   Runtime SA          ${RUNTIME_SA}
   Restrict to main    ${RESTRICT_TO_MAIN}
+  Pool / provider     ${POOL_ID} / ${PROVIDER_ID}  (shared by every repo of ${GITHUB_OWNER})
+
+  Firestore database  ${DATABASE_ID} (NATIVE mode)
+  Data layer          $([[ "$SKIP_DATA" == "true" ]] && echo "SKIPPED (--skip-data)" || echo "enabled")
+
+${YELLOW}${BOLD}A Firestore database's location is PERMANENT.${RESET}
+${YELLOW}It cannot be changed, and it cannot be moved. Changing region later means
+creating a second database and migrating every document into it. Check '${REGION}' is the region you want before continuing.${RESET}
 
 EOF
 
@@ -114,14 +201,26 @@ ok "Project number: ${PROJECT_NUMBER}"
 # ---------------------------------------------------------------------------
 step "Enabling required APIs (this can take a couple of minutes)"
 # ---------------------------------------------------------------------------
-gcloud services enable \
-  run.googleapis.com \
-  artifactregistry.googleapis.com \
-  iamcredentials.googleapis.com \
-  sts.googleapis.com \
-  cloudresourcemanager.googleapis.com \
-  secretmanager.googleapis.com \
-  --quiet
+API_LIST=(
+  run.googleapis.com
+  artifactregistry.googleapis.com
+  # iamcredentials is what lets GitHub Actions impersonate the deployer.
+  iamcredentials.googleapis.com
+  sts.googleapis.com
+  cloudresourcemanager.googleapis.com
+  secretmanager.googleapis.com
+)
+
+if [[ "$SKIP_DATA" != "true" ]]; then
+  API_LIST+=(
+    firestore.googleapis.com
+    # Deploys the security rules in firestore.rules. Optional: the deploy
+    # degrades to a warning without it, see scripts/firestore-deploy.sh.
+    firebaserules.googleapis.com
+  )
+fi
+
+gcloud services enable "${API_LIST[@]}" --quiet
 ok "APIs enabled"
 
 # ---------------------------------------------------------------------------
@@ -172,7 +271,7 @@ gcloud artifacts repositories add-iam-policy-binding "$AR_REPOSITORY" \
 ok "artifactregistry.writer on ${AR_REPOSITORY}"
 
 # Manage Cloud Run services. Narrow this to run.developer or a custom role
-# once the pipeline is proven: see cloud/github-actions.md.
+# once the pipeline is proven, see cloud/github-actions.md.
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:${DEPLOYER_SA}" \
   --role="roles/run.admin" \
@@ -187,6 +286,138 @@ gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" \
   --role="roles/iam.serviceAccountUser" \
   --quiet >/dev/null
 ok "iam.serviceAccountUser on ${RUNTIME_SA}"
+
+# ---------------------------------------------------------------------------
+# Data layer: Firestore
+#
+# Created in $REGION, the same region as the Cloud Run service. That is not a
+# preference. A cross-region read adds tens of milliseconds to every query and
+# bills egress on every byte, and a database cannot be moved afterwards.
+# ---------------------------------------------------------------------------
+if [[ "$SKIP_DATA" == "true" ]]; then
+  step "Data layer"
+  skip "Skipped (--skip-data)"
+else
+
+# ---------------------------------------------------------------------------
+step "Firestore database (${DATABASE_ID})"
+# ---------------------------------------------------------------------------
+
+# A NAMED database, never (default). The runtime service account is granted
+# access under an IAM condition pinned to this name, so a second app in the
+# same project cannot read this one's data even with the same role.
+if gcloud firestore databases describe --database="$DATABASE_ID" >/dev/null 2>&1; then
+  EXISTING_LOCATION="$(gcloud firestore databases describe \
+    --database="$DATABASE_ID" --format='value(locationId)')"
+  EXISTING_TYPE="$(gcloud firestore databases describe \
+    --database="$DATABASE_ID" --format='value(type)')"
+
+  skip "Database ${DATABASE_ID} already exists in ${EXISTING_LOCATION} (${EXISTING_TYPE})"
+
+  if [[ "$EXISTING_LOCATION" != "$REGION" ]]; then
+    warn "Database ${DATABASE_ID} is in ${EXISTING_LOCATION}, not ${REGION}."
+    warn "A database location CANNOT be changed. Either deploy Cloud Run to"
+    warn "${EXISTING_LOCATION}, or create a new database and migrate the data."
+  fi
+  if [[ "$EXISTING_TYPE" != "FIRESTORE_NATIVE" ]]; then
+    die "Database ${DATABASE_ID} is ${EXISTING_TYPE}, not FIRESTORE_NATIVE. The mode cannot be changed; use a different --database."
+  fi
+else
+  gcloud firestore databases create \
+    --database="$DATABASE_ID" \
+    --location="$REGION" \
+    --type=firestore-native \
+    --quiet
+  ok "Created ${DATABASE_ID} in ${REGION}, this location is now permanent"
+  # The control plane needs a moment before it accepts an update to this
+  # database. Without the pause the very next step usually loses the race and
+  # comes back ABORTED. retry_on_abort recovers from that anyway; this just
+  # means the common case does not have to.
+  sleep "${FIRESTORE_SETTLE_DELAY:-10}"
+fi
+
+# ---------------------------------------------------------------------------
+step "Firestore point-in-time recovery and backups"
+# ---------------------------------------------------------------------------
+
+# PITR keeps 7 days of versions, so a bad migration is recoverable to the
+# minute before it ran. It is off by default and costs storage, not requests.
+PITR_STATE="$(gcloud firestore databases describe --database="$DATABASE_ID" \
+  --format='value(pointInTimeRecoveryEnablement)' 2>/dev/null || echo '')"
+
+if [[ "$PITR_STATE" == "POINT_IN_TIME_RECOVERY_ENABLED" ]]; then
+  skip "Point-in-time recovery already enabled"
+else
+  retry_on_abort "Point-in-time recovery" \
+    gcloud firestore databases update \
+    --database="$DATABASE_ID" \
+    --enable-pitr \
+    --quiet \
+    || die "Could not enable point-in-time recovery. See the output above."
+  ok "Point-in-time recovery enabled (7-day window)"
+fi
+
+# PITR protects against a mistake you notice quickly. A backup schedule
+# protects against one you notice next week. They are not substitutes.
+if gcloud firestore backups schedules list --database="$DATABASE_ID" \
+     --format='value(name)' 2>/dev/null | grep -q .; then
+  skip "A backup schedule already exists"
+else
+  retry_on_abort "Backup schedule" \
+    gcloud firestore backups schedules create \
+    --database="$DATABASE_ID" \
+    --recurrence=daily \
+    --retention="${BACKUP_RETENTION_DAYS}d" \
+    --quiet \
+    || die "Could not create the backup schedule. See the output above."
+  ok "Daily backups, ${BACKUP_RETENTION_DAYS}-day retention"
+fi
+
+# ---------------------------------------------------------------------------
+step "IAM for the runtime service account"
+# ---------------------------------------------------------------------------
+
+# Everything below is scoped to ONE resource. The runtime identity of this app
+# must not be able to read another app's database, even when they
+# share a project, which they will, because that is how this template is used.
+
+# Firestore has no per-database IAM resource, so the binding is project-level
+# with a condition that pins it to this database's resource name. Without the
+# condition, roles/datastore.user grants access to EVERY database in the
+# project. The condition is the whole control.
+DATABASE_RESOURCE="projects/${PROJECT_ID}/databases/${DATABASE_ID}"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${RUNTIME_SA}" \
+  --role="roles/datastore.user" \
+  --condition="title=only-${DATABASE_ID},description=Restricts access to the ${DATABASE_ID} database,expression=resource.name.startsWith('${DATABASE_RESOURCE}')" \
+  --quiet >/dev/null
+ok "datastore.user on ${DATABASE_ID} only (IAM condition)"
+
+# ---------------------------------------------------------------------------
+step "IAM for the deployer (data layer)"
+# ---------------------------------------------------------------------------
+
+# The deployer publishes indexes, TTL policies and rules before the app deploy.
+# It gets those abilities and nothing more: it still cannot read a document.
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${DEPLOYER_SA}" \
+  --role="roles/datastore.indexAdmin" \
+  --condition="title=only-${DATABASE_ID}-indexes,description=Index administration on ${DATABASE_ID},expression=resource.name.startsWith('${DATABASE_RESOURCE}')" \
+  --quiet >/dev/null
+ok "datastore.indexAdmin on ${DATABASE_ID} only"
+
+if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+     --member="serviceAccount:${DEPLOYER_SA}" \
+     --role="roles/firebaserules.admin" \
+     --condition=None \
+     --quiet >/dev/null 2>&1; then
+  ok "firebaserules.admin (deploys firestore.rules)"
+else
+  warn "Could not grant roles/firebaserules.admin. Rules deployment will warn"
+  warn "and continue, see scripts/firestore-deploy.sh."
+fi
+
+fi  # end SKIP_DATA
 
 # ---------------------------------------------------------------------------
 step "Workload Identity Pool"
@@ -214,20 +445,81 @@ fi
 step "Workload Identity provider"
 # ---------------------------------------------------------------------------
 
-# THE SECURITY CONTROL. Without an attribute condition, any repository on
-# GitHub could exchange a token for access to this project.
-ATTRIBUTE_CONDITION="assertion.repository == '${GITHUB_REPO}'"
-if [[ "$RESTRICT_TO_MAIN" == "true" ]]; then
-  ATTRIBUTE_CONDITION+=" && assertion.ref == 'refs/heads/main'"
-fi
+# THE FIRST SECURITY CONTROL. Without an attribute condition, any repository
+# on GitHub could exchange a token for access to this project.
+#
+# The condition names the OWNER, not one repository. The pool and the provider
+# are shared by every repository in this project, so a per-repository condition
+# would be overwritten each time you bootstrap the next repository, silently
+# breaking the deploy of the previous one. See ADR-0003.
+#
+# Scoping to the owner is safe because the condition is not what authorises a
+# deploy. The `principalSet://` binding below is: it names this repository
+# exactly, and it is additive. A repository can mint a token from this provider
+# and still impersonate nothing.
+ATTRIBUTE_CONDITION="assertion.repository_owner == '${GITHUB_OWNER}'"
 
 ATTRIBUTE_MAPPING="google.subject=assertion.sub"
 ATTRIBUTE_MAPPING+=",attribute.repository=assertion.repository"
 ATTRIBUTE_MAPPING+=",attribute.repository_owner=assertion.repository_owner"
 ATTRIBUTE_MAPPING+=",attribute.ref=assertion.ref"
+# Repository and ref in one attribute, so `--main-only` can stay a per-repository
+# binding instead of a provider-wide condition that every sibling repository
+# would inherit.
+ATTRIBUTE_MAPPING+=",attribute.repo_ref=assertion.repository + '@' + assertion.ref"
 
 if gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
      --location=global --workload-identity-pool="$POOL_ID" >/dev/null 2>&1; then
+
+  CURRENT_CONDITION="$(gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
+    --location=global \
+    --workload-identity-pool="$POOL_ID" \
+    --format='value(attributeCondition)')"
+
+  # Never overwrite a condition that belongs to a different owner. Doing so
+  # revokes every repository already federated through this provider, and the
+  # only symptom is 'The given credential is rejected by the attribute
+  # condition' on their next deploy, hours later, in a repository nobody
+  # touched. Re-running for a sibling repository of the same owner is a no-op.
+  if [[ -n "$CURRENT_CONDITION" && "$CURRENT_CONDITION" != "$ATTRIBUTE_CONDITION" ]]; then
+
+    # One difference is provably safe, and every project bootstrapped before
+    # ADR-0003 hits it: an earlier version of THIS script pinned the provider
+    # to one repository. Widening `repository == 'OWNER/repo'` to
+    # `repository_owner == 'OWNER'` is a strict superset, every token the old
+    # condition accepted, the new one accepts too. Nothing can stop deploying.
+    #
+    # The owner must match. `repository == 'someone-else/repo'` is a different
+    # person's provider and widening it to YOUR owner revokes them, which is
+    # exactly what the refusal below exists to prevent.
+    REPO_PIN_RE="^assertion\.repository[[:space:]]*==[[:space:]]*'${GITHUB_OWNER}/[^']+'"
+    if [[ "$CURRENT_CONDITION" =~ $REPO_PIN_RE ]]; then
+      warn "Provider ${PROVIDER_ID} is pinned to one repository by an older bootstrap:"
+      warn "  current: ${CURRENT_CONDITION}"
+      warn "  new:     ${ATTRIBUTE_CONDITION}"
+      warn "Same owner, and the new condition accepts everything the old one did,"
+      warn "so no repository loses access. Widening it. See ADR-0003."
+
+      # The old --main-only lived in the provider condition. The new one puts it
+      # in the per-repository binding, so it has to be asked for again.
+      if [[ "$CURRENT_CONDITION" == *"assertion.ref"* && "$RESTRICT_TO_MAIN" != "true" ]]; then
+        warn ""
+        warn "⚠ The old condition also restricted deploys to a branch. That"
+        warn "  restriction is NOT carried over, it now lives in the binding."
+        warn "  Re-run with --main-only to keep it."
+      fi
+    else
+      warn "Provider ${PROVIDER_ID} already exists with a different condition:"
+      warn "  current: ${CURRENT_CONDITION}"
+      warn "  new:     ${ATTRIBUTE_CONDITION}"
+      if [[ "$FORCE_PROVIDER_UPDATE" != "true" ]]; then
+        die "Refusing to overwrite it. Every repository federated through this provider would stop deploying.
+  Use a different --pool/--provider for this owner, or re-run with --force-provider-update if you are sure."
+      fi
+      warn "--force-provider-update given; overwriting"
+    fi
+  fi
+
   gcloud iam workload-identity-pools providers update-oidc "$PROVIDER_ID" \
     --location=global \
     --workload-identity-pool="$POOL_ID" \
@@ -251,13 +543,32 @@ ok "Condition: ${ATTRIBUTE_CONDITION}"
 # ---------------------------------------------------------------------------
 step "Allowing the repository to impersonate the deployer"
 # ---------------------------------------------------------------------------
-PRINCIPAL="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/attribute.repository/${GITHUB_REPO}"
+# THE SECOND SECURITY CONTROL, and the one that actually authorises a deploy.
+# The provider's condition only decides who may mint a token. This binding
+# decides which service account that token can impersonate, and it names this
+# repository exactly.
+#
+# It is additive, so bootstrapping a sibling repository adds its own binding and
+# leaves this one alone. That is the whole reason the per-repository pin lives
+# here and not in the provider condition. See ADR-0003.
+POOL_PRINCIPAL="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}"
+
+if [[ "$RESTRICT_TO_MAIN" == "true" ]]; then
+  # repo_ref is repository and ref in one mapped attribute, so this stays a
+  # per-repository restriction. A provider-wide 'assertion.ref' condition would
+  # force every sibling repository onto main too.
+  PRINCIPAL="${POOL_PRINCIPAL}/attribute.repo_ref/${GITHUB_REPO}@refs/heads/main"
+  GRANTED_TO="${GITHUB_REPO} on refs/heads/main"
+else
+  PRINCIPAL="${POOL_PRINCIPAL}/attribute.repository/${GITHUB_REPO}"
+  GRANTED_TO="${GITHUB_REPO} (any ref)"
+fi
 
 gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER_SA" \
   --role="roles/iam.workloadIdentityUser" \
   --member="$PRINCIPAL" \
   --quiet >/dev/null
-ok "workloadIdentityUser granted to ${GITHUB_REPO}"
+ok "workloadIdentityUser granted to ${GRANTED_TO}"
 
 WIF_PROVIDER="$(gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
   --location=global \
@@ -280,6 +591,9 @@ ${BOLD}1. Set the GitHub secrets and variables${RESET}
    gh variable set GCP_REGION          --body "${REGION}"
    gh variable set ARTIFACT_REPOSITORY --body "${AR_REPOSITORY}"
    gh variable set CLOUD_RUN_SERVICE   --body "${SERVICE_NAME}"
+   gh variable set APP_SLUG            --body "${SERVICE_NAME}"
+   gh variable set RUNTIME_SERVICE_ACCOUNT --body "${RUNTIME_SA}"
+   gh variable set FIRESTORE_DATABASE_ID   --body "${DATABASE_ID}"
 
    (Or paste them in Settings > Secrets and variables > Actions.)
 
@@ -307,11 +621,34 @@ ${BOLD}Recommended: set a budget alert before you forget${RESET}
     A mismatched currency such as 50USD on a non-USD account is rejected.
     Adjust the number to taste; alerts fire at 50% and 90% of it.)
 
+${BOLD}Local development${RESET}
+
+   Add these to .env.local so the app finds its data:
+
+     APP_SLUG=${SERVICE_NAME}
+     GCP_PROJECT_ID=${PROJECT_ID}
+     GCP_REGION=${REGION}
+     FIRESTORE_DATABASE_ID=${DATABASE_ID}
+
+   Then authenticate once, so the SDKs find Application Default Credentials:
+
+     gcloud auth application-default login
+
+   Or skip the cloud entirely and run against the emulator:
+
+     pnpm db:emulator     # in one terminal
+     pnpm dev             # in another, with FIRESTORE_EMULATOR_HOST set
+
+   See docs/local-development.md.
+
 ${BOLD}Notes${RESET}
 
   - No service account key was created. There is no key to leak or rotate.
   - The runtime service account ${RUNTIME_SA}
-    has no permissions yet. Grant only what the application needs.
-  - Re-running this script is safe.
+    can use ${DATABASE_ID}, and nothing else.
+    Grant anything further one resource at a time.
+  - ${BOLD}The Firestore location is permanent.${RESET}
+  - Re-running this script is safe. Running it with a different --service in
+    this project creates a separate database, and leaves this app's alone.
 
 EOF

@@ -67,12 +67,14 @@ Scribble and Tic-tac-toe appear in the catalogue and say `In build, not playable
 
 Rooms sit behind a `RoomTransport` interface with two implementations, selected by `NEXT_PUBLIC_PLAYROOM_TRANSPORT`:
 
-| Value    | Rooms live in                  | Cross-device |
-| -------- | ------------------------------ | ------------ |
-| `local`  | The browser (`localStorage`)   | No           |
-| `remote` | `NEXT_PUBLIC_PLAYROOM_API_URL` | Yes          |
+| Value    | Rooms live in                                                 | Cross-device |
+| -------- | ------------------------------------------------------------- | ------------ |
+| `local`  | The browser (`localStorage`)                                  | No           |
+| `remote` | Firestore, through the rooms API this app serves at `/api/v1` | Yes          |
 
-`local` is the default while the rooms API is being built. The app is fully playable, open a second tab, join with the key, and the two tabs play a real game, but rooms cannot leave the browser, and a banner says so. Switching to `remote` is one variable and a rebuild; no screen changes. The endpoint contract is in [`cloud/environment-variables.md`](./cloud/environment-variables.md), and the reasoning is [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
+**The deployed app is `remote`.** The rooms API is part of this application: route handlers in `app/api/v1/`, backed by a Firestore database in `asia-south1`, the same region as Cloud Run. Every move is one Firestore transaction on one room document, so two players cannot take the same number and only the first bingo claim wins. Changes reach every player at once over Server-Sent Events, with a two-second poll behind them. The contract is [`docs/rooms-api.md`](./docs/rooms-api.md), and the reasoning is [ADR-0007](./docs/adr/0007-serve-the-rooms-api-from-this-app-on-firestore.md).
+
+**A fresh checkout is `local`**, so it needs no database. Open a second tab, join with the key, and the two tabs play a real game. Rooms cannot leave the browser, and a banner says so. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
 
 The game rules live in [`lib/room-engine.ts`](./lib/room-engine.ts) as pure reducers, so both transports enforce the same rules and one set of tests covers both.
 
@@ -113,8 +115,14 @@ The game rules live in [`lib/room-engine.ts`](./lib/room-engine.ts) as pure redu
                         │  image:latest          │  │  min=0  max=10         │
                         └────────────────────────┘  │  autoscaling, TLS      │
                                                     └───────────┬────────────┘
-                                                                │
-                                          ┌─────────────────────┼─────────────────┐
+                                                                │ runtime service account
+                                                                ▼
+                                                    ┌────────────────────────┐
+                                                    │  Firestore (Native)    │
+                                                    │  <app-slug>-db         │
+                                                    │  asia-south1, rooms    │
+                                                    └────────────────────────┘
+                                          ┌─────────────────────┬─────────────────┐
                                           ▼                     ▼                 ▼
                                      End users          Cloud Logging      Secret Manager
                                     (HTTPS, managed    (structured JSON)   (when needed)
@@ -166,14 +174,16 @@ One command, idempotent, no keys created:
 ```bash
 ./scripts/gcp-bootstrap.sh \
   --project my-gcp-project \
-  --region asia-southeast1 \
+  --region asia-south1 \
   --repo my-github-org/my-app \
   --service my-app            # keep this to 22 characters or fewer, see the note below
 ```
 
 > **Keep `--service` to 22 characters or fewer.** The script derives the runtime service account id as `<service>-runtime`, and a Google service account id must be 6-30 characters. A longer service name fails with `does not have a length between 6 and 30`.
 
-It enables APIs, creates the Artifact Registry repository, sets up Workload Identity Federation, creates least-privilege service accounts, and prints the exact `gh secret` / `gh variable` commands to run.
+It enables APIs, creates the Artifact Registry repository, sets up Workload Identity Federation, and creates least-privilege service accounts. It creates the Firestore database `<service>-db` in the same region, and prints the exact `gh secret` / `gh variable` commands to run.
+
+> **A Firestore database location is permanent.** `asia-south1` (Mumbai) is the default because the players are in India. Choose the region before you run the script.
 
 ### 5. Deploy
 
@@ -191,6 +201,7 @@ That is the whole deployment procedure. The pipeline builds the image, pushes it
 .
 ├── app/                    # Routes, layouts, route handlers (App Router)
 │   ├── api/health/         #   Liveness probe for Docker + Cloud Run
+│   ├── api/v1/             #   The rooms API, backed by Firestore
 │   ├── layout.tsx          #   Root layout. A Server Component, keep it that way
 │   ├── page.tsx            #   The Hello World page
 │   ├── error.tsx           #   Error boundary
@@ -236,7 +247,12 @@ pnpm dev              # dev server, hot reload
 pnpm validate         # everything CI runs: typecheck, lint, format, test
 pnpm test:watch       # tests in watch mode
 pnpm lint:fix         # fix lint + import order
+pnpm db:emulator      # a local Firestore, for the remote transport
+pnpm test:emulator    # the rooms API against the Firestore emulator
+pnpm check:rooms-api  # the HTTP contract, against a running app
 ```
+
+To play across devices locally, run the emulator and build with the remote transport. See [`docs/local-development.md`](./docs/local-development.md).
 
 > **On a fresh clone, run `pnpm build` before `pnpm typecheck`.** `next build` generates `next-env.d.ts` and `.next/types/**`, which `tsc` needs and which are gitignored. CI orders it the same way.
 
@@ -297,8 +313,8 @@ merge  →  build  →  push to Artifact Registry  →  deploy revision  →  pr
 The pipeline tags each image with the commit SHA and deploys it by that immutable tag, never `:latest`. So a rollback is a traffic shift, not a rebuild:
 
 ```bash
-gcloud run revisions list --service my-app --region asia-southeast1
-gcloud run services update-traffic my-app --region asia-southeast1 \
+gcloud run revisions list --service my-app --region asia-south1
+gcloud run services update-traffic my-app --region asia-south1 \
   --to-revisions my-app-<good-sha>=100
 ```
 
@@ -306,13 +322,13 @@ This takes seconds. Then you can fix forward without time pressure.
 
 **Tunable via repository variables**: no workflow edits needed:
 
-| Variable            | Default           |                                           |
-| ------------------- | ----------------- | ----------------------------------------- |
-| `GCP_REGION`        | `asia-southeast1` | Cloud Run + Artifact Registry region      |
-| `CLOUD_RUN_SERVICE` | repository name   | Service name                              |
-| `MIN_INSTANCES`     | `0`               | `1` removes cold starts (~$10-15/month)   |
-| `MAX_INSTANCES`     | `10`              | Bounds both a traffic spike and your bill |
-| `LOG_LEVEL`         | `info`            | Runtime log verbosity                     |
+| Variable            | Default         |                                                   |
+| ------------------- | --------------- | ------------------------------------------------- |
+| `GCP_REGION`        | `asia-south1`   | Cloud Run, Artifact Registry and Firestore region |
+| `CLOUD_RUN_SERVICE` | repository name | Service name                                      |
+| `MIN_INSTANCES`     | `0`             | `1` removes cold starts (~$10-15/month)           |
+| `MAX_INSTANCES`     | `10`            | Bounds both a traffic spike and your bill         |
+| `LOG_LEVEL`         | `info`          | Runtime log verbosity                             |
 
 Full runbook, first deploy, custom domains, gradual rollout, making the service private, cleanup: [`cloud/deployment.md`](./cloud/deployment.md).
 
@@ -347,14 +363,14 @@ Neither is a credential. Both are resource identifiers, useless without a valid 
 
 ### GitHub variables
 
-`GCP_PROJECT_ID` (required), plus `GCP_REGION`, `ARTIFACT_REPOSITORY`, `CLOUD_RUN_SERVICE`, `APP_URL`, `APP_NAME`, `LOG_LEVEL`, `MIN_INSTANCES`, `MAX_INSTANCES`.
+`GCP_PROJECT_ID` (required), plus `GCP_REGION`, `ARTIFACT_REPOSITORY`, `CLOUD_RUN_SERVICE`, `APP_SLUG`, `FIRESTORE_DATABASE_ID`, `RUNTIME_SERVICE_ACCOUNT`, `PLAYROOM_TRANSPORT`, `PLAYROOM_API_URL`, `APP_URL`, `APP_NAME`, `LOG_LEVEL`, `MIN_INSTANCES`, `MAX_INSTANCES`.
 
 ### Application secrets
 
 Secret Manager, mounted into Cloud Run as environment variables:
 
 ```bash
-printf '%s' "$VALUE" | gcloud secrets versions add DATABASE_URL --data-file=-
+printf '%s' "$VALUE" | gcloud secrets versions add API_KEY --data-file=-
 ```
 
 Never in a build arg (visible in `docker history`), never in a `NEXT_PUBLIC_*` variable (shipped to every browser), never in the repository.

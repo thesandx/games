@@ -34,9 +34,15 @@ env:
   # retargeted without editing the workflow.
   # ---------------------------------------------------------------------------
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-  GCP_REGION: ${{ vars.GCP_REGION || 'asia-southeast1' }}
+  # Mumbai. Cloud Run, Artifact Registry and the Firestore database all live
+  # here, next to the players, so a move is one short hop, not a round trip
+  # across the region boundary.
+  GCP_REGION: ${{ vars.GCP_REGION || 'asia-south1' }}
   ARTIFACT_REPOSITORY: ${{ vars.ARTIFACT_REPOSITORY || 'containers' }}
   SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE || github.event.repository.name }}
+  # One slug names the service, the runtime identity and the database. The
+  # defaults derive from it, so a new app usually sets only APP_SLUG.
+  APP_SLUG: ${{ vars.APP_SLUG || vars.CLOUD_RUN_SERVICE || github.event.repository.name }}
   NEXT_TELEMETRY_DISABLED: 1
 
 jobs:
@@ -113,6 +119,36 @@ jobs:
         # visible without opening GitHub.
         run: echo "deployed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve data layer names
+        id: data
+        # Same default as lib/env.ts and scripts/gcp-bootstrap.sh. Three places
+        # derive this name and they must agree, so each one states the rule
+        # rather than assuming another got there first.
+        #
+        # The override comes in through `env:` rather than ${{ }} inside the
+        # script. Interpolation splices a value into the shell source before it
+        # runs, so a stray quote in a repository variable changes what executes.
+        env:
+          DATABASE_ID_OVERRIDE: ${{ vars.FIRESTORE_DATABASE_ID }}
+        run: |
+          set -euo pipefail
+          echo "database_id=${DATABASE_ID_OVERRIDE:-${APP_SLUG}-db}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Firestore rules, indexes and TTL policies
+        # BEFORE the application deploy, deliberately. A revision that queries
+        # on an index that does not exist yet fails at request time with
+        # FAILED_PRECONDITION; an index nothing queries yet costs nothing.
+        #
+        # The script is idempotent: an index or a TTL policy that exists is
+        # skipped, and the rules are re-released from the file in the repository.
+        env:
+          DATABASE_ID: ${{ steps.data.outputs.database_id }}
+        run: |
+          set -euo pipefail
+          ./scripts/firestore-deploy.sh \
+            --project "${GCP_PROJECT_ID}" \
+            --database "${DATABASE_ID}"
+
       - name: Resolve image tags
         id: image
         # Two tags per build:
@@ -158,21 +194,18 @@ jobs:
           # These are NEXT_PUBLIC_*, so they are inlined into the JavaScript
           # here, at build time. Changing them on the Cloud Run service does
           # nothing. The value is already inside the bundle users downloaded.
-          # Flipping a deployment to the real rooms API therefore means setting
-          # the repository variables and then RE-RUNNING this workflow:
           #
-          #   PLAYROOM_TRANSPORT=remote
-          #   PLAYROOM_API_URL=https://<the anuvia service>/games/v1
-          #
-          # Leave PLAYROOM_TRANSPORT unset and the app keeps rooms in the
-          # browser and says so on screen, which is the right default while the
-          # rooms API is not reachable at that URL.
+          # The rooms API is served by this same service, from /api/v1, and
+          # backed by the Firestore database above. So the deployed app is
+          # `remote` by default: real multi-device play. Set the repository
+          # variable PLAYROOM_TRANSPORT=local and re-run this workflow only to
+          # ship a browser-only build.
           build-args: |
             NEXT_PUBLIC_APP_URL=${{ vars.APP_URL }}
             NEXT_PUBLIC_APP_NAME=${{ vars.APP_NAME || 'Next.js on Cloud Run' }}
             NEXT_PUBLIC_APP_VERSION=${{ github.sha }}
-            NEXT_PUBLIC_PLAYROOM_API_URL=${{ vars.PLAYROOM_API_URL || 'https://api.sandeep.app/games/v1' }}
-            NEXT_PUBLIC_PLAYROOM_TRANSPORT=${{ vars.PLAYROOM_TRANSPORT || 'local' }}
+            NEXT_PUBLIC_PLAYROOM_API_URL=${{ vars.PLAYROOM_API_URL || '/api/v1' }}
+            NEXT_PUBLIC_PLAYROOM_TRANSPORT=${{ vars.PLAYROOM_TRANSPORT || 'remote' }}
 
       - name: Deploy to Cloud Run
         id: deploy
@@ -186,8 +219,10 @@ jobs:
           env_vars: |-
             NODE_ENV=production
             LOG_LEVEL=${{ vars.LOG_LEVEL || 'info' }}
+            APP_SLUG=${{ env.APP_SLUG }}
             GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}
             GCP_REGION=${{ env.GCP_REGION }}
+            FIRESTORE_DATABASE_ID=${{ steps.data.outputs.database_id }}
             DEPLOYED_AT=${{ steps.meta.outputs.deployed_at }}
           # `--revision-suffix` is unique per build, not per commit. Cloud Run
           # rejects a second revision with an existing name and a different
@@ -195,10 +230,21 @@ jobs:
           #, a manual redeploy of the current main, fail with ALREADY_EXISTS.
           # That is exactly the case a build-arg change needs.
           #
+          # The runtime identity goes through `flags`, NOT a `service_account`
+          # input. This action has no such input: it accepts one, warns
+          # `Unexpected input(s) 'service_account'`, and deploys anyway as the
+          # default compute service account, which is Editor on the whole
+          # project. The least-privilege runtime account bootstrap created is
+          # the only identity the Firestore IAM condition admits.
+          #
+          # `--timeout` also bounds a live room stream. At 300s the stream ends
+          # and the client reconnects on its own; its poll covers the gap.
+          #
           # Nothing below may carry a `#` comment: `>-` is a folded scalar, so
           # every indented line is literal text passed to gcloud as an argument.
           flags: >-
             --allow-unauthenticated
+            --service-account=${{ vars.RUNTIME_SERVICE_ACCOUNT || format('{0}-runtime@{1}.iam.gserviceaccount.com', env.APP_SLUG, env.GCP_PROJECT_ID) }}
             --port=8080
             --cpu=1
             --memory=512Mi
@@ -248,5 +294,6 @@ jobs:
             echo "| Project | \`${GCP_PROJECT_ID}\` |"
             echo "| Image | \`${{ steps.image.outputs.sha_tag }}\` |"
             echo "| URL | ${{ steps.deploy.outputs.url }} |"
+            echo "| Database | \`${{ steps.data.outputs.database_id }}\` |"
             echo "| Commit | \`${GITHUB_SHA}\` |"
           } >> "$GITHUB_STEP_SUMMARY"

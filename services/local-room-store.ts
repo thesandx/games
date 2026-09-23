@@ -1,20 +1,19 @@
 /**
  * Browser-backed implementation of `RoomTransport`.
  *
- * Why this exists: the rooms API at `NEXT_PUBLIC_PLAYROOM_API_URL` is not live
- * yet, and an app whose every screen fails on a dead endpoint cannot be
- * reviewed. This store keeps rooms in `localStorage` and applies the same pure
- * reducers from `lib/room-engine.ts` that the server will, so the screens
- * exercise real rules rather than fixtures.
+ * Why this exists: the rooms API needs a Firestore database, and a fresh
+ * checkout has none. This store keeps rooms in `localStorage` and applies the
+ * same pure reducers from `lib/room-engine.ts` that the server runs, so the
+ * screens exercise real rules with no backend at all.
  *
  * What it genuinely supports: one browser profile, across as many tabs and
  * windows as you like, open a second tab, join with the key, and the two play
  * against each other. Writes propagate through the `storage` event.
  *
  * What it cannot do: reach another device. That is what the remote transport is
- * for. Nothing here should grow features the HTTP API will not also have,
- * when the endpoint lands, flip `NEXT_PUBLIC_PLAYROOM_TRANSPORT` to `remote`
- * and this file stops being reachable.
+ * for. Nothing here should grow features the HTTP API does not also have. The
+ * deployed app builds with `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote`, where this
+ * file is not reachable.
  */
 
 import {

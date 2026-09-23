@@ -205,11 +205,16 @@ describe('claimBingo', () => {
   });
 
   it('accepts a board that jumped past five in one pick', () => {
-    // A full board holds all twelve lines. More than five must still win.
+    // Every cell but the centre: the four lines through it stay open, and the
+    // other eight are complete. More than five must still win.
     const started = soloInPlay();
-    const everything = started.bingo?.cards['host-1'] ?? [];
-    const room = claimBingo(takeAll(started, 'host-1', everything), 'host-1');
-    expect(room.bingo?.winningLines).toHaveLength(12);
+    const allButCentre = numbersAt(
+      started,
+      'host-1',
+      Array.from({ length: CARD_SIZE }, (_, index) => index).filter((index) => index !== 12),
+    );
+    const room = claimBingo(takeAll(started, 'host-1', allButCentre), 'host-1');
+    expect(room.bingo?.winningLines).toHaveLength(8);
     expect(room.bingo?.winnerId).toBe('host-1');
   });
 
@@ -236,6 +241,14 @@ describe('claimBingo', () => {
 });
 
 describe('joinRoom', () => {
+  it('treats nicknames that differ only in Unicode form as the same name', () => {
+    // "e" plus a combining acute accent, against the precomposed character.
+    const room = createRoom({ ...INPUT, hostName: 'Jose\u0301' }, 'PLZ4K9', 'host-1');
+    expect(() => joinRoom(room, { key: 'PLZ4K9', name: 'Jos\u00e9', color: 'mint' }, 'p2')).toThrow(
+      /already uses that nickname/i,
+    );
+  });
+
   it('deals a board and a turn slot to somebody joining mid-round', () => {
     const started = soloInPlay();
     const room = joinRoom(started, { key: 'PLZ4K9', name: 'Dev', color: 'mint' }, 'p2');
@@ -304,6 +317,54 @@ describe('removePlayer', () => {
   it('never removes the host', () => {
     expect(() => removePlayer(soloInPlay(), 'host-1', 'host-1')).toThrow(/host/i);
   });
+
+  it('lets a player leave on their own', () => {
+    const room = joinRoom(newRoom(), { key: 'PLZ4K9', name: 'Dev', color: 'mint' }, 'p2');
+    const after = removePlayer(room, 'p2', 'p2');
+    expect(after.players.map((player) => player.id)).toEqual(['host-1']);
+  });
+
+  it('refuses a non-host removing somebody else', () => {
+    let room = joinRoom(newRoom(), { key: 'PLZ4K9', name: 'Dev', color: 'mint' }, 'p2');
+    room = joinRoom(room, { key: 'PLZ4K9', name: 'Ana', color: 'yellow' }, 'p3');
+    expect(() => removePlayer(room, 'p2', 'p3')).toThrow(/only the host/i);
+  });
+
+  it('refuses a player who is not in the room', () => {
+    expect(() => removePlayer(newRoom(), 'host-1', 'ghost')).toThrow(/not in this room/i);
+  });
+});
+
+describe('an exhausted board', () => {
+  function twoInPlay(): Room {
+    return startRound(
+      joinRoom(newRoom(), { key: 'PLZ4K9', name: 'Dev', color: 'mint' }, 'p2'),
+      'host-1',
+    );
+  }
+
+  it('ends the round when the last number goes, and the closer takes it', () => {
+    const everything = Array.from({ length: CARD_SIZE }, (_, index) => index + 1);
+    const room = takeInTurn(twoInPlay(), everything);
+
+    // 25 picks alternate host, p2, host, ... so the host takes the 25th.
+    expect(room.phase).toBe('round-results');
+    expect(room.bingo?.winnerId).toBe('host-1');
+    expect(room.bingo?.winningLines).toEqual([]);
+    expect(room.lastRound?.[0]).toMatchObject({
+      playerId: 'host-1',
+      note: 'Closed the board',
+      gain: 100,
+    });
+    expect(room.lastRound?.[1]).toMatchObject({ note: 'No bingo called', gain: 0 });
+    expect(room.players.find((player) => player.id === 'p2')?.score).toBe(0);
+  });
+
+  it('refuses any further move once it has ended', () => {
+    const everything = Array.from({ length: CARD_SIZE }, (_, index) => index + 1);
+    const room = takeInTurn(twoInPlay(), everything);
+    expect(() => claimBingo(room, 'p2')).toThrow(RoomError);
+  });
 });
 
 describe('rounds and session', () => {
@@ -323,6 +384,10 @@ describe('rounds and session', () => {
     const second = nextRound(winSolo(soloInPlay()), 'host-1');
     const finished = nextRound(winSolo(second), 'host-1');
     expect(finished.phase).toBe('finished');
+  });
+
+  it('deals only from the lobby, never straight from the results', () => {
+    expect(() => startRound(winSolo(soloInPlay()), 'host-1')).toThrow(/not finished/i);
   });
 
   it('refuses to advance while a round is still running', () => {

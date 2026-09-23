@@ -2,10 +2,9 @@
  * Playroom domain model.
  *
  * These types are the contract in two directions at once:
- *   - the shape `services/playroom-api.ts` expects back from
- *     `https://api.sandeep.app/games`
- *   - the shape `services/local-room-store.ts` produces while that endpoint is
- *     still being built
+ *   - the shape the rooms API in `app/api/v1/` returns, and
+ *     `services/playroom-api.ts` expects back
+ *   - the shape `services/local-room-store.ts` produces in the browser
  *
  * Keeping one model for both is what makes the swap a one-line change in
  * `services/room-transport.ts` rather than a rewrite of every screen.

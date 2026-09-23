@@ -31,7 +31,9 @@ A production Next.js application deployed to Google Cloud Run, generated from a 
 
 The application is **Playroom**, party games played from a shared six-character room key. Bingo is playable, and it is turn-based: players claim numbers from 1 to 25 and every claim marks that number on every board. Scribble and Tic-tac-toe are in the catalogue but not yet implemented. Room state sits behind a transport interface, so it moves between the browser and the rooms API without changing a screen. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
 
-**The rooms API exists.** It is the `playroom` app in the `anuvia` repository, and [`docs/backend-handover.md`](./docs/backend-handover.md) is its contract. Set `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote` to use it. The default stays `local` so a fresh checkout is playable with no backend running. A caller is identified by a bearer token, never by a player id: see [ADR-0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md).
+**The rooms API is part of this app.** Route handlers in `app/api/v1/` call `services/room-store.ts`, which stores each room as one Firestore document in a named database in `asia-south1`. [`docs/rooms-api.md`](./docs/rooms-api.md) is the contract; [ADR-0007](./docs/adr/0007-serve-the-rooms-api-from-this-app-on-firestore.md) is the reasoning. The deployed app builds with `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote`. `.env.example` stays `local`, so a fresh checkout is playable with no database. A caller is identified by a bearer token, never by a player id: see [ADR-0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md).
+
+**The rules exist once.** `lib/room-engine.ts` decides every rule for both transports. The server adds only transactions, tokens, the turn clock, host promotion, idempotency and the event log. Never re-implement a rule in `services/`.
 
 The template's purpose is that **the path to production already works**: a container that runs on Cloud Run, a pipeline that deploys it without storing any credential, and documentation that explains each decision. The application is deliberately trivial. Everything else is the reusable part: do not degrade it.
 
@@ -41,17 +43,20 @@ The template's purpose is that **the path to production already works**: a conta
 
 A clean install, a full build, a `--no-cache` Docker build and a running container confirmed the versions below work together. Do not assume a newer version works. See [Dependency policy](#dependency-policy).
 
-|                      | Version    | Note                                    |
-| -------------------- | ---------- | --------------------------------------- |
-| Next.js              | `16.2.10`  | App Router, Turbopack                   |
-| React / React DOM    | `19.2.7`   |                                         |
-| TypeScript           | `^6.0.3`   | Major bump; **do not add `baseUrl`**    |
-| ESLint               | `^9.39.5`  | **Pinned to 9 deliberately**, see traps |
-| `eslint-config-next` | `16.2.10`  | Must track the Next version             |
-| Tailwind CSS         | `^4.3.3`   | v4, CSS-first config                    |
-| Vitest               | `^4.1.10`  | jsdom + React Testing Library           |
-| Node                 | `>=22.0.0` | `.nvmrc` pins `22.20.0`                 |
-| pnpm                 | `11.15.1`  | Via `packageManager` + corepack         |
+|                           | Version    | Note                                    |
+| ------------------------- | ---------- | --------------------------------------- |
+| Next.js                   | `16.2.10`  | App Router, Turbopack                   |
+| React / React DOM         | `19.2.7`   |                                         |
+| TypeScript                | `^6.0.3`   | Major bump; **do not add `baseUrl`**    |
+| ESLint                    | `^9.39.5`  | **Pinned to 9 deliberately**, see traps |
+| `eslint-config-next`      | `16.2.10`  | Must track the Next version             |
+| Tailwind CSS              | `^4.3.3`   | v4, CSS-first config                    |
+| Vitest                    | `^4.1.10`  | jsdom + React Testing Library           |
+| Node                      | `>=22.0.0` | `.nvmrc` pins `22.20.0`                 |
+| pnpm                      | `11.15.1`  | Via `packageManager` + corepack         |
+| `@google-cloud/firestore` | `^9.2.0`   | Native mode, named database             |
+| zod                       | `^4.6.5`   | Validation at every boundary            |
+| `server-only`             | `^0.0.1`   | Makes a client import a build error     |
 
 **Measured facts:**
 
@@ -85,7 +90,7 @@ This file is the index and the warnings. The detail lives in `.github/instructio
 | [`cloud/deployment.md`](./cloud/deployment.md)                                             | Deploying, rolling back, or setting up GCP.                    |
 | [`cloud/github-actions.md`](./cloud/github-actions.md)                                     | Debugging OIDC / Workload Identity Federation.                 |
 | [`cloud/environment-variables.md`](./cloud/environment-variables.md)                       | Adding or changing configuration.                              |
-| [`docs/backend-handover.md`](./docs/backend-handover.md)                                   | Building or changing the rooms API. The full server contract.  |
+| [`docs/rooms-api.md`](./docs/rooms-api.md)                                                 | Changing the rooms API or Firestore. The full server contract. |
 | [`SECURITY.md`](./SECURITY.md)                                                             | The security model and the pre-production hardening checklist. |
 
 **Precedence when guidance conflicts** (later wins): your training defaults → general Next.js/GCP docs → `.github/instructions/` → this file → an explicit instruction from the human you are working with.
@@ -101,10 +106,14 @@ pnpm validate         # typecheck + lint + format:check + test  ← the gate
 pnpm test:watch       # tests in watch mode
 pnpm lint:fix         # fix lint violations and import order
 pnpm format           # write Prettier formatting
+pnpm db:emulator      # a local Firestore on port 8085
+pnpm test:emulator    # start the emulator and run the *.emulator.test.ts suites
+pnpm check:rooms-api  # check a running app against the wire contract
+pnpm db:deploy        # push rules, indexes and TTL policies to a database
 docker compose up --build   # run the real production image locally
 ```
 
-`pnpm validate` is exactly what CI runs. Run it before claiming work is complete.
+`pnpm validate` is exactly what CI runs, except one job: **the Firestore emulator suites**. They skip when `FIRESTORE_EMULATOR_HOST` is unset, so `pnpm validate` stays green with no gcloud. CI runs them in their own job. **Run `pnpm test:emulator` before you push a change to `services/room-store.ts` or `lib/room-engine.ts`.**
 
 ---
 
@@ -281,6 +290,35 @@ Free on **public** repositories only. On a private repo without GitHub Advanced 
 
 Without it, Node ignores `SIGTERM`. Cloud Run waits 10s, then sends `SIGKILL`, and drops in-flight requests on every deploy. Verified: the container currently stops in ~1s.
 
+### 13. The Firestore database is NAMED, never `(default)`
+
+`<app-slug>-db`. The runtime service account holds `roles/datastore.user` under an IAM condition that names this database. Without the condition, the role reaches every database in the project. The condition is the control, not the name.
+
+### 14. The runtime service account goes in `flags`, not a `service_account` input
+
+`google-github-actions/deploy-cloudrun` has no `service_account` input. It warns `Unexpected input(s)` and deploys anyway, as the default compute account: Editor on the project. `deploy.yml` passes `--service-account=` in `flags`. Check a live service:
+
+```bash
+gcloud run services describe SERVICE --region REGION \
+  --format='value(spec.template.spec.serviceAccountName)'
+```
+
+### 15. The room document id is the room key
+
+The template rule says "auto ids only", because sequential ids make a write hotspot. A room key is six random characters, so it spreads like an auto id. The key as the id is what lets a create transaction prove the key is free: Firestore has no unique index. Do not "fix" it to an auto id.
+
+### 16. `firestore.indexes.json` exempts most of the room document
+
+Firestore indexes every nested field. A room holds up to 20 boards, and nothing queries them. Remove the exemptions and each move writes hundreds of index entries. The same file declares the TTL policy on `rooms.expireAt` that deletes expired rooms.
+
+### 17. `server-only` is stubbed in Vitest, and `protobufjs` is `false` in `allowBuilds`
+
+`import 'server-only'` throws outside a Next.js build, so `vitest.config.ts` aliases it to `tests/server-only.stub.ts`. `protobufjs`, from `@google-cloud/firestore`, wants a lifecycle script that compiles nothing. It is listed as `false` because pnpm fails `--frozen-lockfile` on an unlisted one.
+
+### 18. A read of the room can write
+
+`GET /api/v1/rooms/{key}` plays out a turn whose clock ran out and promotes a new host after 60 idle seconds. Nothing else can: the player or host who left has no browser to ask. Keep both in `readRoom`, and keep `/api/health` free of Firestore.
+
 ---
 
 ## Never do this
@@ -301,6 +339,10 @@ Violations here are defects, not style disagreements.
 | Disable a CI check to make a PR green                                | Fix the code, or change the check deliberately and say why.                                                                                               |
 | Put a secret in a Docker build arg                                   | Visible in `docker history`. Use Secret Manager at runtime.                                                                                               |
 | Push, claim work is done, or open a PR without `pnpm validate` green | Run it locally first: `format:check` included. CI must never fail from your end. See [Verification protocol](#verification-protocol).                     |
+| Grant `roles/datastore.user` without an IAM condition                | It grants every database in the project, including other apps'. See trap 13.                                                                              |
+| Set `FIRESTORE_EMULATOR_HOST` in a deployed environment              | Every read and write silently goes to a host that does not exist.                                                                                         |
+| Change a room outside a Firestore transaction                        | Two moves at one instant would both succeed. `transact()` in `services/room-store.ts` is the only write path.                                             |
+| Import `services/` from a Client Component                           | It ships the SDK to the browser. `import 'server-only'` makes it a build error; do not work around it.                                                    |
 
 ---
 
@@ -410,6 +452,7 @@ Full model in [`SECURITY.md`](./SECURITY.md).
 - **The container is hardened:** non-root uid 1001, no source/dev-deps/package manager in the final image, pinned base image, read-only root filesystem, `no-new-privileges`.
 - **Workflows are least-privilege:** `contents: read` by default, `id-token: write` only where OIDC is needed, `persist-credentials: false` on checkout. PR validation needs **no** cloud credentials, keep it that way so fork PRs work.
 - **Secrets** come from Secret Manager at runtime. Never a build arg, never `NEXT_PUBLIC_*`, never the repository.
+- **The data layer is scoped to one app.** The runtime account reaches only this app's Firestore database, under an IAM condition. Firestore stores a hash of each player token, never the token. Expired rooms are deleted by a TTL policy.
 
 ---
 
@@ -417,14 +460,15 @@ Full model in [`SECURITY.md`](./SECURITY.md).
 
 Recorded in [`docs/adr/`](./docs/adr/). Read before proposing a change to any of them.
 
-| ADR                                                                  | Decision                                                         |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)                 | Cloud Run for hosting, over Vercel, GKE, App Engine, a VM        |
-| [0002](./docs/adr/0002-use-workload-identity-federation.md)          | Workload Identity Federation, no service account keys, ever      |
-| [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md)    | Room state behind a transport interface, with a browser fallback |
-| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)          | Turn-based Bingo on a 1-25 board, no host caller, no daubing     |
-| [0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md) | The player id is public; the credential is a separate token      |
-| [0006](./docs/adr/0006-adopt-the-mochi-design-language.md)           | The Mochi design language, from the template, replaces Airtable  |
+| ADR                                                                       | Decision                                                         |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)                      | Cloud Run for hosting, over Vercel, GKE, App Engine, a VM        |
+| [0002](./docs/adr/0002-use-workload-identity-federation.md)               | Workload Identity Federation, no service account keys, ever      |
+| [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md)         | Room state behind a transport interface, with a browser fallback |
+| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)               | Turn-based Bingo on a 1-25 board, no host caller, no daubing     |
+| [0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md)      | The player id is public; the credential is a separate token      |
+| [0006](./docs/adr/0006-adopt-the-mochi-design-language.md)                | The Mochi design language, from the template, replaces Airtable  |
+| [0007](./docs/adr/0007-serve-the-rooms-api-from-this-app-on-firestore.md) | The rooms API runs in this app, on Firestore in asia-south1      |
 
 Add an ADR when a decision is expensive to reverse, affects how everyone works, or rejects an obvious alternative. Never edit an accepted ADR to change its decision, write a new one that supersedes it, and link both ways.
 

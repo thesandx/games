@@ -164,10 +164,8 @@ The deployer and runtime service accounts are deliberately different identities.
 
 ```
 Today
-  GitHub → Actions → Artifact Registry → Cloud Run
-
-+ persistence
-  Cloud Run → Cloud SQL (private IP + connector) or Firestore
+  GitHub → Actions → Artifact Registry → Cloud Run → Firestore
+  (all in asia-south1; see docs/rooms-api.md)
 
 + multiple environments
   Terraform per project (see terraform.md); GitHub Environments with reviewers

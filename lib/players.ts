@@ -20,7 +20,7 @@ export const AVATAR_COLORS: readonly AvatarColor[] = [
  * The Mochi tone each stored colour draws with.
  *
  * The stored names are part of the rooms API contract (see
- * docs/backend-handover.md), so they stay as they are. Only the rendering moved
+ * docs/rooms-api.md), so they stay as they are. Only the rendering moved
  * to the design language's candy tones. The union is spelled out here rather
  * than imported, because `lib/` sits below `components/` and never imports it.
  */

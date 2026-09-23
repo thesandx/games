@@ -18,10 +18,11 @@ services:
         NEXT_PUBLIC_APP_URL: http://localhost:8080
         NEXT_PUBLIC_APP_NAME: Next.js on Cloud Run
         NEXT_PUBLIC_APP_VERSION: local
-        # Rooms stay in the browser until the rooms API is live. Set to
-        # `remote` (and point the URL at it) to exercise the HTTP transport.
-        NEXT_PUBLIC_PLAYROOM_API_URL: https://api.sandeep.app/games
-        NEXT_PUBLIC_PLAYROOM_TRANSPORT: local
+        # Rooms stay in the browser by default, so the image runs with no
+        # database. Set `remote` to use the rooms API this image serves at
+        # /api/v1, and give it a Firestore below (the emulator works).
+        NEXT_PUBLIC_PLAYROOM_API_URL: /api/v1
+        NEXT_PUBLIC_PLAYROOM_TRANSPORT: ${PLAYROOM_TRANSPORT:-local}
     image: nextjs-cloudrun-template:local
     container_name: nextjs-cloudrun-template
     ports:
@@ -32,6 +33,17 @@ services:
       PORT: 8080
       HOSTNAME: 0.0.0.0
       LOG_LEVEL: info
+      # The data-layer variables are required in production, and this image runs
+      # as production. The placeholders below let the container start so port
+      # binding, permissions, health checks and signal handling can be verified;
+      # /api/health is dependency-free and opens no connection to Firestore.
+      #
+      # To exercise Firestore for real, override them in .env.local with your
+      # own project and mounted Application Default Credentials, or point
+      # FIRESTORE_EMULATOR_HOST at an emulator. See docs/local-development.md.
+      APP_SLUG: ${APP_SLUG:-local-app}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-local-project}
+      FIRESTORE_DATABASE_ID: ${FIRESTORE_DATABASE_ID:-local-app-db}
     env_file:
       # Optional: create .env.local from .env.example for secrets.
       # `required: false` keeps `docker compose up` working without it.

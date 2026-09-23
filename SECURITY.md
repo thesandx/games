@@ -27,9 +27,18 @@ See [ADR-0002](./docs/adr/0002-use-workload-identity-federation.md) and [`cloud/
 Two service accounts, deliberately distinct:
 
 - **Deployer**: impersonated by CI. Can push images and deploy revisions. Cannot read application data.
-- **Runtime**: the identity the application runs as. Can read its own secrets. Cannot deploy or modify IAM.
+- **Runtime**: the identity the application runs as. Can read its own secrets and use its own Firestore database. Cannot deploy or modify IAM.
 
 If an attacker compromises either account, the damage stays contained.
+
+### The data layer
+
+- **One database per app.** The runtime service account holds `roles/datastore.user` under an IAM condition that names this app's database. Without the condition, the role reaches every database in the project, including other apps' data.
+- **The service runs as the runtime account.** `deploy.yml` passes it in `flags` as `--service-account`. The action has no `service_account` input, and a revision without the flag runs as the default compute account, which is Editor on the project.
+- **Firestore rules deny all client access.** The app uses admin credentials, which bypass rules, so the rules are defence in depth. The control that protects the data is the IAM condition.
+- **No token is stored.** A player token is 32 random bytes, returned once. Firestore holds only its SHA-256 hash. The room payload never carries a token or a hash.
+- **Board visibility is enforced on the server.** Each response holds the caller's own board only, plus the winner's once the round ends.
+- **Nothing identifying outlives the room.** A TTL policy deletes an expired room with its nicknames and boards. The event log holds ids and seats, never a nickname or an address. The rate limiter hashes the address with a per-process salt and keeps only the hash, for the length of its window.
 
 ### Container hardening
 

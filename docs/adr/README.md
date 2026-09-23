@@ -31,11 +31,12 @@ Do **not** write one for a routine choice with an obvious answer. An ADR per pul
 
 ## Index
 
-| ADR                                                         | Title                                                            | Status   |
-| ----------------------------------------------------------- | ---------------------------------------------------------------- | -------- |
-| [0001](./0001-use-cloud-run-for-hosting.md)                 | Use Cloud Run for hosting                                        | Accepted |
-| [0002](./0002-use-workload-identity-federation.md)          | Use Workload Identity Federation instead of service account keys | Accepted |
-| [0003](./0003-abstract-room-state-behind-a-transport.md)    | Abstract room state behind a transport interface                 | Accepted |
-| [0004](./0004-turn-based-bingo-on-a-1-25-board.md)          | Turn-based Bingo on a 1-25 board                                 | Accepted |
-| [0005](./0005-split-the-player-id-from-the-player-token.md) | Split the player id from the player token                        | Accepted |
-| [0006](./0006-adopt-the-mochi-design-language.md)           | Adopt the Mochi design language from the template                | Accepted |
+| ADR                                                              | Title                                                            | Status   |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- | -------- |
+| [0001](./0001-use-cloud-run-for-hosting.md)                      | Use Cloud Run for hosting                                        | Accepted |
+| [0002](./0002-use-workload-identity-federation.md)               | Use Workload Identity Federation instead of service account keys | Accepted |
+| [0003](./0003-abstract-room-state-behind-a-transport.md)         | Abstract room state behind a transport interface                 | Accepted |
+| [0004](./0004-turn-based-bingo-on-a-1-25-board.md)               | Turn-based Bingo on a 1-25 board                                 | Accepted |
+| [0005](./0005-split-the-player-id-from-the-player-token.md)      | Split the player id from the player token                        | Accepted |
+| [0006](./0006-adopt-the-mochi-design-language.md)                | Adopt the Mochi design language from the template                | Accepted |
+| [0007](./0007-serve-the-rooms-api-from-this-app-on-firestore.md) | Serve the rooms API from this app, on Firestore in asia-south1   | Accepted |

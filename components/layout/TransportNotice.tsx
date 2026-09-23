@@ -5,8 +5,8 @@ import { isLocalTransport } from '@/services/room-transport';
  *
  * Shown only while `NEXT_PUBLIC_PLAYROOM_TRANSPORT` is `local`. Without it the
  * app quietly implies that sending someone the key will work across devices,
- * which it will not until the rooms API is live. It disappears on its own when
- * the transport flips to `remote`.
+ * which it will not on a browser-only build. It disappears on its own when the
+ * transport is `remote`, which is how the deployed app is built.
  */
 export function TransportNotice() {
   if (!isLocalTransport) return null;

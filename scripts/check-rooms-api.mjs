@@ -2,19 +2,20 @@
 //
 // Check a live rooms API against the contract this client expects.
 //
-// The unit tests exercise the browser transport, and the API has its own tests.
-// Neither proves the two agree on the wire. That is what this does. Run it
-// after changing `services/playroom-api.ts`, `types/playroom.ts`, or anything
-// in the service's `app/apps/playroom/`.
+// The unit tests exercise the engine and the browser transport, and the
+// emulator suite exercises `services/room-store.ts`. Neither proves the HTTP
+// client and the route handlers agree on the wire. That is what this does. Run
+// it after changing `services/playroom-api.ts`, `types/playroom.ts`, or
+// anything under `app/api/v1/`.
 //
 // Usage:
-//   pnpm check:rooms-api                                        # localhost:8000
-//   API=http://localhost:8099/games/v1 pnpm check:rooms-api
+//   pnpm check:rooms-api                                  # localhost:3000
+//   API=http://localhost:8080/api/v1 pnpm check:rooms-api   # the container
 //
 // It creates a real room and plays part of a round, so point it at a
 // development service, never at production.
 
-const API = (process.env.API ?? 'http://localhost:8000/games/v1').replace(/\/+$/, '');
+const API = (process.env.API ?? 'http://localhost:3000/api/v1').replace(/\/+$/, '');
 
 let passed = 0;
 let failed = 0;
@@ -48,6 +49,40 @@ async function call(method, path, { body, token, headers } = {}) {
     parsed = { raw: text };
   }
   return { status: response.status, body: parsed, headers: response.headers };
+}
+
+/** Reads one Server-Sent Events frame, then closes the connection. */
+async function firstStreamFrame(path, token) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const response = await fetch(`${API}${path}`, {
+      headers: { Accept: 'text/event-stream', Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return null;
+      buffer += value;
+      const end = buffer.indexOf('\n\n');
+      if (end === -1) continue;
+      const frame = buffer.slice(0, end);
+      if (frame.startsWith(':')) {
+        buffer = buffer.slice(end + 2);
+        continue;
+      }
+      const event = /^event: (.*)$/m.exec(frame)?.[1];
+      const data = /^data: (.*)$/m.exec(frame)?.[1];
+      return { event, data: data === undefined ? null : JSON.parse(data) };
+    }
+  } catch (cause) {
+    return { event: 'error', data: String(cause) };
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+  }
 }
 
 const SETTINGS = { rounds: 1, privacy: 'Locked after start', maxPlayers: 8 };
@@ -199,6 +234,22 @@ check(
   'a claim with no lines is refused, not accepted',
   earlyClaim.status === 409 && earlyClaim.body.code === 'invalid-claim',
   earlyClaim.body,
+);
+
+// The stream carries the room as its first frame, in a header-authenticated
+// request, exactly as the client reads it.
+const streamed = await firstStreamFrame(`/rooms/${key}/stream`, hostToken);
+check(
+  'the stream opens with the room, scoped to the caller',
+  streamed?.event === 'room' && Object.keys(streamed.data.bingo.cards).join() === hostId,
+  streamed,
+);
+
+const closedStream = await firstStreamFrame(`/rooms/${key}/stream`, 'not-a-token');
+check(
+  'the stream closes on a token that is not in the room',
+  closedStream?.event === 'closed' && closedStream.data.code === 'not-in-room',
+  closedStream,
 );
 
 await call('POST', `/rooms/${key}/end`, { token: hostToken });

@@ -15,6 +15,7 @@
  */
 
 import {
+  CARD_SIZE,
   createCard,
   findWinningLines,
   isPlayableNumber,
@@ -75,6 +76,16 @@ function requireHost(room: Room, playerId: string): void {
   }
 }
 
+/**
+ * Trims a nickname and normalises it to NFC before any comparison.
+ *
+ * Two visually identical nicknames can be different code-point sequences
+ * without this, which would let one player take another's apparent name.
+ */
+export function normaliseNickname(name: string): string {
+  return name.normalize('NFC').trim();
+}
+
 function withExpiry(room: Room, now: number): Room {
   return { ...room, expiresAt: new Date(now + ROOM_TTL_MS).toISOString() };
 }
@@ -93,10 +104,11 @@ export function createRoom(
   hostId: string,
   now: number = Date.now(),
 ): Room {
+  const name = normaliseNickname(input.hostName);
   const host: Player = {
     id: hostId,
-    name: input.hostName.trim(),
-    initial: initialOf(input.hostName),
+    name,
+    initial: initialOf(name),
     color: input.hostColor,
     score: 0,
     isHost: true,
@@ -132,6 +144,9 @@ export function joinRoom(
   random?: RandomInt,
   now: number = Date.now(),
 ): Room {
+  if (room.phase === 'finished') {
+    throw new RoomError('wrong-phase', 'This session has already finished.');
+  }
   if (room.players.length >= room.settings.maxPlayers) {
     throw new RoomError(
       'room-full',
@@ -141,11 +156,8 @@ export function joinRoom(
   if (room.settings.privacy === 'Locked after start' && room.phase !== 'lobby') {
     throw new RoomError('room-locked', 'The host locked this room after the game started.');
   }
-  if (room.phase === 'finished') {
-    throw new RoomError('wrong-phase', 'This session has already finished.');
-  }
 
-  const name = input.name.trim();
+  const name = normaliseNickname(input.name);
   const taken = room.players.some((player) => player.name.toLowerCase() === name.toLowerCase());
   if (taken) throw new RoomError('name-taken', 'Someone in this room already uses that nickname.');
 
@@ -193,6 +205,10 @@ export function startRound(
 ): Room {
   requireHost(room, playerId);
   if (room.phase === 'playing') throw new RoomError('wrong-phase', 'The round already started.');
+  // A round is dealt from the lobby only. From the results screen the host
+  // advances with `nextRound`, which carries the round count forward; dealing
+  // straight from there would skip that count.
+  if (room.phase !== 'lobby') throw new RoomError('wrong-phase', 'The round is not finished.');
 
   const cards: Record<string, BingoCard> = {};
   for (const player of room.players) {
@@ -253,18 +269,66 @@ export function selectNumber(
   }
 
   const turnCount = bingo.turnOrder.length;
-  return withExpiry(
-    {
-      ...room,
-      bingo: {
-        ...bingo,
-        selected: [...bingo.selected, value],
-        lastPick: { value, playerId },
-        currentTurnIndex: turnCount === 0 ? 0 : (bingo.currentTurnIndex + 1) % turnCount,
-      },
+  const taken: Room = {
+    ...room,
+    bingo: {
+      ...bingo,
+      selected: [...bingo.selected, value],
+      lastPick: { value, playerId },
+      currentTurnIndex: turnCount === 0 ? 0 : (bingo.currentTurnIndex + 1) % turnCount,
     },
+  };
+
+  return withExpiry(
+    taken.bingo !== null && taken.bingo.selected.length >= CARD_SIZE
+      ? closeExhaustedBoard(taken, playerId)
+      : taken,
     now,
   );
+}
+
+/**
+ * Ends a round in which all 25 numbers went and nobody claimed.
+ *
+ * Reaching five lines takes about 19 numbers, and nothing forces a player to
+ * claim. Once every number is gone no further selection is possible, so
+ * without this the round would stall until the host ended the session.
+ *
+ * **Why the closer wins.** With all 25 numbers taken, every board holds all
+ * twelve lines, so "most lines" is a twelve-way tie by construction. The player
+ * who took the final number is the one deterministic, seat-neutral answer.
+ *
+ * Line points are not paid here. They reward a near miss, and at exhaustion
+ * every board is complete: 10 a line would hand each non-winner 120 points
+ * against the winner's 100.
+ */
+function closeExhaustedBoard(room: Room, closerId: string): Room {
+  const bingo = room.bingo;
+  if (!bingo) return room;
+
+  const rows: RoundResultRow[] = room.players.map((player) => ({
+    playerId: player.id,
+    name: player.name,
+    initial: player.initial,
+    color: player.color,
+    note: player.id === closerId ? 'Closed the board' : 'No bingo called',
+    gain: player.id === closerId ? WIN_POINTS : 0,
+  }));
+
+  return {
+    ...room,
+    phase: 'round-results',
+    players: room.players.map((player) =>
+      player.id === closerId ? { ...player, score: player.score + WIN_POINTS } : player,
+    ),
+    bingo: { ...bingo, winnerId: closerId, winningLines: [] },
+    lastRound: [...rows].sort((a, b) => b.gain - a.gain),
+  };
+}
+
+/** True once the round has ended by exhaustion rather than by a claim. */
+export function isBoardExhausted(room: Room): boolean {
+  return room.bingo !== null && room.bingo.selected.length >= CARD_SIZE;
 }
 
 /**
@@ -383,7 +447,7 @@ export function lockRoom(room: Room, playerId: string, now: number = Date.now())
 }
 
 /**
- * Host removes a player.
+ * Host removes a player, or a player leaves.
  *
  * Mid-round this also takes them out of the turn order. The current index is
  * rebased so play continues with the same player it was waiting on, rather than
@@ -395,9 +459,14 @@ export function removePlayer(
   targetPlayerId: string,
   now: number = Date.now(),
 ): Room {
-  requireHost(room, playerId);
+  requirePlayer(room, playerId);
   if (targetPlayerId === room.hostId) {
     throw new RoomError('not-host', 'The host cannot be removed.');
+  }
+  // Anybody may leave. Only the host may remove somebody else.
+  if (playerId !== targetPlayerId) requireHost(room, playerId);
+  if (!room.players.some((player) => player.id === targetPlayerId)) {
+    throw new RoomError('not-in-room', 'That player is not in this room.');
   }
 
   const players = room.players.filter((player) => player.id !== targetPlayerId);

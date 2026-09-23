@@ -7,7 +7,8 @@
 | Node.js    | 22 LTS or newer | Pinned in `.nvmrc`; `nvm use` picks it up                |
 | pnpm       | 10 or newer     | `corepack enable` installs the version in `package.json` |
 | Docker     | any recent      | Only needed for container work                           |
-| gcloud CLI | any recent      | Only needed for deployment work                          |
+| gcloud CLI | any recent      | For deployment work, and for the Firestore emulator      |
+| Java       | 21 or newer     | Only for the Firestore emulator                          |
 
 ```bash
 # Node via nvm
@@ -31,23 +32,27 @@ Open <http://localhost:3000>.
 
 ## Scripts
 
-| Command              | What it does                                                   |
-| -------------------- | -------------------------------------------------------------- |
-| `pnpm dev`           | Dev server with hot reload                                     |
-| `pnpm build`         | Production build                                               |
-| `pnpm start`         | Serve the production build (run `build` first)                 |
-| `pnpm typecheck`     | `tsc --noEmit`, **run `build` at least once first**, see below |
-| `pnpm lint`          | ESLint                                                         |
-| `pnpm lint:fix`      | ESLint with `--fix`, including import sorting                  |
-| `pnpm format`        | Prettier, writing changes                                      |
-| `pnpm format:check`  | Prettier, verifying only (what CI runs)                        |
-| `pnpm test`          | Vitest, once                                                   |
-| `pnpm test:watch`    | Vitest in watch mode                                           |
-| `pnpm test:coverage` | Vitest with a coverage report                                  |
-| `pnpm validate`      | Everything CI runs, in one command                             |
-| `pnpm docker:build`  | Build the production image locally                             |
-| `pnpm docker:run`    | Run it and wait for health                                     |
-| `pnpm clean`         | Remove `.next`, `coverage`, `node_modules`                     |
+| Command                | What it does                                                   |
+| ---------------------- | -------------------------------------------------------------- |
+| `pnpm dev`             | Dev server with hot reload                                     |
+| `pnpm build`           | Production build                                               |
+| `pnpm start`           | Serve the production build (run `build` first)                 |
+| `pnpm typecheck`       | `tsc --noEmit`, **run `build` at least once first**, see below |
+| `pnpm lint`            | ESLint                                                         |
+| `pnpm lint:fix`        | ESLint with `--fix`, including import sorting                  |
+| `pnpm format`          | Prettier, writing changes                                      |
+| `pnpm format:check`    | Prettier, verifying only (what CI runs)                        |
+| `pnpm test`            | Vitest, once                                                   |
+| `pnpm test:watch`      | Vitest in watch mode                                           |
+| `pnpm test:coverage`   | Vitest with a coverage report                                  |
+| `pnpm validate`        | Everything CI runs, in one command                             |
+| `pnpm db:emulator`     | Start a local Firestore emulator on port 8085                  |
+| `pnpm test:emulator`   | Start the emulator, run `*.emulator.test.ts`, stop it          |
+| `pnpm check:rooms-api` | Check a running app against the rooms API wire contract        |
+| `pnpm db:deploy`       | Publish rules, indexes and TTL policies to a real database     |
+| `pnpm docker:build`    | Build the production image locally                             |
+| `pnpm docker:run`      | Run it and wait for health                                     |
+| `pnpm clean`           | Remove `.next`, `coverage`, `node_modules`                     |
 
 > **`pnpm typecheck` on a fresh clone fails until you have built once.** `next build` generates `next-env.d.ts` and `.next/types/**`, which `tsc` needs to resolve JSX and typed routes. Both are gitignored. `pnpm dev` also generates them. CI runs `build` before `typecheck` for the same reason.
 
@@ -67,6 +72,63 @@ edit → hot reload → pnpm validate → commit → PR
 ```
 
 Run `pnpm validate` before pushing. It is exactly what CI runs, so a green local run means a green PR. It also catches the format-check failure that otherwise costs an extra push.
+
+## Rooms: in the browser, or in Firestore
+
+A fresh checkout keeps rooms in the browser (`NEXT_PUBLIC_PLAYROOM_TRANSPORT=local`). Two tabs can play a real game, and no database is necessary.
+
+To run the real rooms API, the one the deployed app uses, give it a Firestore.
+
+### Against the emulator (no Google Cloud account)
+
+Install the emulator once:
+
+```bash
+gcloud components install cloud-firestore-emulator
+```
+
+Then, in one terminal:
+
+```bash
+pnpm db:emulator
+```
+
+And in `.env.local`:
+
+```bash
+NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085
+```
+
+Then `pnpm dev`. The emulator keeps data in memory, so a restart clears every room.
+
+To play across devices, open the app from another device on the same network at `http://<your-laptop-ip>:3000`.
+
+### Against the real database
+
+Add the values bootstrap printed to `.env.local`, and authenticate once:
+
+```bash
+NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote
+APP_SLUG=my-app
+GCP_PROJECT_ID=my-gcp-project
+```
+
+```bash
+gcloud auth application-default login
+```
+
+Your own Google account then needs access to the database. Prefer the emulator: a laptop that writes to the production database can break real rooms.
+
+### Checking the wire contract
+
+With the app running on the remote transport:
+
+```bash
+pnpm check:rooms-api
+```
+
+It creates a room, plays part of a round, reads the stream, and checks each response against the shape the client reads.
 
 ## Working with the container
 

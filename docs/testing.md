@@ -126,6 +126,24 @@ describe('getUser', () => {
 
 **Test the failure paths.** Most incidents come from a failure path, not the happy path.
 
+## Testing Firestore code
+
+Code that talks to Firestore is tested against the real Firestore emulator, not a mock. What needs proving is Firestore's own behaviour: whether two transactions on one room really serialise, whether exactly one of two claims wins. A mock answers the way its author expected, which is the assumption under test.
+
+These suites are named `*.emulator.test.ts` and start with `// @vitest-environment node`, because the Firestore SDK uses gRPC and Node APIs that jsdom does not have.
+
+```bash
+pnpm test:emulator
+```
+
+The script starts the emulator, runs the suites, and stops it. `services/room-store.emulator.test.ts` covers the rooms API: turns, simultaneous moves, a simultaneous double claim, the same nickname twice at once, idempotent retries, the turn clock, host promotion, expiry, the event log and the live listener.
+
+**The suites skip when `FIRESTORE_EMULATOR_HOST` is unset.** So `pnpm test` and `pnpm validate` stay green on a clean checkout with no gcloud. They are not optional: CI runs them in their own `emulator` job. Run `pnpm test:emulator` before you push a change to `services/room-store.ts` or `lib/room-engine.ts`.
+
+**Move the clock, not the timers.** The Firestore client runs on real timers. To test the turn clock or host promotion, replace `Date.now` only, as `advanceClock` in the room store suite does.
+
+`import 'server-only'` throws outside a Next.js build, so `vitest.config.ts` aliases it to `tests/server-only.stub.ts`. The guard still works in `next build`.
+
 ## Route handlers
 
 Route handlers are plain functions: call them directly.

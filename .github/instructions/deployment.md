@@ -91,8 +91,8 @@ Skipping step 2 means the variable is `string | undefined` at every call site. S
 Never in an env var literal, never in a build arg (build args are visible in image history), never in the repository.
 
 ```bash
-printf '%s' "$VALUE" | gcloud secrets versions add DATABASE_URL --data-file=-
-gcloud run services update SERVICE --set-secrets=DATABASE_URL=DATABASE_URL:latest
+printf '%s' "$VALUE" | gcloud secrets versions add API_KEY --data-file=-
+gcloud run services update SERVICE --set-secrets=API_KEY=API_KEY:latest
 ```
 
 ---

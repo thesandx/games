@@ -124,6 +124,8 @@ docker compose up --build   # reads .env.local if present, via env_file
 
 ## Secrets
 
+Firestore needs no secret. The runtime service account reaches it through Application Default Credentials, and an IAM condition limits it to this app's database. A secret is for a credential that belongs to a third party, such as an API key.
+
 Never in `.env` (committed), never in a build arg (build args are visible in `docker history`), never in a Cloud Run env var literal (visible to anyone with `run.services.get`).
 
 ### Creating
@@ -131,11 +133,11 @@ Never in `.env` (committed), never in a build arg (build args are visible in `do
 ```bash
 gcloud services enable secretmanager.googleapis.com
 
-gcloud secrets create DATABASE_URL --replication-policy=automatic
+gcloud secrets create API_KEY --replication-policy=automatic
 
 # Pipe the value, never pass it as an argument, where it lands in shell history
-printf '%s' 'postgresql://user:pass@host:5432/db' \
-  | gcloud secrets versions add DATABASE_URL --data-file=-
+printf '%s' "$VALUE" \
+  | gcloud secrets versions add API_KEY --data-file=-
 ```
 
 ### Granting access
@@ -143,7 +145,7 @@ printf '%s' 'postgresql://user:pass@host:5432/db' \
 To the **runtime** service account (the identity the app runs as), not the deployer:
 
 ```bash
-gcloud secrets add-iam-policy-binding DATABASE_URL \
+gcloud secrets add-iam-policy-binding API_KEY \
   --member="serviceAccount:my-app-runtime@my-project.iam.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
 ```
@@ -153,7 +155,7 @@ gcloud secrets add-iam-policy-binding DATABASE_URL \
 Add to the `flags:` in `deploy.yml`:
 
 ```yaml
---set-secrets=DATABASE_URL=DATABASE_URL:latest
+--set-secrets=API_KEY=API_KEY:latest
 ```
 
 The secret arrives as an ordinary environment variable, so `lib/env.ts` reads it like any other value.
@@ -163,9 +165,9 @@ The secret arrives as an ordinary environment variable, so `lib/env.ts` reads it
 ### Rotating
 
 ```bash
-printf '%s' "$NEW_VALUE" | gcloud secrets versions add DATABASE_URL --data-file=-
-gcloud run services update my-app --region asia-southeast1  # new revision
-gcloud secrets versions disable 1 --secret=DATABASE_URL     # after verifying
+printf '%s' "$NEW_VALUE" | gcloud secrets versions add API_KEY --data-file=-
+gcloud run services update my-app --region asia-south1  # new revision
+gcloud secrets versions disable 1 --secret=API_KEY     # after verifying
 ```
 
 Disable before destroying, disabling is reversible, destroying is not.
@@ -181,22 +183,25 @@ Disable before destroying, disabling is reversible, destroying is not.
 
 Current inventory:
 
-| Name                  | Kind     | Required | Purpose                                                             |
-| --------------------- | -------- | -------- | ------------------------------------------------------------------- |
-| `WIF_PROVIDER`        | secret   | yes      | Workload Identity provider resource name                            |
-| `WIF_SERVICE_ACCOUNT` | secret   | yes      | Deployer service account email                                      |
-| `GCP_PROJECT_ID`      | variable | yes      | Target GCP project                                                  |
-| `GCP_REGION`          | variable | no       | Deployment region (default `asia-southeast1`)                       |
-| `ARTIFACT_REPOSITORY` | variable | no       | Artifact Registry repository (default `containers`)                 |
-| `CLOUD_RUN_SERVICE`   | variable | no       | Service name (defaults to the repository name)                      |
-| `APP_URL`             | variable | no       | Public URL, **inlined at build time**                               |
-| `APP_NAME`            | variable | no       | Display name                                                        |
-| `LOG_LEVEL`           | variable | no       | Runtime verbosity (default `info`)                                  |
-| `MIN_INSTANCES`       | variable | no       | `1` removes cold starts, at a cost                                  |
-| `MAX_INSTANCES`       | variable | no       | Scaling and bill ceiling (default `10`)                             |
-| `DEPLOYED_AT`         | computed | no       | UTC deploy time the workflow injects; `/api/health` shows it in IST |
-| `PLAYROOM_API_URL`    | variable | no       | Rooms API base URL, **inlined at build time**                       |
-| `PLAYROOM_TRANSPORT`  | variable | no       | `local` or `remote`, **inlined at build time**                      |
+| Name                      | Kind     | Required | Purpose                                                             |
+| ------------------------- | -------- | -------- | ------------------------------------------------------------------- |
+| `WIF_PROVIDER`            | secret   | yes      | Workload Identity provider resource name                            |
+| `WIF_SERVICE_ACCOUNT`     | secret   | yes      | Deployer service account email                                      |
+| `GCP_PROJECT_ID`          | variable | yes      | Target GCP project                                                  |
+| `GCP_REGION`              | variable | no       | Deployment region (default `asia-south1`)                           |
+| `ARTIFACT_REPOSITORY`     | variable | no       | Artifact Registry repository (default `containers`)                 |
+| `CLOUD_RUN_SERVICE`       | variable | no       | Service name (defaults to the repository name)                      |
+| `APP_URL`                 | variable | no       | Public URL, **inlined at build time**                               |
+| `APP_NAME`                | variable | no       | Display name                                                        |
+| `LOG_LEVEL`               | variable | no       | Runtime verbosity (default `info`)                                  |
+| `MIN_INSTANCES`           | variable | no       | `1` removes cold starts, at a cost                                  |
+| `MAX_INSTANCES`           | variable | no       | Scaling and bill ceiling (default `10`)                             |
+| `DEPLOYED_AT`             | computed | no       | UTC deploy time the workflow injects; `/api/health` shows it in IST |
+| `APP_SLUG`                | variable | no       | Names the runtime account and the database (default: service name)  |
+| `FIRESTORE_DATABASE_ID`   | variable | no       | Firestore database (default `<app-slug>-db`)                        |
+| `RUNTIME_SERVICE_ACCOUNT` | variable | no       | Identity the revision runs as (default `<app-slug>-runtime@...`)    |
+| `PLAYROOM_API_URL`        | variable | no       | Rooms API base URL, **inlined at build time** (default `/api/v1`)   |
+| `PLAYROOM_TRANSPORT`      | variable | no       | `local` or `remote`, **inlined at build time** (default `remote`)   |
 
 `WIF_PROVIDER` and `WIF_SERVICE_ACCOUNT` are resource identifiers rather than credentials, useless without a valid OIDC token from this repository. They are stored as secrets to avoid publishing your project layout, not because a leak would grant access.
 
@@ -222,7 +227,7 @@ Cloud Run sets these; do not define them yourself.
 | `NEXT_PUBLIC_API_SECRET`                | Shipped to every browser           | Server-side variable, read in `services/` |
 | `process.env.FOO` in a component        | Untyped, unvalidated, easy to typo | `import { env } from '@/lib/env'`         |
 | Committing `.env.local`                 | Secrets in git history, forever    | `.gitignore` already covers it            |
-| `--build-arg DATABASE_URL=...`          | Visible in `docker history`        | Secret Manager at runtime                 |
+| `--build-arg API_KEY=...`               | Visible in `docker history`        | Secret Manager at runtime                 |
 | Changing `NEXT_PUBLIC_*` on the service | Silently has no effect             | Rebuild the image                         |
 | A secret with no owner or rotation plan | Nobody dares to change it later    | Document owner and rotation in the PR     |
 
@@ -230,24 +235,29 @@ Cloud Run sets these; do not define them yourself.
 
 Playroom reads room state through one of two transports. `NEXT_PUBLIC_PLAYROOM_TRANSPORT` selects which.
 
-| Value    | Where rooms live                      | Use when                                            |
-| -------- | ------------------------------------- | --------------------------------------------------- |
-| `local`  | The player's browser (`localStorage`) | The rooms API is not live yet. This is the default. |
-| `remote` | `NEXT_PUBLIC_PLAYROOM_API_URL`        | The API answers the contract below.                 |
+| Value    | Where rooms live                                          | Use when                                                    |
+| -------- | --------------------------------------------------------- | ----------------------------------------------------------- |
+| `local`  | The player's browser (`localStorage`)                     | A checkout with no database. The default in `.env.example`. |
+| `remote` | Firestore, through the rooms API at `/api/v1` in this app | Real play across devices. The deploy workflow builds this.  |
 
-`local` is fully playable, but only inside one browser. Two tabs on the same machine can play against each other. Two phones cannot. The on-screen preview banner says so, and it disappears when the transport becomes `remote`.
+`local` is fully playable, but only inside one browser. Two tabs on the same machine can play against each other. Two phones cannot. The on-screen preview banner says so, and it disappears when the transport is `remote`.
 
-### To switch to the real API
+### What `remote` needs at runtime
 
-1. Set the `PLAYROOM_API_URL` GitHub variable to the base URL, with no trailing slash.
-2. Set the `PLAYROOM_TRANSPORT` GitHub variable to `remote`.
-3. Push to `main`. Both values are `NEXT_PUBLIC_*`, so they are inlined at build time, changing them on the Cloud Run service alone does nothing. The pipeline must rebuild the image.
+The rooms API runs in this same service, so `remote` needs the data-layer variables and nothing else:
 
-### The contract the API must answer
+| Variable                  | Where it comes from                                         |
+| ------------------------- | ----------------------------------------------------------- |
+| `APP_SLUG`                | `deploy.yml`, from the `APP_SLUG` variable                  |
+| `GCP_PROJECT_ID`          | `deploy.yml`, from the `GCP_PROJECT_ID` variable            |
+| `FIRESTORE_DATABASE_ID`   | `deploy.yml`, `<app-slug>-db` unless overridden             |
+| `FIRESTORE_EMULATOR_HOST` | Local only, for the emulator. Never set it in a deployment. |
 
-The full specification lives in [`docs/backend-handover.md`](../docs/backend-handover.md): endpoints, payload shapes, the data model, the concurrency rules, and the analytics design. That document is canonical. Do not restate the endpoint list here, two copies drift.
+All three are required in production. The container refuses to start without them, so Cloud Run keeps the previous revision.
 
-Two points that affect deployment, and belong in this file:
+### Two build-time points
 
-- Both variables are `NEXT_PUBLIC_*`, so they are inlined at build time. A Cloud Run env-var change alone does nothing. The pipeline must rebuild the image.
-- `NEXT_PUBLIC_PLAYROOM_API_URL` includes the API version, for example `https://api.sandeep.app/games/v1`. It carries no trailing slash.
+- Both `NEXT_PUBLIC_PLAYROOM_*` variables are inlined at build time. A Cloud Run env-var change alone does nothing. The pipeline must rebuild the image.
+- `NEXT_PUBLIC_PLAYROOM_API_URL` includes the API version, `/api/v1` by default. It carries no trailing slash.
+
+The API itself, with endpoints, payloads, the data model and the concurrency rules, is in [`docs/rooms-api.md`](../docs/rooms-api.md). That document is canonical. Do not restate the endpoint list here: two copies drift.

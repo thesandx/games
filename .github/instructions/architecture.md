@@ -161,9 +161,10 @@ The pipeline tags each image with the commit SHA and deploys it by that immutabl
 
 The template stops at the point where choices become project-specific.
 
+Persistent state is already here: the rooms API stores rooms in Firestore, through `services/room-store.ts`. See [`docs/rooms-api.md`](../../docs/rooms-api.md) and ADR-0007.
+
 | Not included    | Add it when                          | Suggested approach                                                      |
 | --------------- | ------------------------------------ | ----------------------------------------------------------------------- |
-| Database        | There is persistent state            | Cloud SQL + a connector in `services/`, or Firestore                    |
 | Authentication  | There are user accounts              | Identity Platform, or Auth.js behind `services/`                        |
 | Caching         | Measurements show a hot path         | Next's own `revalidate` first; Memorystore only if that is insufficient |
 | Background jobs | Work outlives a request              | Cloud Tasks or Pub/Sub → a second Cloud Run service                     |

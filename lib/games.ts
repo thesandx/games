@@ -40,6 +40,13 @@ export interface GameDefinition {
   tag: string;
   /** Player count, shown as its own labelled fact, e.g. `2 to 20`. */
   players: string;
+  /**
+   * The same range as numbers. The rooms API checks `settings.maxPlayers`
+   * against it, so a room can never be opened for more players than the game
+   * takes. Keep it in step with `players` above.
+   */
+  minPlayers: number;
+  maxPlayers: number;
   /** Typical length of a game, or `null` when it is not known yet. */
   duration: string | null;
   description: string;
@@ -60,6 +67,8 @@ export const GAMES: readonly GameDefinition[] = [
     name: 'Bingo',
     tag: 'Live',
     players: '2 to 20',
+    minPlayers: 2,
+    maxPlayers: 20,
     duration: '10 min',
     description:
       'Take turns claiming numbers from 1 to 25. Every pick marks that number on every board. Five complete lines spell BINGO and take the round.',
@@ -72,6 +81,8 @@ export const GAMES: readonly GameDefinition[] = [
     name: 'Scribble',
     tag: 'In build',
     players: '4 to 12',
+    minPlayers: 4,
+    maxPlayers: 12,
     duration: '15 min',
     description: 'One person draws the word, everyone else races to type it in the guess box.',
     status: 'building',
@@ -83,6 +94,8 @@ export const GAMES: readonly GameDefinition[] = [
     name: 'Tic-tac-toe',
     tag: 'In build',
     players: '2',
+    minPlayers: 2,
+    maxPlayers: 2,
     duration: '3 min',
     description:
       'Best of five against one friend, with a spectator queue for the rest of the room.',
@@ -95,6 +108,8 @@ export const GAMES: readonly GameDefinition[] = [
     name: 'Trivia',
     tag: 'Coming',
     players: '3 to 20',
+    minPlayers: 3,
+    maxPlayers: 20,
     duration: null,
     description: 'Timed question rounds with a category vote before each set.',
     status: 'building',
@@ -106,6 +121,8 @@ export const GAMES: readonly GameDefinition[] = [
     name: 'Word chain',
     tag: 'Coming',
     players: '3 to 10',
+    minPlayers: 3,
+    maxPlayers: 10,
     duration: null,
     description: 'Each answer has to start with the last letter of the one before it.',
     status: 'building',
@@ -117,6 +134,8 @@ export const GAMES: readonly GameDefinition[] = [
     name: 'Mafia',
     tag: 'Coming',
     players: '6 to 16',
+    minPlayers: 6,
+    maxPlayers: 16,
     duration: null,
     description: 'Night phase, day phase, and a vote. Roles are dealt privately in the room.',
     status: 'building',
