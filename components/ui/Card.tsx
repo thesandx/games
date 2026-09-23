@@ -1,44 +1,59 @@
-import type { ReactNode } from 'react';
-
 import { cn } from '@/lib/utils';
 
-export type CardSurface = 'white' | 'cream' | 'peach' | 'mint' | 'yellow' | 'coral' | 'forest';
+export type CardTone = 'surface' | 'brand-soft' | 'butter' | 'soda' | 'grape' | 'peach';
 
-export interface CardProps {
-  surface?: CardSurface;
-  /** The design outlines most cards in 2px ink; full-bleed colour cards are not. */
-  outlined?: boolean;
-  className?: string;
-  children: ReactNode;
-}
-
-const SURFACES: Record<CardSurface, string> = {
-  white: 'bg-white',
-  cream: 'bg-cream',
+const TONE_CLASS: Record<CardTone, string> = {
+  surface: 'bg-surface',
+  'brand-soft': 'bg-brand-soft',
+  butter: 'bg-butter',
+  soda: 'bg-soda',
+  grape: 'bg-grape',
   peach: 'bg-peach',
-  mint: 'bg-mint',
-  yellow: 'bg-yellow',
-  coral: 'bg-coral',
-  forest: 'bg-forest',
 };
 
-/**
- * The rounded 20px panel the whole design is built from.
- *
- * Signature colours (`coral`, `forest`) and the pastels are whole-card surfaces
- * by design-system rule, never small accents or borders.
- */
-export function Card({ surface = 'white', outlined = true, className, children }: CardProps) {
+export interface CardProps {
+  children: React.ReactNode;
+  /** Candy tones are identity (this game is butter), not decoration. Default: surface. */
+  tone?: CardTone;
+  /**
+   * Something that peeks over the top edge, usually a <Face /> or <Avatar />.
+   * The signature Mochi layout move. Maximum one peeking card per viewport.
+   */
+  peek?: React.ReactNode;
+  /**
+   * Drop the base shadow. A shadow says "you can press or pick this up", so a
+   * card that only holds information (rules, a player list) sits flat.
+   */
+  flat?: boolean;
+  /** Render as a different element, e.g. 'article' or 'li'. */
+  as?: 'section' | 'article' | 'li' | 'div';
+  className?: string;
+}
+
+export function Card({
+  children,
+  tone = 'surface',
+  peek,
+  flat = false,
+  as: Tag = 'section',
+  className,
+}: CardProps) {
   return (
-    <div
+    <Tag
       className={cn(
-        'rounded-card p-6',
-        SURFACES[surface],
-        outlined && 'border-ink-1 border-2',
+        'border-line rounded-card relative border-2 p-5 sm:p-6',
+        !flat && 'shadow-mochi',
+        TONE_CLASS[tone],
+        peek !== undefined && 'mt-8 pt-11 sm:pt-12',
         className,
       )}
     >
+      {peek !== undefined && (
+        <div className="absolute -top-7 left-5 sm:left-6" aria-hidden="true">
+          {peek}
+        </div>
+      )}
       {children}
-    </div>
+    </Tag>
   );
 }

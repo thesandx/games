@@ -36,14 +36,20 @@ export type GameStatus = 'playable' | 'building';
 export interface GameDefinition {
   id: GameId;
   name: string;
-  /** Short label on the card corner, e.g. `Live`. */
+  /** Short label on the card, in sentence case, e.g. `Live`. */
   tag: string;
-  /** Player count and duration, e.g. `3-20 players · 10 min`. */
-  meta: string;
+  /** Player count, shown as its own labelled fact, e.g. `2 to 20`. */
+  players: string;
+  /** Typical length of a game, or `null` when it is not known yet. */
+  duration: string | null;
   description: string;
   status: GameStatus;
-  /** Whole-card surface token. `white` cards carry a hairline border instead. */
-  surface: 'peach' | 'mint' | 'yellow' | 'white';
+  /**
+   * The game's identity tone. Candy tones mean "this game", so each playable or
+   * in-build game has its own. Games that are only planned stay on `surface`.
+   * See design-language.md rule 9.
+   */
+  tone: 'butter' | 'soda' | 'grape' | 'surface';
   /** Filters the browse screen offers. */
   categories: readonly string[];
 }
@@ -53,62 +59,68 @@ export const GAMES: readonly GameDefinition[] = [
     id: 'bingo',
     name: 'Bingo',
     tag: 'Live',
-    meta: '2-20 players · 10 min',
+    players: '2 to 20',
+    duration: '10 min',
     description:
       'Take turns claiming numbers from 1 to 25. Every pick marks that number on every board. Five complete lines spell BINGO and take the round.',
     status: 'playable',
-    surface: 'peach',
+    tone: 'butter',
     categories: ['Quick'],
   },
   {
     id: 'scribble',
     name: 'Scribble',
     tag: 'In build',
-    meta: '4-12 players · 15 min',
+    players: '4 to 12',
+    duration: '15 min',
     description: 'One person draws the word, everyone else races to type it in the guess box.',
     status: 'building',
-    surface: 'mint',
+    tone: 'soda',
     categories: ['Team'],
   },
   {
     id: 'ttt',
     name: 'Tic-tac-toe',
     tag: 'In build',
-    meta: '2 players · 3 min',
+    players: '2',
+    duration: '3 min',
     description:
       'Best of five against one friend, with a spectator queue for the rest of the room.',
     status: 'building',
-    surface: 'yellow',
+    tone: 'grape',
     categories: ['Quick'],
   },
   {
     id: 'trivia',
     name: 'Trivia',
     tag: 'Coming',
-    meta: '3-20 players',
+    players: '3 to 20',
+    duration: null,
     description: 'Timed question rounds with a category vote before each set.',
     status: 'building',
-    surface: 'white',
+    tone: 'surface',
     categories: ['Team'],
   },
   {
     id: 'wordchain',
     name: 'Word chain',
     tag: 'Coming',
-    meta: '3-10 players',
+    players: '3 to 10',
+    duration: null,
     description: 'Each answer has to start with the last letter of the one before it.',
     status: 'building',
-    surface: 'white',
+    tone: 'surface',
     categories: ['Quick'],
   },
   {
     id: 'mafia',
     name: 'Mafia',
     tag: 'Coming',
-    meta: '6-16 players',
+    players: '6 to 16',
+    duration: null,
     description: 'Night phase, day phase, and a vote. Roles are dealt privately in the room.',
     status: 'building',
-    surface: 'white',
+    tone: 'surface',
     categories: ['Team'],
   },
 ];

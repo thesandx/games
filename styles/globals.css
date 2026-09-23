@@ -1,100 +1,195 @@
 @import 'tailwindcss';
 
 /**
- * Design tokens, Airtable Marketing Design System, "Playroom Kawaii" variant.
+ * Mochi design language: tokens.
  *
- * Ported from the token files under the design's _ds/ folder.
+ * The rulebook is .github/instructions/design-language.md. Read it before
+ * changing anything here.
+ *
  * Everything the app renders references a token, never a raw hex value.
- * A `--color-x` token becomes the `bg-x` / `text-x` / `border-x` utilities.
+ * Tailwind v4 turns each token into utilities: `--color-brand` becomes
+ * `bg-brand`, `text-brand`, `border-brand`; `--shadow-mochi` becomes
+ * `shadow-mochi`; `--radius-card` becomes `rounded-card`.
  *
- * Two rules from the system's readme that are easy to break:
- *   - Link blue is ONLY a text colour. The CTA fill is ink-1, near-black.
- *   - The signature palette and pastels are whole-card surfaces, never small
- *     accents, borders or icon tints.
+ * Themes (bottom of this file) only re-assign these variables. A product
+ * picks a theme with `data-theme` on <html>. Components never know which
+ * theme is active.
  */
 @theme {
-  /* ink */
-  --color-ink-1: #181d26;
-  --color-ink-2: #333840;
-  --color-ink-3: #41454d;
-  --color-ink-press: #0d1218;
+  /* Surfaces */
+  --color-paper: #fff7fa; /* page background: strawberry milk, not cream */
+  --color-surface: #ffffff; /* cards, inputs, sheets */
+  --color-sunken: #fdeaf1; /* wells, code, disabled fills */
 
-  /* neutrals */
-  --color-white: #ffffff;
-  --color-neutral-50: #f8fafc;
-  --color-neutral-200: #e0e2e6;
-  --color-neutral-300: #dddddd;
-  --color-neutral-500: #9297a0;
-  --color-neutral-900: #1d1f25;
+  /* Ink: text AND outlines. Deep grape, never pure black. */
+  --color-ink: #2a2250;
+  --color-ink-soft: #5b5385; /* secondary text; 5.9:1 on paper */
+  --color-line: #2a2250;
 
-  /* signature palette, whole-card surfaces only */
-  --color-coral: #aa2d00;
-  --color-forest: #0a2e0e;
-  --color-cream: #f5e9d4;
-  --color-peach: #fcab79;
-  --color-mint: #a8d8c4;
-  --color-yellow: #f4d35e;
-  --color-mustard: #d9a441;
+  /* Brand: the one colour that means "do this" */
+  --color-brand: #ff6f9c; /* strawberry; ink text on it is 5.5:1 */
+  --color-brand-soft: #ffd6e3;
 
-  /* semantic hues */
-  --color-blue-400: #458fff;
-  --color-blue-600: #1b61c9;
-  --color-blue-700: #254fad;
-  --color-blue-900: #1a3866;
-  --color-green-500: #39bf45;
-  --color-green-800: #006400;
+  /* Candy tones: for identity (games, avatars, tags), never for meaning */
+  --color-butter: #ffd84a;
+  --color-soda: #7adbcb;
+  --color-grape: #c3b3ff;
+  --color-peach: #ffb38a;
 
-  /* semantic aliases */
-  --color-hairline: #dddddd;
-  --color-link: #1b61c9;
-  --color-link-active: #1a3866;
-  --color-success: #006400;
+  /* Face details */
+  --color-blush: #ff9db8;
 
-  /* type. Huninn ships a single weight (400); 500 is browser-synthesised.
-     `--font-huninn` is set on <html> by next/font in app/layout.tsx. */
-  --font-display:
-    var(--font-huninn), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
-  --font-text:
-    var(--font-huninn), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Status: always paired with an icon or words, never colour alone */
+  --color-danger: #ff7a6b;
+  --color-success: #7adbcb;
 
-  /* radii, the kawaii variant overrides the base system's 12px/6px */
-  --radius-card: 20px;
-  --radius-pill: 999px;
+  /* Type. The font variables come from next/font/local in app/layout.tsx. */
+  --font-display: var(--font-mochiy), 'Arial Rounded MT Bold', ui-rounded, system-ui, sans-serif;
+  --font-sans:
+    var(--font-zen-maru), ui-rounded, 'Hiragino Maru Gothic ProN', system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Type scale: only these sizes exist */
+  --text-hero: clamp(2.25rem, 1.4rem + 4.5vw, 4rem);
+  --text-hero--line-height: 1.08;
+  --text-title: clamp(1.625rem, 1.3rem + 1.6vw, 2.25rem);
+  --text-title--line-height: 1.15;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.3;
+  --text-body: 1rem;
+  --text-body--line-height: 1.65;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  --text-key: clamp(2rem, 1.2rem + 4vw, 3rem); /* room keys, scores, big numbers */
+  --text-key--line-height: 1;
+
+  /* Radius: a hierarchy, not one value for everything */
   --radius-input: 14px;
-  --radius-cell: 16px;
+  --radius-card: 22px;
+  --radius-sheet: 32px;
+  --radius-pill: 999px;
 
-  /* motion */
-  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  /* Shadows: hard, straight down, ink coloured. The "mochi base". */
+  --shadow-mochi: 0 4px 0 0 var(--color-line);
+  --shadow-mochi-sm: 0 2px 0 0 var(--color-line);
+  --shadow-mochi-lg: 0 6px 0 0 var(--color-line);
+  --shadow-mochi-pressed: 0 1px 0 0 var(--color-line);
+
+  /* Motion */
+  --ease-squish: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoots: for things that pop */
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1); /* no overshoot: for things that move */
+
+  --animate-pop: pop 420ms var(--ease-squish) both;
+  --animate-wobble: wobble 520ms var(--ease-settle) both;
+  --animate-blink: blink 6s steps(1, end) infinite;
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes wobble {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-6deg);
+    }
+    60% {
+      transform: rotate(4deg);
+    }
+  }
+
+  @keyframes blink {
+    0%,
+    96%,
+    100% {
+      transform: scaleY(1);
+    }
+    97%,
+    99% {
+      transform: scaleY(0.1);
+    }
+  }
 }
+
+/* ------------------------------------------------------------------ */
+/* Themes. Each one re-assigns tokens. Nothing else belongs here.      */
+/* ------------------------------------------------------------------ */
+
+@layer base {
+  /* Playroom and party products. This is the default, so no selector. */
+
+  /* Calm: wellness, habit and utility apps. Softer brand, lower bases. */
+  [data-theme='calm'] {
+    --color-paper: #f5fbf9;
+    --color-sunken: #e3f4ef;
+    --color-brand: #7adbcb;
+    --color-brand-soft: #d5f3ec;
+    --shadow-mochi: 0 3px 0 0 var(--color-line);
+    --shadow-mochi-lg: 0 4px 0 0 var(--color-line);
+  }
+
+  /* Night: dark products (map trackers, gaming companions). */
+  [data-theme='night'] {
+    --color-paper: #1b1535;
+    --color-surface: #2a2150;
+    --color-sunken: #140f29;
+    --color-ink: #fff3f8;
+    --color-ink-soft: #b9aee0;
+    --color-line: #0c0820; /* outlines go darker than the surface, not lighter */
+    --color-brand: #ff6f9c;
+    --color-brand-soft: #4a2b5e;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
   }
 
-  /**
-   * The design commits to a single light look: white canvas, dark ink type.
-   * The source system documents no dark palette, so the template's automatic
-   * dark mode was removed rather than invented. Add one deliberately, with
-   * tokens for every colour, if the product ever needs it.
-   */
   body {
-    background-color: var(--color-white);
-    color: var(--color-ink-2);
-    font-family: var(--font-text);
-    font-size: 14px;
-    line-height: 1.25;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.65;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* The system documents Default and Active/Pressed only: no hover states. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400; /* Mochiy Pop One has one weight. Never fake-bold it. */
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: var(--color-butter);
+    color: #2a2250;
+  }
+
   :focus-visible {
-    outline: 2px solid var(--color-blue-400);
-    outline-offset: 2px;
+    outline: 3px solid var(--color-brand);
+    outline-offset: 3px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -106,5 +201,30 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* The squish: a pressable thing sinks onto its base. Used by Button and by
+   any custom pressable surface. Do not re-implement it with other values. */
+@utility squish {
+  transition:
+    transform 160ms var(--ease-squish),
+    box-shadow 160ms var(--ease-squish);
+  box-shadow: var(--shadow-mochi);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 0 0 var(--color-line);
+  }
+
+  &:active {
+    transform: translateY(3px);
+    box-shadow: var(--shadow-mochi-pressed);
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    transform: none;
+    box-shadow: none;
   }
 }

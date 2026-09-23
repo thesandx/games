@@ -9,6 +9,7 @@ This folder is the authoritative rulebook for any AI assistant working in this r
 | [coding-rules.md](./coding-rules.md)           | **Always. Start here.** The non-negotiables, in one page.       |
 | [project-structure.md](./project-structure.md) | Creating any new file. It decides where the file goes.          |
 | [coding-standards.md](./coding-standards.md)   | Writing TypeScript, React, or CSS.                              |
+| [design-language.md](./design-language.md)     | Writing or changing any UI. Tokens, primitives, words.          |
 | [architecture.md](./architecture.md)           | Adding a layer, a dependency, or changing how data flows.       |
 | [deployment.md](./deployment.md)               | Touching the Dockerfile, env vars, or anything Cloud Run reads. |
 | [github-workflows.md](./github-workflows.md)   | Touching anything in `.github/workflows/`.                      |

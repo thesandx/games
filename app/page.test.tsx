@@ -9,27 +9,36 @@ import HomePage from '@/app/page';
  * test their data helpers in `lib/` or `services/` instead. See docs/testing.md.
  */
 describe('HomePage', () => {
-  it('leads with the room-key promise', () => {
+  it('leads with what the product is', () => {
     render(<HomePage />);
     expect(
-      screen.getByRole('heading', { level: 1, name: /make a room, share the key/i }),
+      screen.getByRole('heading', { level: 1, name: 'Bingo for your group chat' }),
     ).toBeInTheDocument();
   });
 
-  it('offers both ways into a game', () => {
+  it('puts the key entry in the first section, as a form that works without JavaScript', () => {
     render(<HomePage />);
-    // "Create a room" appears twice by design: once in the hero, once in the
-    // closing coral band. Both must point at the same place.
-    const create = screen.getAllByRole('link', { name: 'Create a room' });
-    expect(create).toHaveLength(2);
-    create.forEach((link) => expect(link).toHaveAttribute('href', '/create'));
-    expect(screen.getByRole('link', { name: 'Join with a key' })).toHaveAttribute('href', '/join');
+    const key = screen.getByLabelText('Room key');
+    expect(key).toHaveAttribute('name', 'key');
+    expect(key.closest('form')).toHaveAttribute('action', '/join');
+    expect(screen.getByRole('button', { name: 'Join game' })).toHaveAttribute('type', 'submit');
+  });
+
+  it('offers creating a room as the quieter second way in', () => {
+    render(<HomePage />);
+    expect(screen.getByRole('link', { name: 'Create a room' })).toHaveAttribute('href', '/create');
+  });
+
+  it('has a practice board you can actually press', () => {
+    render(<HomePage />);
+    expect(screen.getByRole('table', { name: 'Practice board' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Take 7' })).toBeEnabled();
   });
 
   it('lists only the games that are actually playable', () => {
     render(<HomePage />);
-    expect(screen.getByRole('heading', { level: 2, name: 'Bingo' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Bingo' })).toBeInTheDocument();
     // Scribble and Tic-tac-toe are still in build; they belong on /games, not here.
-    expect(screen.queryByRole('heading', { level: 2, name: 'Scribble' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Scribble' })).not.toBeInTheDocument();
   });
 });

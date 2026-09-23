@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { AvatarPicker } from '@/components/room/AvatarPicker';
-import { Button } from '@/components/ui/Button';
-import { TextInput } from '@/components/ui/TextInput';
+import { Avatar } from '@/components/ui/Avatar';
+import { Button, buttonStyles } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Speech } from '@/components/ui/Speech';
 import { rememberPlayerIdentity } from '@/hooks/usePlayerIdentity';
-import { initialOf, isValidNickname, MAX_NICKNAME_LENGTH } from '@/lib/players';
+import { AVATAR_TONE, isValidNickname, MAX_NICKNAME_LENGTH } from '@/lib/players';
 import { isValidRoomKey, normaliseRoomKey, ROOM_KEY_LENGTH } from '@/lib/room-key';
 import { roomTransport } from '@/services/room-transport';
 import type { AvatarColor } from '@/types/playroom';
@@ -16,11 +19,15 @@ import type { AvatarColor } from '@/types/playroom';
 /**
  * Joining by key.
  *
- * The design draws the key as six separate boxes. This is one input instead:
- * six inputs break paste (the most common way a key actually arrives), need
- * bespoke focus and backspace handling, and read as six unlabelled fields to a
- * screen reader. The single field is letter-spaced to keep the same rhythm and
- * normalises "plz 4k9" to "PLZ4K9" as you type.
+ * The key is one input, not six boxes: six inputs break paste (the most common
+ * way a key actually arrives), need bespoke focus and backspace handling, and
+ * read as six unlabelled fields to a screen reader. The single field uses the
+ * design language's `code` treatment and normalises "plz 4k9" to "PLZ4K9" as
+ * you type.
+ *
+ * The card's peek is the player's own face, drawn from the nickname as they
+ * type it: the join form is the card that matters most on this screen. A room
+ * that cannot be joined is an error moment, so the mascot says it, sad.
  */
 export function JoinRoomForm({ initialKey }: { initialKey: string }) {
   const router = useRouter();
@@ -92,18 +99,20 @@ export function JoinRoomForm({ initialKey }: { initialKey: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[460px]">
-      <h1 className="font-display text-ink-1 text-center text-[clamp(1.75rem,5vw,2.5rem)] leading-tight font-normal">
-        Join a room
-      </h1>
-      <p className="text-ink-3 mt-2.5 text-center text-sm">
-        Ask the host for the six-character key.
-      </p>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-title">Join a room</h1>
+        <p className="text-ink-soft">Ask the host for the six-character key.</p>
+      </div>
 
-      <div className="border-ink-1 rounded-card mt-6 flex flex-col gap-5 border-2 p-6">
-        <TextInput
+      <Card
+        peek={<Avatar name={nick} tone={AVATAR_TONE[color]} size="lg" />}
+        className="flex flex-col gap-5"
+      >
+        <Input
           ref={keyRef}
           label="Room key"
+          code
           value={key}
           onChange={(event) => {
             setKey(normaliseRoomKey(event.target.value));
@@ -114,14 +123,13 @@ export function JoinRoomForm({ initialKey }: { initialKey: string }) {
           autoCapitalize="characters"
           spellCheck={false}
           placeholder="PLZ4K9"
-          className="[&_input]:font-display [&_input]:h-16 [&_input]:text-center [&_input]:text-2xl [&_input]:font-medium [&_input]:tracking-[0.5em] [&_input]:uppercase"
           {...(keyError === null ? {} : { error: keyError })}
         />
 
-        <TextInput
+        <Input
           ref={nickRef}
           label="Nickname"
-          placeholder="e.g. Dev"
+          hint="Everyone in the room sees this."
           value={nick}
           maxLength={MAX_NICKNAME_LENGTH}
           autoComplete="off"
@@ -132,27 +140,22 @@ export function JoinRoomForm({ initialKey }: { initialKey: string }) {
           {...(nickError === null ? {} : { error: nickError })}
         />
 
-        <AvatarPicker
-          value={color}
-          onChange={setColor}
-          initial={initialOf(nick)}
-          label="Your avatar"
-        />
+        <AvatarPicker value={color} onChange={setColor} name={nick} />
 
         {error ? (
-          <p role="alert" className="text-coral text-sm">
-            {error}
-          </p>
+          <div role="alert">
+            <Speech mood="sad">{error}</Speech>
+          </div>
         ) : null}
 
-        <Button type="submit" block disabled={submitting}>
+        <Button type="submit" size="lg" block disabled={submitting}>
           {submitting ? 'Joining…' : 'Join room'}
         </Button>
-      </div>
+      </Card>
 
-      <p className="text-ink-3 mt-4 text-center text-sm">
+      <p>
         No key?{' '}
-        <Link href="/create" className="text-link">
+        <Link href="/create" className={buttonStyles({ variant: 'quiet' })}>
           Create your own room
         </Link>
       </p>

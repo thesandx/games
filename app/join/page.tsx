@@ -4,12 +4,13 @@ import { JoinRoomForm } from '@/components/room/JoinRoomForm';
 
 export const metadata: Metadata = {
   title: 'Join a room',
-  description: 'Enter a six-character room key to join a game in progress.',
+  description: 'Enter a six-character room key to join a game.',
 };
 
 /**
- * Accepts `?key=PLZ4K9` so the lobby's "Copy link" lands someone here with the
- * key already filled in. They only pick a nickname.
+ * Accepts `?key=PLZ4K9` so the home page's key form and the lobby's "Copy
+ * link" land someone here with the key already filled in. They only pick a
+ * nickname.
  */
 export default async function JoinPage({
   searchParams,
@@ -19,8 +20,8 @@ export default async function JoinPage({
   const { key } = await searchParams;
 
   return (
-    <section className="flex justify-center px-5 py-7 sm:py-11 lg:py-16">
+    <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-16">
       <JoinRoomForm initialKey={key ?? ''} />
-    </section>
+    </div>
   );
 }

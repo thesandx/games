@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { CreateRoomForm } from '@/components/room/CreateRoomForm';
+import { buttonStyles } from '@/components/ui/Button';
 import { findGame } from '@/lib/games';
 import type { GameId } from '@/types/playroom';
 
@@ -24,16 +25,14 @@ export default async function CreateRoomPage({
   const initialGame: GameId = requested?.status === 'playable' ? requested.id : 'bingo';
 
   return (
-    <section className="px-5 py-7 sm:py-11 lg:py-16">
-      <div className="mx-auto max-w-[1120px]">
-        <Link href="/games" className="text-link text-sm">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-10 sm:px-8 sm:py-16">
+      <div className="flex flex-col items-start gap-3">
+        <Link href="/games" className={buttonStyles({ variant: 'quiet' })}>
           Back to games
         </Link>
-        <h1 className="font-display text-ink-1 mt-3 text-[clamp(1.75rem,5vw,2.5rem)] leading-tight font-normal">
-          Set up your room
-        </h1>
-        <CreateRoomForm initialGame={initialGame} />
+        <h1 className="text-title">Set up your room</h1>
       </div>
-    </section>
+      <CreateRoomForm initialGame={initialGame} />
+    </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { HOW_TO_PLAY } from '@/lib/games';
 import type { GameId } from '@/types/playroom';
@@ -21,7 +22,7 @@ export function HowToPlayTabs({ initialTab }: { initialTab: GameId }) {
 
   return (
     <>
-      <div role="tablist" aria-label="Games" className="mt-5 flex flex-wrap gap-2">
+      <div role="tablist" aria-label="Games" className="flex flex-wrap gap-3">
         {HOW_TO_PLAY.map((item) => (
           <Chip
             key={item.id}
@@ -37,29 +38,21 @@ export function HowToPlayTabs({ initialTab }: { initialTab: GameId }) {
         ))}
       </div>
 
-      <div
-        role="tabpanel"
-        id={`panel-${entry.id}`}
-        aria-labelledby={`tab-${entry.id}`}
-        className="border-ink-1 rounded-card mt-5 border-2 p-6"
-      >
-        <h2 className="font-display text-ink-1 text-[26px] leading-tight font-normal">
-          {entry.title}
-        </h2>
-        <p className="text-ink-3 mt-2.5 text-sm leading-relaxed">{entry.intro}</p>
-        <ol className="mt-5 flex flex-col gap-3">
-          {entry.steps.map((step, index) => (
-            <li key={step} className="flex items-start gap-3">
-              <span
-                aria-hidden="true"
-                className="bg-ink-1 flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs font-medium text-white"
-              >
-                {index + 1}
-              </span>
-              <span className="text-ink-2 text-sm leading-relaxed">{step}</span>
-            </li>
-          ))}
-        </ol>
+      <div role="tabpanel" id={`panel-${entry.id}`} aria-labelledby={`tab-${entry.id}`}>
+        <Card flat className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-title">{entry.title}</h2>
+            <p className="text-ink-soft max-w-prose">{entry.intro}</p>
+          </div>
+          {/* A real sequence, so numbered. The numbers are the list's own markers. */}
+          <ol className="marker:font-display flex list-decimal flex-col gap-3 pl-6">
+            {entry.steps.map((step) => (
+              <li key={step} className="max-w-prose pl-1">
+                {step}
+              </li>
+            ))}
+          </ol>
+        </Card>
       </div>
     </>
   );

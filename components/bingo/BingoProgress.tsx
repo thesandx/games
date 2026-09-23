@@ -8,18 +8,12 @@ export interface BingoProgressProps {
 }
 
 /**
- * Each letter keeps its own colour, so B is always peach and O is always coral.
- * A colour picked at random per render would reshuffle on every state change
- * and read as a glitch; a fixed mapping lets a player recognise how far along
- * they are at a glance. O lands on the signature coral as the payoff letter.
+ * Each letter keeps its own tone, so B is always peach and O is always
+ * strawberry. A colour picked at random per render would reshuffle on every
+ * state change and read as a glitch; a fixed mapping lets a player recognise
+ * how far along they are at a glance. O lands on the brand tone as the payoff.
  */
-const LETTER_TONE = [
-  'bg-peach border-ink-1 text-ink-1',
-  'bg-mint border-ink-1 text-ink-1',
-  'bg-yellow border-ink-1 text-ink-1',
-  'bg-mustard border-ink-1 text-ink-1',
-  'bg-coral border-ink-1 text-white',
-] as const;
+const LETTER_TONE = ['bg-peach', 'bg-soda', 'bg-butter', 'bg-grape', 'bg-brand'] as const;
 
 /**
  * The B-I-N-G-O letters, one per completed line.
@@ -39,17 +33,19 @@ export function BingoProgress({ earned, className }: BingoProgressProps) {
           <li
             key={letter}
             className={cn(
-              'font-display rounded-cell flex h-11 w-11 items-center justify-center border-2 text-xl leading-none font-medium transition-colors',
+              'font-display border-line rounded-input text-heading flex size-11 items-center justify-center border-2 leading-none',
+              // An earned letter is filled AND solid; a letter still to come is
+              // dashed, so the difference is in the outline as well as the fill.
               index < earned
-                ? (LETTER_TONE[index] ?? LETTER_TONE[0])
-                : 'border-neutral-500 text-ink-3 bg-white',
+                ? cn('text-ink', LETTER_TONE[index] ?? LETTER_TONE[0])
+                : 'bg-surface text-ink-soft border-dashed',
             )}
           >
             {letter}
           </li>
         ))}
       </ul>
-      <p className="text-ink-3 text-sm">
+      <p className="text-small text-ink-soft">
         {earned} of {LINES_TO_WIN} lines
         {earned >= LINES_TO_WIN ? '. You can call bingo' : ''}
       </p>

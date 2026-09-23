@@ -61,15 +61,15 @@ export function BingoBoard({
   );
 
   const cellBase = cn(
-    'font-display flex aspect-square w-full items-center justify-center rounded-cell border-2 leading-none font-medium',
-    compact ? 'text-[clamp(0.5rem,2vw,0.75rem)]' : 'text-[clamp(0.875rem,3.4vw,1.25rem)]',
+    'font-display border-line text-ink rounded-input flex aspect-square w-full items-center justify-center border-2 leading-none',
+    compact ? 'text-small' : 'text-heading',
   );
 
   return (
     <table
       className={cn(
-        'border-ink-1 rounded-card w-full table-fixed border-separate border-2',
-        compact ? 'border-spacing-[3px] p-1.5' : 'border-spacing-1.5 p-4',
+        'border-line bg-surface rounded-card w-full table-fixed border-separate border-2',
+        compact ? 'border-spacing-1 p-1.5' : 'border-spacing-1.5 p-3 sm:p-4',
         className,
       )}
     >
@@ -84,18 +84,25 @@ export function BingoBoard({
               const isLatest = value !== undefined && value === latest;
               const pickable = interactive && canPick && !marked && value !== undefined;
 
-              // Yellow outranks peach on purpose. A completed line is the
+              // Butter outranks peach on purpose. A completed line is the
               // thing worth seeing, and the line below the board already says
               // which number went last and who took it.
+              //
+              // A free cell you can take is the only pressable thing on the
+              // board, so it is the only one that sits on a base and squishes.
+              // Taken cells are filled ink; the screen-reader text below says
+              // the same thing in words.
               const tone = isWinning
-                ? 'bg-yellow border-ink-1 text-ink-1'
+                ? 'bg-butter'
                 : isLatest && marked
-                  ? 'bg-peach border-ink-1 text-ink-1'
+                  ? 'bg-peach'
                   : marked
-                    ? 'bg-ink-1 border-ink-1 text-white'
+                    ? 'bg-ink text-surface'
                     : pickable
-                      ? 'bg-white border-ink-1 text-ink-1 active:bg-mint cursor-pointer'
-                      : 'bg-neutral-50 border-neutral-500 text-ink-3';
+                      ? 'squish bg-surface cursor-pointer'
+                      : interactive
+                        ? 'bg-sunken border-dashed'
+                        : 'bg-surface';
 
               return (
                 <td key={index} className="p-0">

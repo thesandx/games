@@ -181,16 +181,18 @@ Every Markdown document in the repository follows ASD-STE100 Simplified Technica
 
 ## 13. Follow the design system
 
-Anything a user sees follows [`.claude/skills/playroom-ui/SKILL.md`](../../.claude/skills/playroom-ui/SKILL.md). It holds the tokens, the colour and type rules, the component inventory, and the traps.
+Anything a user sees follows the Mochi design language in [`design-language.md`](./design-language.md). It holds the tokens, the primitives, the words, the anti-slop list and the accessibility floor.
 
 The rules that get broken most often:
 
 - Every colour comes from a token in `styles/globals.css`. Never a raw hex value.
-- The primary action is filled with `ink-1`. The link blue is a text colour only.
-- The signature palette and pastels are whole-card surfaces, never small accents or borders.
-- Display type runs at weight 400, and 500 at the largest sizes. It is never bold.
-- Objects carry a 2px `ink-1` border. Dividers carry a 1px hairline.
-- There are no shadows on cards, no gradients, no blur, and no hover styling.
+- Text and outlines use `ink` and `line`. Never black, white or a grey.
+- Outlines are 2px. Shadows are hard, go straight down, and sit only on things you can press.
+- Exactly one `primary` button is visible on a screen.
+- Candy tones mean identity: this game, this player, this place. They are not decoration.
+- Faces appear on avatars, the mascot, empty states, errors and wins. Never on buttons or navigation.
 - There is no emoji anywhere, not in copy, not as an icon.
+
+`pnpm lint` fails on a raw hex value, an arbitrary value, and a default Tailwind colour, size, radius or shadow in a `className`.
 
 Reuse `components/ui/` before you build a new primitive. A second button component is a defect.
