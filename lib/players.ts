@@ -16,13 +16,32 @@ export const AVATAR_COLORS: readonly AvatarColor[] = [
   'cream',
 ] as const;
 
-/** Tailwind background utility for an avatar colour token. */
-export const AVATAR_BG: Record<AvatarColor, string> = {
-  peach: 'bg-peach',
-  mint: 'bg-mint',
-  yellow: 'bg-yellow',
-  mustard: 'bg-mustard',
-  cream: 'bg-cream',
+/**
+ * The Mochi tone each stored colour draws with.
+ *
+ * The stored names are part of the rooms API contract (see
+ * docs/backend-handover.md), so they stay as they are. Only the rendering moved
+ * to the design language's candy tones. The union is spelled out here rather
+ * than imported, because `lib/` sits below `components/` and never imports it.
+ */
+export const AVATAR_TONE: Record<
+  AvatarColor,
+  'peach' | 'soda' | 'butter' | 'grape' | 'brand-soft'
+> = {
+  peach: 'peach',
+  mint: 'soda',
+  yellow: 'butter',
+  mustard: 'grape',
+  cream: 'brand-soft',
+};
+
+/** What a player hears for each colour in the picker. Matches what they see. */
+export const AVATAR_TONE_NAME: Record<AvatarColor, string> = {
+  peach: 'Peach',
+  mint: 'Soda',
+  yellow: 'Butter',
+  mustard: 'Grape',
+  cream: 'Strawberry',
 };
 
 /**

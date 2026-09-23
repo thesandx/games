@@ -15,6 +15,9 @@ export interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>,
  * for the role. A toggle uses `aria-pressed`; a tab uses `aria-selected`, which
  * the caller supplies. Setting both would describe two different widgets at
  * once, so `aria-pressed` is omitted when this chip is acting as a tab.
+ *
+ * The selected chip fills with `brand` AND shows a check, because colour never
+ * carries a state on its own. See design-language.md > Accessibility floor.
  */
 export function Chip({ selected = false, className, children, ...props }: ChipProps) {
   const isTab = props.role === 'tab';
@@ -24,12 +27,24 @@ export function Chip({ selected = false, className, children, ...props }: ChipPr
       type="button"
       {...(isTab ? {} : { 'aria-pressed': selected })}
       className={cn(
-        'border-ink-1 rounded-pill inline-flex min-h-[44px] cursor-pointer items-center border-2 px-4 text-sm font-medium',
-        selected ? 'bg-ink-1 text-white' : 'text-ink-2 bg-white',
+        'squish border-line rounded-pill text-small text-ink inline-flex min-h-11 cursor-pointer items-center gap-1.5 border-2 px-4 font-medium',
+        selected ? 'bg-brand' : 'bg-surface',
         className,
       )}
       {...props}
     >
+      {selected ? (
+        <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden="true" className="shrink-0">
+          <path
+            d="M3 8.5l3 3 7-7"
+            className="stroke-ink"
+            strokeWidth="2.4"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : null}
       {children}
     </button>
   );

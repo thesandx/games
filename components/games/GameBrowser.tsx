@@ -19,7 +19,7 @@ export function GameBrowser() {
 
   return (
     <>
-      <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Filter games">
+      <div className="flex flex-wrap gap-3" role="group" aria-label="Filter games">
         {BROWSE_FILTERS.map((option) => (
           <Chip key={option} selected={filter === option} onClick={() => setFilter(option)}>
             {option}
@@ -28,12 +28,13 @@ export function GameBrowser() {
       </div>
 
       {games.length === 0 ? (
-        <p className="text-ink-3 mt-6 text-sm">No games match that filter yet.</p>
+        <p className="text-ink-soft">No games match that filter yet.</p>
       ) : (
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {games.map((game) => (
             <li key={game.id}>
-              <GameCard game={game} />
+              {/* Bingo is the only playable game, so its create button is the one primary. */}
+              <GameCard game={game} createVariant="primary" className="h-full" />
             </li>
           ))}
         </ul>

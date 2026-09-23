@@ -1,11 +1,14 @@
 'use client';
 
+import Link from 'next/link';
+
 import { BingoBoard } from '@/components/bingo/BingoBoard';
 import { BingoProgress } from '@/components/bingo/BingoProgress';
 import { TurnBanner } from '@/components/bingo/TurnBanner';
 import { PlayerScoreStrip } from '@/components/room/PlayerScoreStrip';
-import { Button } from '@/components/ui/Button';
-import { ButtonLink } from '@/components/ui/ButtonLink';
+import { Button, buttonStyles } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Speech } from '@/components/ui/Speech';
 import { describeLine, findWinningLines, HIGHEST_NUMBER, LINES_TO_WIN } from '@/lib/bingo';
 import { findGame } from '@/lib/games';
 import { currentTurnPlayerId } from '@/lib/room-engine';
@@ -63,28 +66,26 @@ export function PlayView({
   const canCallBingo = myLines.length >= LINES_TO_WIN;
 
   return (
-    <div className="mx-auto max-w-[1120px]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
-        <span className="text-ink-1 text-sm font-medium">
-          {game?.name ?? 'Bingo'} · Round {room.round} of {room.settings.rounds}
-        </span>
-        <span className="flex items-center gap-3">
-          <span className="text-ink-3 text-sm">Key {room.key}</span>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-heading">
+          {game?.name ?? 'Bingo'}, round {room.round} of {room.settings.rounds}
+        </h1>
+        <span className="flex flex-wrap items-center gap-3">
+          <span className="text-small text-ink-soft">
+            Key <span className="font-display tracking-widest">{room.key}</span>
+          </span>
           {isHost ? (
-            <button
-              type="button"
-              onClick={onOpenHostControls}
-              className="border-ink-1 text-ink-1 min-h-[44px] cursor-pointer rounded-[14px] border-2 bg-white px-3 text-sm font-medium"
-            >
+            <Button variant="secondary" onClick={onOpenHostControls}>
               Host controls
-            </button>
+            </Button>
           ) : null}
         </span>
       </div>
 
       <PlayerScoreStrip players={room.players} currentTurnId={turnPlayerId} />
 
-      <div className="border-ink-1 rounded-card mt-4 flex flex-wrap items-center justify-between gap-4 border-2 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <BingoProgress earned={Math.min(myLines.length, LINES_TO_WIN)} />
         {/*
           Explanatory copy, not state, so a phone drops it. On a small screen it
@@ -94,37 +95,42 @@ export function PlayView({
           row of coloured tiles rather than colour alone. The full rule is one
           tap away under Rules.
         */}
-        <p className="text-ink-3 hidden max-w-[34ch] text-sm sm:block">
+        <p className="text-small text-ink-soft hidden max-w-xs sm:block">
           One letter per completed row, column or diagonal. Lines share numbers, so a single pick
           can fill more than one letter.
         </p>
       </div>
 
+      {/*
+        The one primary action of the round, and only when a claim would be
+        accepted. It pops in once, when the fifth line lands.
+      */}
       {canCallBingo ? (
-        <div className="bg-forest rounded-card mt-4 flex flex-wrap items-center justify-between gap-4 p-5">
-          <div>
-            <p className="font-display text-2xl leading-tight font-medium text-white">BINGO!</p>
-            <p className="mt-1 text-sm text-white/85">
-              All {LINES_TO_WIN} lines are complete. Claim it before somebody else does.
-            </p>
+        <Card
+          tone="butter"
+          className="animate-pop flex flex-wrap items-center justify-between gap-4"
+        >
+          <div className="flex flex-col gap-1">
+            <p className="font-display text-key">Bingo!</p>
+            <p>All {LINES_TO_WIN} lines are complete. Claim it before somebody else does.</p>
           </div>
-          <Button variant="secondary" onClick={onClaimBingo} disabled={busy}>
+          <Button size="lg" onClick={onClaimBingo} disabled={busy}>
             {busy ? 'Claiming…' : 'Call Bingo'}
           </Button>
-        </div>
+        </Card>
       ) : null}
 
       {actionError ? (
-        <p role="alert" className="text-coral mt-4 text-sm">
-          {actionError}
-        </p>
+        <div role="alert">
+          <Speech mood="sad">{actionError}</Speech>
+        </div>
       ) : null}
 
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div className="flex flex-col gap-4">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <div className="flex max-w-xl flex-col gap-4">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="text-ink-1 text-lg font-medium">Your board</h2>
-            <span className="text-ink-3 text-sm">
+            <h2 className="text-heading">Your board</h2>
+            <span className="text-small text-ink-soft">
               {selected.length} of {HIGHEST_NUMBER} numbers taken
             </span>
           </div>
@@ -162,7 +168,7 @@ export function PlayView({
             }
           />
 
-          <p className="text-ink-3 text-sm">
+          <p className="text-small text-ink-soft">
             {isYourTurn
               ? 'Tap any free number to take it. It is marked on every board in the room.'
               : 'Numbers are marked here as they are taken.'}
@@ -170,23 +176,24 @@ export function PlayView({
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="border-ink-1 rounded-card border-2 p-4">
-            <h2 className="text-ink-1 mb-2 text-lg font-medium">Completed lines</h2>
+          <Card flat className="flex flex-col gap-2">
+            <h2 className="text-heading">Completed lines</h2>
             {myLines.length === 0 ? (
-              <p className="text-ink-3 text-sm">None yet.</p>
+              <p className="text-ink-soft">None yet.</p>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {myLines.map((line) => (
-                  <li key={`${line.kind}-${line.index}`} className="text-ink-2 text-sm">
-                    {describeLine(line)}
-                  </li>
+                  <li key={`${line.kind}-${line.index}`}>{describeLine(line)}</li>
                 ))}
               </ul>
             )}
-          </div>
-          <ButtonLink size="sm" variant="secondary" href="/how-to-play">
+          </Card>
+          <Link
+            href="/how-to-play"
+            className={buttonStyles({ variant: 'quiet', className: 'self-start' })}
+          >
             Rules
-          </ButtonLink>
+          </Link>
         </div>
       </div>
     </div>

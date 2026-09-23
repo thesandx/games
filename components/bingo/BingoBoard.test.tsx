@@ -100,7 +100,7 @@ describe('BingoBoard', () => {
 
   /**
    * The latest number is peach so the room can see what just happened. A cell
-   * in a completed line stays yellow, because a completed line is the thing
+   * in a completed line stays butter, because a completed line is the thing
    * worth seeing and the line under the banner already names the last pick.
    */
   it('marks the latest number, and lets a completed line outrank it', () => {
@@ -115,9 +115,9 @@ describe('BingoBoard', () => {
       />,
     );
 
-    // 5 is both the latest pick and part of the completed row: yellow wins.
+    // 5 is both the latest pick and part of the completed row: butter wins.
     const inLine = screen.getByText('5').parentElement;
-    expect(inLine?.className).toContain('bg-yellow');
+    expect(inLine?.className).toContain('bg-butter');
     expect(inLine?.className).not.toContain('bg-peach');
   });
 
@@ -130,7 +130,7 @@ describe('BingoBoard', () => {
 
     // An older number stays plain ink.
     const older = screen.getByText('7').parentElement;
-    expect(older?.className).toContain('bg-ink-1');
+    expect(older?.className).toContain('bg-ink');
   });
 
   it('says which number is the latest without relying on colour', () => {

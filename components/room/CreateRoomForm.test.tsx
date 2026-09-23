@@ -23,7 +23,7 @@ describe('CreateRoomForm', () => {
 
   it('states the fixed setup instead', () => {
     render(<CreateRoomForm initialGame="bingo" />);
-    expect(screen.getByText(/one round · up to 8 players/i)).toBeInTheDocument();
+    expect(screen.getByText(/one round of bingo, for up to 8 players/i)).toBeInTheDocument();
   });
 
   it('leaves the submit button usable so pressing it can explain itself', () => {

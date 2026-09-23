@@ -73,7 +73,8 @@ This file is the index and the warnings. The detail lives in `.github/instructio
 | [`.github/instructions/coding-rules.md`](./.github/instructions/coding-rules.md)           | Writing anything. The non-negotiables in full.                 |
 | [`.github/instructions/project-structure.md`](./.github/instructions/project-structure.md) | Creating any file. It decides where it goes.                   |
 | [`.github/instructions/coding-standards.md`](./.github/instructions/coding-standards.md)   | Writing TypeScript, React or CSS.                              |
-| [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md)             | Writing ANY user-facing UI. The design system, in full.        |
+| [`.github/instructions/design-language.md`](./.github/instructions/design-language.md)     | Writing ANY user-facing UI. Tokens, primitives, anti-slop.     |
+| [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md)             | The short version of the design language, with a checklist.    |
 | [`.github/instructions/architecture.md`](./.github/instructions/architecture.md)           | Adding a layer, dependency, or changing data flow.             |
 | [`.github/instructions/deployment.md`](./.github/instructions/deployment.md)               | Touching `Dockerfile`, env vars, or anything Cloud Run reads.  |
 | [`.github/instructions/github-workflows.md`](./.github/instructions/github-workflows.md)   | Touching `.github/workflows/`.                                 |
@@ -110,7 +111,7 @@ docker compose up --build   # run the real production image locally
 ## The fourteen rules
 
 Full reasoning in [`coding-rules.md`](./.github/instructions/coding-rules.md), and, for anything
-visual, in [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md).
+visual, in [`design-language.md`](./.github/instructions/design-language.md).
 
 1. **Never break the folder structure.** The top-level folders are fixed. Do not invent `utils/`, `helpers/`, `src/`, or a root `api/`. Nest inside what exists.
 2. **Always TypeScript.** No `.js`/`.jsx` source. No `any`: use `unknown` and narrow. No `@ts-ignore`; `@ts-expect-error` only with a comment saying what would remove it. Never weaken `tsconfig.json`.
@@ -125,7 +126,7 @@ visual, in [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/
 11. **Design mobile-first.** Every UI works on a small screen first, then scales up. Unprefixed Tailwind utilities are the phone layout; add `sm:`/`md:`/`lg:` to enhance for wider screens, never the reverse. No fixed widths that overflow a phone, no horizontal scroll on the body, touch targets ≥44px. Responsiveness is a requirement, not a finishing touch.
 12. **Never use an em dash or an en dash (U+2014, U+2013), anywhere.** Not in code, comments, documentation, commit messages, or copy a reader sees. A comma for an aside, a colon for an explanation, a full stop for two statements that stand alone, a hyphen for a range. See [Never use an em dash](#never-use-an-em-dash).
 13. **Write docs in Simplified Technical English (ASD-STE100).** Every Markdown document, this file, `.github/instructions/`, `docs/`, `cloud/`, ADRs, READMEs, follows the standard. Short sentences (≤20 words for an instruction, ≤25 for a description), one instruction per sentence, active voice, present tense, one topic per paragraph, and one approved term per concept. Write for a non-native reader; choose the plain word over the clever one. Bring a document into compliance when you touch it.
-14. **Follow the design system.** [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md) is the rulebook for anything a user sees: tokens instead of raw hex, `ink-1` for the CTA fill and never the link blue, signature colours as whole-card surfaces, display type at 400/500, 2px ink borders, no shadows, no hover styling, no emoji. Reuse `components/ui/` before you build a new primitive.
+14. **Follow the design system.** The Mochi design language in [`design-language.md`](./.github/instructions/design-language.md) is the rulebook for anything a user sees: tokens instead of raw hex, `ink` and `line` instead of black, 2px outlines, hard shadows only on things you press, one primary button per screen, faces on purpose, no emoji. Reuse `components/ui/` before you build a new primitive. `pnpm lint` enforces the token rules. See [ADR-0006](./docs/adr/0006-adopt-the-mochi-design-language.md).
 
 ## Never use an em dash
 
@@ -316,15 +317,16 @@ Missing any step breaks somebody:
 
 ### Add a component
 
-0. Read [`.claude/skills/playroom-ui/SKILL.md`](./.claude/skills/playroom-ui/SKILL.md). It carries the
-   colour, type, shape, motion and copy rules, and the inventory of components that already exist.
+0. Read [`design-language.md`](./.github/instructions/design-language.md). It carries the colour,
+   type, shape, motion and copy rules, and the inventory of components that already exist.
 1. Decide the folder: `ui/` (generic) vs `layout/` vs `<feature>/`
 2. Server Component unless it needs state/effects/handlers/browser APIs
 3. Export the props interface; accept `className`
 4. Semantic HTML, accessible name, keyboard reachable
-5. Tailwind utilities using tokens from `styles/globals.css`: no raw hex
+5. Tailwind utilities using tokens from `styles/globals.css`: no raw hex. Reach for an existing primitive before you write a new one
 6. Mobile-first: base styles target the phone; layer `sm:`/`md:`/`lg:` for wider screens. Fluid widths (`w-full`, `max-w-*`), no fixed pixel widths that overflow, touch targets ≥44px. Verify at 320px wide and up
 7. Colocate `<Name>.test.tsx`
+8. A new or changed `components/ui/` primitive also appears on `/design`, in the same PR
 
 ### Change the Dockerfile
 
@@ -422,6 +424,7 @@ Recorded in [`docs/adr/`](./docs/adr/). Read before proposing a change to any of
 | [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md)    | Room state behind a transport interface, with a browser fallback |
 | [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)          | Turn-based Bingo on a 1-25 board, no host caller, no daubing     |
 | [0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md) | The player id is public; the credential is a separate token      |
+| [0006](./docs/adr/0006-adopt-the-mochi-design-language.md)           | The Mochi design language, from the template, replaces Airtable  |
 
 Add an ADR when a decision is expensive to reverse, affects how everyone works, or rejects an obvious alternative. Never edit an accepted ADR to change its decision, write a new one that supersedes it, and link both ways.
 

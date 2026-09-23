@@ -8,7 +8,9 @@ import { HostDrawer } from '@/components/room/HostDrawer';
 import { LobbyView } from '@/components/room/LobbyView';
 import { ResultsView } from '@/components/room/ResultsView';
 import { ScoreboardView } from '@/components/room/ScoreboardView';
-import { ButtonLink } from '@/components/ui/ButtonLink';
+import { buttonStyles } from '@/components/ui/Button';
+import { Face } from '@/components/ui/Face';
+import { Speech } from '@/components/ui/Speech';
 import { usePlayerIdentity } from '@/hooks/usePlayerIdentity';
 import { useRoom } from '@/hooks/useRoom';
 import { roomTransport } from '@/services/room-transport';
@@ -82,33 +84,33 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
   const isHost = room !== null && room !== undefined && room.hostId === identity?.playerId;
 
   if (identity === undefined || room === undefined) {
-    return <p className="text-ink-3 mx-auto max-w-[1120px] text-sm">Loading room…</p>;
+    return <p className="text-ink-soft mx-auto w-full max-w-5xl">Loading room…</p>;
   }
 
   if (error !== null && room === null) {
     return (
-      <div className="mx-auto max-w-[460px] text-center">
-        <h1 className="font-display text-ink-1 text-2xl font-normal">Could not load this room</h1>
-        <p className="text-ink-3 mt-3 text-sm">{error}</p>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+        <h1 className="text-title">Could not load this room</h1>
+        <div role="alert">
+          <Speech mood="sad">{error}</Speech>
+        </div>
       </div>
     );
   }
 
   if (room === null) {
     return (
-      <div className="mx-auto max-w-[460px] text-center">
-        <h1 className="font-display text-ink-1 text-2xl font-normal">No room with that key</h1>
-        <p className="text-ink-3 mt-3 text-sm">
-          Room {roomKey} does not exist, or it expired. Keys stop working two hours after the last
-          round.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <ButtonLink href="/join">Try another key</ButtonLink>
-          <ButtonLink href="/create" variant="secondary">
-            Create a room
-          </ButtonLink>
-        </div>
-      </div>
+      <EmptyState
+        title="No room with that key"
+        body={`Room ${roomKey} does not exist, or it expired. Keys stop working two hours after the last round.`}
+      >
+        <Link href="/join" className={buttonStyles()}>
+          Try another key
+        </Link>
+        <Link href="/create" className={buttonStyles({ variant: 'quiet' })}>
+          Create a room
+        </Link>
+      </EmptyState>
     );
   }
 
@@ -116,18 +118,14 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
 
   if (!identity || !me) {
     return (
-      <div className="mx-auto max-w-[460px] text-center">
-        <h1 className="font-display text-ink-1 text-2xl font-normal">You are not in this room</h1>
-        <p className="text-ink-3 mt-3 text-sm">
-          Room {room.key} is live with {room.players.length}{' '}
-          {room.players.length === 1 ? 'player' : 'players'}. Pick a nickname to join.
-        </p>
-        <div className="mt-6 flex justify-center">
-          <ButtonLink href={{ pathname: '/join', query: { key: room.key } }}>
-            Join this room
-          </ButtonLink>
-        </div>
-      </div>
+      <EmptyState
+        title="You are not in this room"
+        body={`Room ${room.key} is live with ${room.players.length} ${room.players.length === 1 ? 'player' : 'players'}. Pick a nickname to join.`}
+      >
+        <Link href={{ pathname: '/join', query: { key: room.key } }} className={buttonStyles()}>
+          Join this room
+        </Link>
+      </EmptyState>
     );
   }
 
@@ -178,9 +176,9 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
       ) : null}
 
       {visibleError !== null && room.phase !== 'playing' ? (
-        <p role="alert" className="text-coral mx-auto mt-4 max-w-[1120px] text-sm">
-          {visibleError}
-        </p>
+        <div role="alert" className="mx-auto mt-6 w-full max-w-5xl">
+          <Speech mood="sad">{visibleError}</Speech>
+        </div>
       ) : null}
 
       {isHost ? (
@@ -197,11 +195,36 @@ export function RoomScreen({ roomKey }: { roomKey: string }) {
         />
       ) : null}
 
-      <p className="mx-auto mt-8 max-w-[1120px] text-center">
-        <Link href="/games" className="text-link text-sm">
+      <p className="mx-auto mt-10 w-full max-w-5xl">
+        <Link href="/games" className={buttonStyles({ variant: 'quiet' })}>
           Leave the room
         </Link>
       </p>
     </>
+  );
+}
+
+/**
+ * The empty-state recipe from design-language.md: a sleepy face, one line that
+ * says what happened, and the action that fixes it.
+ */
+function EmptyState({
+  title,
+  body,
+  children,
+}: {
+  title: string;
+  body: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col items-start gap-5">
+      <span className="bg-sunken border-line inline-grid size-20 place-items-center rounded-full border-2">
+        <Face mood="sleepy" size={72} />
+      </span>
+      <h1 className="text-title">{title}</h1>
+      <p className="text-ink-soft max-w-prose">{body}</p>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">{children}</div>
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { Avatar } from '@/components/ui/Avatar';
+import { PlayerAvatar } from '@/components/room/PlayerAvatar';
 import { cn } from '@/lib/utils';
 import type { Player } from '@/types/playroom';
 
@@ -69,13 +69,13 @@ export function TurnBanner({
   return (
     <div
       className={cn(
-        'rounded-card flex flex-wrap items-center gap-3 border-2 p-4',
-        isYourTurn ? 'bg-mint border-ink-1' : 'bg-cream border-ink-1',
+        'border-line rounded-card flex flex-wrap items-center gap-3 border-2 p-4',
+        isYourTurn ? 'bg-brand-soft' : 'bg-surface',
         className,
       )}
     >
       {current ? (
-        <Avatar initial={current.initial} color={current.color} name={current.name} />
+        <PlayerAvatar player={current} {...(isYourTurn ? { mood: 'wow' as const } : {})} />
       ) : null}
       {/*
         The live region is the sentence, not the whole banner. A count that
@@ -88,7 +88,7 @@ export function TurnBanner({
         count changes every second and would bury them.
       */}
       <div aria-live="polite" aria-atomic="true" className="flex flex-col gap-0.5">
-        <span className="font-display text-ink-1 text-lg leading-tight font-medium">
+        <span className="font-display text-heading">
           {current === undefined
             ? 'Waiting for the next turn'
             : isYourTurn
@@ -96,9 +96,9 @@ export function TurnBanner({
               : `${current.name}'s turn`}
         </span>
         {lastPick ? (
-          <span className="text-ink-3 text-sm">
+          <span className="text-small">
             {lastPick.isYou ? 'You took' : `${lastPick.name} took`}{' '}
-            <span className="text-ink-1 font-medium tabular-nums">{lastPick.value}</span>
+            <span className="font-display tabular-nums">{lastPick.value}</span>
           </span>
         ) : null}
       </div>
@@ -107,8 +107,10 @@ export function TurnBanner({
         <span
           aria-hidden="true"
           className={cn(
-            'font-display ml-auto text-lg leading-none font-medium tabular-nums',
-            shown <= NEARLY_UP ? 'text-coral' : 'text-ink-3',
+            'font-display text-heading border-line rounded-pill ml-auto border-2 px-3 py-1 leading-none tabular-nums',
+            // Nearly up: the pill fills with `danger`. The number itself is the
+            // words here, so colour is not carrying the meaning alone.
+            shown <= NEARLY_UP ? 'bg-danger' : 'bg-surface',
           )}
         >
           {shown}s

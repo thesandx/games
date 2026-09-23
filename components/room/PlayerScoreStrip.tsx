@@ -1,13 +1,14 @@
-import { Avatar } from '@/components/ui/Avatar';
+import { PlayerAvatar } from '@/components/room/PlayerAvatar';
 import { cn } from '@/lib/utils';
 import type { Player } from '@/types/playroom';
 
 /**
  * The horizontal player rail shown during play.
  *
- * Scrolls inside its own container so a room of twenty never pushes the page
- * into horizontal scroll on a phone. The player on turn is outlined and says so
- * in text, rather than being marked by the outline alone.
+ * Scrolls inside its own container so a full room never pushes the page into
+ * horizontal scroll on a phone. The player on turn gets a brand fill AND a
+ * surprised face, and says so in text for a screen reader, so the turn never
+ * rests on colour alone.
  */
 export function PlayerScoreStrip({
   players,
@@ -17,21 +18,24 @@ export function PlayerScoreStrip({
   currentTurnId?: string | null;
 }) {
   return (
-    <ul className="flex gap-2.5 overflow-x-auto py-4">
-      {players.map((player) => (
-        <li
-          key={player.id}
-          className={cn(
-            'rounded-pill flex flex-none items-center gap-2 border-2 py-2 pr-3.5 pl-2',
-            player.id === currentTurnId ? 'border-ink-1 bg-mint' : 'border-ink-1',
-          )}
-        >
-          <Avatar initial={player.initial} color={player.color} name={player.name} size="sm" />
-          <span className="text-ink-2 text-sm whitespace-nowrap">{player.name}</span>
-          {player.id === currentTurnId ? <span className="sr-only">, on turn</span> : null}
-          <span className="text-ink-1 text-sm font-medium">{player.score}</span>
-        </li>
-      ))}
+    <ul className="-mx-1 flex gap-3 overflow-x-auto px-1 py-2">
+      {players.map((player) => {
+        const onTurn = player.id === currentTurnId;
+        return (
+          <li
+            key={player.id}
+            className={cn(
+              'border-line rounded-pill flex flex-none items-center gap-2 border-2 py-1 pr-4 pl-1',
+              onTurn ? 'bg-brand-soft' : 'bg-surface',
+            )}
+          >
+            <PlayerAvatar player={player} size="sm" {...(onTurn ? { mood: 'wow' as const } : {})} />
+            <span className="whitespace-nowrap">{player.name}</span>
+            {onTurn ? <span className="sr-only">, on turn</span> : null}
+            <span className="font-display tabular-nums">{player.score}</span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

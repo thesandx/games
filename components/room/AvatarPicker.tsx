@@ -1,14 +1,15 @@
 'use client';
 
-import { AVATAR_BG, AVATAR_COLORS } from '@/lib/players';
+import { Avatar } from '@/components/ui/Avatar';
+import { AVATAR_COLORS, AVATAR_TONE, AVATAR_TONE_NAME } from '@/lib/players';
 import { cn } from '@/lib/utils';
 import type { AvatarColor } from '@/types/playroom';
 
 export interface AvatarPickerProps {
   value: AvatarColor;
   onChange: (color: AvatarColor) => void;
-  /** Shown inside each disc. Empty until the player types a nickname. */
-  initial: string;
+  /** The nickname typed so far. The face is drawn from it, so it changes as they type. */
+  name: string;
   label?: string;
 }
 
@@ -18,24 +19,21 @@ export interface AvatarPickerProps {
  * A radio group, not a row of buttons: exactly one is selected, arrow keys move
  * between them, and the selection is announced. Colour names are spelled out in
  * the label because the swatch alone is not a usable choice without sight.
+ *
+ * The selected swatch gains an outline, so the choice does not rest on colour.
  */
-export function AvatarPicker({
-  value,
-  onChange,
-  initial,
-  label = 'Your avatar',
-}: AvatarPickerProps) {
+export function AvatarPicker({ value, onChange, name, label = 'Your colour' }: AvatarPickerProps) {
   return (
-    <fieldset className="border-0 p-0">
-      <legend className="text-ink-1 mb-2.5 text-sm font-medium">{label}</legend>
-      <div className="flex flex-wrap items-center gap-2.5">
+    <fieldset className="flex flex-col gap-2">
+      <legend className="text-small mb-1.5 font-medium">{label}</legend>
+      <div className="flex flex-wrap items-center gap-2">
         {AVATAR_COLORS.map((color) => (
           <label
             key={color}
             className={cn(
-              'flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 text-base font-medium',
-              AVATAR_BG[color],
-              value === color ? 'border-ink-1' : 'border-transparent',
+              'inline-grid cursor-pointer place-items-center rounded-full border-2 p-0.5',
+              'has-[:focus-visible]:outline-brand has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2',
+              value === color ? 'border-line' : 'border-transparent',
             )}
           >
             <input
@@ -46,10 +44,8 @@ export function AvatarPicker({
               onChange={() => onChange(color)}
               className="sr-only"
             />
-            <span className="text-ink-1" aria-hidden="true">
-              {initial}
-            </span>
-            <span className="sr-only">{color}</span>
+            <Avatar name={name} tone={AVATAR_TONE[color]} />
+            <span className="sr-only">{AVATAR_TONE_NAME[color]}</span>
           </label>
         ))}
       </div>

@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { AvatarPicker } from '@/components/room/AvatarPicker';
-import { Button } from '@/components/ui/Button';
-import { TextInput } from '@/components/ui/TextInput';
+import { Avatar } from '@/components/ui/Avatar';
+import { Button, buttonStyles } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
 import { rememberPlayerIdentity } from '@/hooks/usePlayerIdentity';
 import { DEFAULT_ROOM_SETTINGS, findGame, playableGames } from '@/lib/games';
-import { initialOf, isValidNickname, MAX_NICKNAME_LENGTH } from '@/lib/players';
+import { AVATAR_TONE, isValidNickname, MAX_NICKNAME_LENGTH } from '@/lib/players';
 import { cn } from '@/lib/utils';
 import { roomTransport } from '@/services/room-transport';
 import type { AvatarColor, GameId } from '@/types/playroom';
@@ -17,10 +19,12 @@ import type { AvatarColor, GameId } from '@/types/playroom';
 /**
  * Room creation.
  *
- * The design's right-hand panel shows a room key before the room exists. It
- * cannot: the key is minted by the transport when the room is created. The
- * panel therefore summarises the setup and the key is revealed in the lobby,
- * one screen later.
+ * The key is minted by the transport when the room is created, so this screen
+ * does not show one. It summarises the setup, and the key is revealed in the
+ * lobby, one screen later.
+ *
+ * The "You" card carries the host's face as its peek, drawn from the nickname
+ * as they type it. That is the one peeking card on the screen.
  *
  * There is no settings section. Rounds, capacity and who may join are fixed:
  * see `DEFAULT_ROOM_SETTINGS`. They were controls that asked the host to decide
@@ -82,17 +86,18 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 grid items-start gap-5 lg:grid-cols-2">
-      <div className="flex flex-col gap-5">
-        <fieldset className="border-ink-1 rounded-card border-2 p-6">
-          <legend className="text-ink-1 px-1 text-lg font-medium">Game</legend>
-          <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="flex flex-col gap-6">
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-heading font-display mb-3">Game</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
             {games.map((option) => (
               <label
                 key={option.id}
                 className={cn(
-                  'rounded-card cursor-pointer border-2 p-3.5',
-                  gameId === option.id ? 'bg-peach border-ink-1' : 'border-hairline bg-white',
+                  'rounded-card border-line flex cursor-pointer flex-col gap-1 border-2 p-4',
+                  'has-[:focus-visible]:outline-brand has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2',
+                  gameId === option.id ? 'bg-butter' : 'bg-surface border-dashed',
                 )}
               >
                 <input
@@ -103,26 +108,33 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
                   onChange={() => setGameId(option.id)}
                   className="sr-only"
                 />
-                <span className="text-ink-1 block text-sm font-medium">{option.name}</span>
-                <span className="text-ink-3 mt-1 block text-sm">{option.meta}</span>
+                <span className="font-display">{option.name}</span>
+                <span className="text-small">For {option.players} players</span>
               </label>
             ))}
           </div>
-          <p className="text-ink-3 mt-3.5 text-sm">
+          <p className="text-small text-ink-soft">
             Only Bingo is playable today.{' '}
-            <Link href="/games" className="text-link">
+            <Link
+              href="/games"
+              className="text-ink decoration-brand font-medium underline decoration-2 underline-offset-4"
+            >
               See what else is coming
             </Link>
             .
           </p>
         </fieldset>
 
-        <div className="border-ink-1 rounded-card flex flex-col gap-4 border-2 p-6">
-          <h2 className="text-ink-1 text-lg font-medium">You</h2>
-          <TextInput
+        <Card
+          flat
+          peek={<Avatar name={nick} tone={AVATAR_TONE[color]} size="lg" />}
+          className="flex flex-col gap-4"
+        >
+          <h2 className="text-heading">You</h2>
+          <Input
             ref={nickRef}
             label="Nickname"
-            placeholder="e.g. Rhea"
+            hint="Everyone in the room sees this."
             value={nick}
             maxLength={MAX_NICKNAME_LENGTH}
             autoComplete="off"
@@ -132,37 +144,34 @@ export function CreateRoomForm({ initialGame }: { initialGame: GameId }) {
             }}
             {...(nickError === null ? {} : { error: nickError })}
           />
-          <AvatarPicker value={color} onChange={setColor} initial={initialOf(nick)} />
-        </div>
+          <AvatarPicker value={color} onChange={setColor} name={nick} />
+        </Card>
       </div>
 
-      <div className="border-ink-1 rounded-card flex flex-col gap-4 border-2 p-6">
-        <h2 className="text-ink-1 text-lg font-medium">Your room</h2>
-        <div className="bg-ink-1 rounded-card px-5 py-6 text-center">
-          <span className="block text-sm text-white/70">Key</span>
-          <span className="font-display mt-1.5 block text-2xl leading-none font-medium text-white">
-            Generated when you create
-          </span>
-        </div>
-        <p className="text-ink-3 text-sm leading-relaxed">
-          {game?.name ?? 'Bingo'} · one round · up to {settings.maxPlayers} players. Players take
-          turns picking numbers, and the room locks once the game starts. The key works until two
-          hours after the round.
+      <Card flat className="flex flex-col gap-4">
+        <h2 className="text-heading">Your room</h2>
+        <p className="max-w-prose">
+          One round of {game?.name ?? 'Bingo'}, for up to {settings.maxPlayers} players. Players
+          take turns picking numbers, and the room locks once the game starts. You get the key in
+          the lobby, and it works until two hours after the round.
         </p>
 
         {error ? (
-          <p role="alert" className="text-coral text-sm">
+          <p role="alert" className="flex items-center gap-1.5 font-medium">
+            <span aria-hidden="true" className="bg-danger inline-block size-2.5 rounded-full" />
             {error}
           </p>
         ) : null}
 
-        <Button type="submit" block disabled={submitting}>
-          {submitting ? 'Creating room…' : 'Create room and open lobby'}
+        <Button type="submit" size="lg" block disabled={submitting}>
+          {submitting ? 'Creating room…' : 'Create room'}
         </Button>
-        <Link href="/join" className="text-link text-center text-sm">
-          I have a key instead
-        </Link>
-      </div>
+        <p>
+          <Link href="/join" className={buttonStyles({ variant: 'quiet' })}>
+            I have a key instead
+          </Link>
+        </p>
+      </Card>
     </form>
   );
 }
