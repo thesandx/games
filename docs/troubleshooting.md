@@ -179,6 +179,19 @@ Other causes, if the condition is correct:
 - `--main-only` was used and the deploy ran from another branch.
 - `WIF_PROVIDER` points at a provider in a different project.
 
+### `Refusing to overwrite it` when the condition names YOUR repository
+
+```
+[warn]   current: assertion.repository == 'you/your-repo'
+[warn]   new:     assertion.repository_owner == 'you'
+```
+
+An older bootstrap pinned the provider to one repository. The current bootstrap widens that by itself, without `--force-provider-update`. The new condition accepts every token the old one accepted, so no repository loses access. Pull the latest script and run it again.
+
+**Do not pass `--force-provider-update` to get past this.** That flag is for a condition that names a different owner, where an overwrite revokes someone. If bootstrap still refuses, the owner in the current condition is not the one you passed. Read it again before you force it.
+
+The widening does not carry an old `--main-only` across. That restriction now lives in the per-repository binding. Bootstrap warns when it drops a branch clause. Run it again with `--main-only` to keep the restriction.
+
 ### `Permission 'iam.serviceaccounts.actAs' denied`
 
 The deployer cannot assign the runtime service account to the revision:
@@ -290,6 +303,120 @@ gcloud run services update-traffic SERVICE --region REGION \
 ```
 
 This takes seconds, with no rebuild. Then fix forward with a normal PR.
+
+---
+
+## Firestore and the rooms API
+
+### Every room call fails with `PERMISSION_DENIED` on a green deploy
+
+The deploy succeeded and `/api/health` is fine, but every room call fails. There are two causes. Check them in this order.
+
+**1. The revision runs as the wrong identity.**
+
+```bash
+gcloud run services describe SERVICE --region REGION \
+  --format='value(spec.template.spec.serviceAccountName)'
+```
+
+An address that ends `-compute@developer.gserviceaccount.com` is the default compute service account. Point the service at the runtime account:
+
+```bash
+gcloud run services update SERVICE --region REGION \
+  --service-account=SERVICE-runtime@PROJECT.iam.gserviceaccount.com
+```
+
+`deploy.yml` passes this account in `flags`. See trap 14 in CLAUDE.md.
+
+**2. Bootstrap did not finish.** It grants `roles/datastore.user` to the runtime account. A run that stopped before that step leaves the account without access. Run bootstrap again: every step is idempotent.
+
+```bash
+gcloud projects get-iam-policy PROJECT --format=json \
+  | jq '.bindings[] | select(.role=="roles/datastore.user")'
+```
+
+> **A green deploy does not prove the data layer works.** The deploy probe calls `/api/health`, which does not touch Firestore on purpose. Run `API=https://<service-url>/api/v1 pnpm check:rooms-api` against a new deployment.
+
+### `5 NOT_FOUND` on the first room call
+
+`FIRESTORE_DATABASE_ID` names a database that does not exist. List the databases:
+
+```bash
+gcloud firestore databases list --format='table(name,locationId,type)'
+```
+
+Usual causes: bootstrap has not run in this project, the `APP_SLUG` changed, or the project is wrong.
+
+### The database is in the wrong region
+
+A Firestore location is permanent. Bootstrap warns when `<app-slug>-db` exists in another region. Rooms expire after two hours, so no data needs to move: delete the database, wait for the name to become free, and run bootstrap again with the correct `--region`. Or use a new name with `--database` and the `FIRESTORE_DATABASE_ID` variable.
+
+### `Adding a binding without specifying a condition to a policy containing conditions`
+
+`gcloud projects add-iam-policy-binding` stopped bootstrap. The message ends with `Run the command again with --condition=None`.
+
+The project's IAM policy already holds a conditional binding: `roles/datastore.user` is pinned to the named database. gcloud then refuses any binding that does not state its condition. Every project-level grant in `scripts/gcp-bootstrap.sh` passes `--condition`, either a real one or `None`. A new grant without it is a defect. It fails only on a project that bootstrap already touched, so a first run looks fine.
+
+### `ABORTED` or `DEADLINE_EXCEEDED` on a move
+
+One room is one document, and a document takes about one sustained write per second. Turn-based play stays far below that. If you see these errors, look for something that writes to the room in a loop: a script, or a new code path that writes on every read. `readRoom` writes only when a turn has run out, a host must be replaced, or the host's presence is 15 seconds stale.
+
+### A turn never times out
+
+The turn clock runs only when somebody reads the room. That is by design: a read settles an expired turn. If nobody has the room open, nothing moves, and the next read settles it. If players are reading and turns still do not time out, check that `turnSecondsRemaining` is not `null` in the payload.
+
+### The emulator will not start
+
+```bash
+gcloud components install cloud-firestore-emulator   # component missing
+java -version                                        # needs 21+, not just any JDK
+lsof -i :8085                                        # port already bound
+FIRESTORE_EMULATOR_PORT=8086 pnpm test:emulator      # or use another port
+```
+
+A run that was killed rather than stopped can leave the Java process on the port.
+
+### Emulator tests are skipped rather than run
+
+That is by design when `FIRESTORE_EMULATOR_HOST` is unset. It keeps `pnpm validate` green with no gcloud. Run them with `pnpm test:emulator`, which sets the variable.
+
+### The app talks to the emulator in a deployed environment
+
+`FIRESTORE_EMULATOR_HOST` is set on the Cloud Run service. Remove it:
+
+```bash
+gcloud run services update SERVICE --region REGION --remove-env-vars FIRESTORE_EMULATOR_HOST
+```
+
+### Rules did not deploy: `HTTP 403` from `firebaserules.googleapis.com`
+
+The project is not in Firebase, or the API is not enabled. The deploy continues, because rules are defence in depth here: the app uses admin credentials, which bypass them. To fix it, add the project to Firebase and confirm the deployer holds `roles/firebaserules.admin`.
+
+### Rooms work on one device but not across devices
+
+The build is `local`. Check the banner at the top of the page: "Preview mode" means rooms live in the browser. `NEXT_PUBLIC_PLAYROOM_TRANSPORT` is inlined at build time, so set the `PLAYROOM_TRANSPORT` variable to `remote` (or remove it) and run the deploy workflow again.
+
+---
+
+## Firebase Hosting and the custom domain
+
+### The `web.app` address or the domain returns a bare `404`
+
+The rewrite in `firebase.json` names a Cloud Run service or region that does not exist. Hosting does not say which. Compare the two values with the real service:
+
+```bash
+gcloud run services list --format='table(metadata.name,region)'
+```
+
+`serviceId` must be the service name, and `region` must be `asia-south1`.
+
+### The custom domain does not verify: an ACME challenge `404`
+
+Firebase reads an old DNS record from a cache. Set the record's TTL to 300, wait for the old TTL to run out, then retry the verification.
+
+### Moves arrive late, or the room stream closes after a minute, on the custom domain
+
+This is expected behind Firebase Hosting. A Hosting rewrite to Cloud Run has a 60-second limit, and it can hold a streamed response until it ends. Play continues on the two-second poll, and the client connects the stream again by itself. The `run.app` address streams directly. For instant updates on the domain, use a load balancer: see [`cloud/deployment.md`](../cloud/deployment.md#custom-domain).
 
 ---
 

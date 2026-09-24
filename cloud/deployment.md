@@ -301,6 +301,8 @@ Watch error rates in Cloud Monitoring, then move to 100%.
 
 ## Custom domain
 
+> **Moving the live app?** Follow [`migrate-to-firestore.md`](./migrate-to-firestore.md). It orders these steps for this app's move from `asia-southeast1`.
+
 **Check your region first.** Cloud Run domain mappings work in only a handful of regions, and `asia-south1`, this template's default, is **not** one of them. Google has said it has no plan to add it. Run this before you plan around it:
 
 ```bash
@@ -313,21 +315,30 @@ Three options, in the order most projects should consider them.
 
 The cheapest path to a custom domain with a managed certificate, and it includes a CDN. Firebase Hosting rewrites to Cloud Run cover most regions, `asia-south1` and `asia-southeast1` among them, but the list is not every region, so check yours against [Serve dynamic content with Cloud Run](https://firebase.google.com/docs/hosting/cloud-run) before planning around it.
 
+`firebase.json` is tracked in the repository:
+
 ```json
 {
   "hosting": {
     "public": "public",
-    "rewrites": [{ "source": "**", "run": { "serviceId": "my-app", "region": "asia-south1" } }]
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "run": { "serviceId": "games", "region": "asia-south1" } }]
   }
 }
 ```
 
-`serviceId` is the Cloud Run service name. `region` must be the region it runs in, a rewrite to the wrong region returns 404, not an error you can read.
+`serviceId` is the Cloud Run service name, and `region` is the region it runs in. Hosting config has no variables, so both are literals. **Two cases need an edit, and neither fails loudly:**
+
+- The `CLOUD_RUN_SERVICE` variable names a service other than `games`.
+- The service does not run in `asia-south1`.
+
+A rewrite that names a service or region that does not exist returns a bare **404**, not a readable error.
+
+`.firebaserc` and `.firebase/` are not tracked: the first names your GCP project, the second is the CLI's local cache. Pass `--project` instead.
 
 ```bash
 npx firebase-tools login
-npx firebase-tools use my-gcp-project
-npx firebase-tools deploy --only hosting
+npx firebase-tools deploy --only hosting --project my-gcp-project
 ```
 
 That publishes to `my-gcp-project.web.app`. Check it works there first:

@@ -60,3 +60,9 @@ Thumbs.db
 /games/*
 !/games/_ds/
 
+# Firebase Hosting. `firebase.json` IS tracked: it is the rewrite that puts the
+# custom domain in front of Cloud Run. These two are not:
+#   .firebaserc   names your GCP project; pass --project instead
+#   .firebase/    the CLI's local deploy cache
+.firebaserc
+.firebase/

@@ -74,6 +74,8 @@ Rooms sit behind a `RoomTransport` interface with two implementations, selected 
 
 **The deployed app is `remote`.** The rooms API is part of this application: route handlers in `app/api/v1/`, backed by a Firestore database in `asia-south1`, the same region as Cloud Run. Every move is one Firestore transaction on one room document, so two players cannot take the same number and only the first bingo claim wins. Changes reach every player at once over Server-Sent Events, with a two-second poll behind them. The contract is [`docs/rooms-api.md`](./docs/rooms-api.md), and the reasoning is [ADR-0008](./docs/adr/0008-serve-the-rooms-api-from-this-app-on-firestore.md).
 
+**Moving an existing deployment?** Follow [`cloud/migrate-to-firestore.md`](./cloud/migrate-to-firestore.md): the region, the database and the custom domain, in order.
+
 **A fresh checkout is `local`**, so it needs no database. Open a second tab, join with the key, and the two tabs play a real game. Rooms cannot leave the browser, and a banner says so. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
 
 The game rules live in [`lib/room-engine.ts`](./lib/room-engine.ts) as pure reducers, so both transports enforce the same rules and one set of tests covers both.

@@ -88,6 +88,7 @@ This file is the index and the warnings. The detail lives in `.github/instructio
 | [`docs/troubleshooting.md`](./docs/troubleshooting.md)                                     | **Anything failing.** Symptom → cause → fix. Check here first. |
 | [`docs/adr/`](./docs/adr/)                                                                 | Asking "why is it done this way?"                              |
 | [`cloud/deployment.md`](./cloud/deployment.md)                                             | Deploying, rolling back, or setting up GCP.                    |
+| [`cloud/migrate-to-firestore.md`](./cloud/migrate-to-firestore.md)                         | Moving the live app to Firestore, asia-south1 and the domain.  |
 | [`cloud/github-actions.md`](./cloud/github-actions.md)                                     | Debugging OIDC / Workload Identity Federation.                 |
 | [`cloud/environment-variables.md`](./cloud/environment-variables.md)                       | Adding or changing configuration.                              |
 | [`docs/rooms-api.md`](./docs/rooms-api.md)                                                 | Changing the rooms API or Firestore. The full server contract. |
@@ -182,6 +183,9 @@ only make it drift from its source.
 | A `use...` hook                       | `hooks/use<Thing>.ts`     |
 | A pure function, no I/O               | `lib/`                    |
 | Anything calling an external system   | `services/`               |
+| A Firestore index, exemption or TTL   | `firestore.indexes.json`  |
+| A Firestore security rule             | `firestore.rules`         |
+| A Firebase Hosting rewrite or header  | `firebase.json`           |
 | A type used in 2+ places              | `types/`                  |
 | A type used once                      | Next to its consumer      |
 | Images, fonts, `robots.txt`           | `public/`                 |
@@ -315,7 +319,11 @@ Firestore indexes every nested field. A room holds up to 20 boards, and nothing 
 
 `import 'server-only'` throws outside a Next.js build, so `vitest.config.ts` aliases it to `tests/server-only.stub.ts`. `protobufjs`, from `@google-cloud/firestore`, wants a lifecycle script that compiles nothing. It is listed as `false` because pnpm fails `--frozen-lockfile` on an unlisted one.
 
-### 18. A read of the room can write
+### 18. `firebase.json` names the service and region as literals
+
+Hosting config has no variables. The rewrite says `serviceId: "games"` and `region: "asia-south1"`. Rename the service or move the region, and the custom domain returns a bare `404`, with no error that names the cause. Change `firebase.json` in the same PR, then run `npx firebase-tools deploy --only hosting`.
+
+### 19. A read of the room can write
 
 `GET /api/v1/rooms/{key}` plays out a turn whose clock ran out and promotes a new host after 60 idle seconds. Nothing else can: the player or host who left has no browser to ask. Keep both in `readRoom`, and keep `/api/health` free of Firestore.
 

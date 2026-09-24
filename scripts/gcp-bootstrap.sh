@@ -217,6 +217,10 @@ if [[ "$SKIP_DATA" != "true" ]]; then
     # Deploys the security rules in firestore.rules. Optional: the deploy
     # degrades to a warning without it, see scripts/firestore-deploy.sh.
     firebaserules.googleapis.com
+    # Firebase Hosting puts the custom domain in front of Cloud Run, because
+    # Cloud Run domain mapping does not exist in asia-south1. See firebase.json.
+    firebase.googleapis.com
+    firebasehosting.googleapis.com
   )
 fi
 
@@ -606,6 +610,27 @@ ${BOLD}3. After the first deploy, pin the public URL${RESET}
    URL=\$(gcloud run services describe ${SERVICE_NAME} --region ${REGION} --format='value(status.url)')
    gh variable set APP_URL --body "\$URL"
    gh workflow run deploy.yml   # rebuild so the URL is inlined into the bundle
+
+${BOLD}4. Put the domain in front (Firebase Hosting)${RESET}
+
+   Cloud Run domain mapping does not exist in ${REGION}. Firebase Hosting
+   rewrites the domain to the service instead. One console step first, because
+   it has no gcloud surface:
+
+   a. Add Firebase to THIS project (free, and it stays the same GCP project):
+        https://console.firebase.google.com/  ->  Add project  ->  ${PROJECT_ID}
+
+   b. Check that serviceId in firebase.json is "${SERVICE_NAME}" and region is
+      "${REGION}". A wrong value returns a bare 404.
+
+   c. Publish the rewrite, and check it on the web.app address:
+
+        npx firebase-tools login
+        npx firebase-tools deploy --only hosting --project ${PROJECT_ID}
+        curl -s https://${PROJECT_ID}.web.app/api/health
+
+   d. Firebase console -> Hosting -> Add custom domain, then add the DNS
+      records it prints. Full runbook: cloud/migrate-to-firestore.md.
 
 ${BOLD}Recommended: set a budget alert before you forget${RESET}
 
