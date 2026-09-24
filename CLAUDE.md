@@ -31,7 +31,7 @@ A production Next.js application deployed to Google Cloud Run, generated from a 
 
 The application is **Playroom**, party games played from a shared six-character room key. Bingo is playable, and it is turn-based: players claim numbers from 1 to 25 and every claim marks that number on every board. Scribble and Tic-tac-toe are in the catalogue but not yet implemented. Room state sits behind a transport interface, so it moves between the browser and the rooms API without changing a screen. See [ADR-0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md).
 
-**The rooms API is part of this app.** Route handlers in `app/api/v1/` call `services/room-store.ts`, which stores each room as one Firestore document in a named database in `asia-south1`. [`docs/rooms-api.md`](./docs/rooms-api.md) is the contract; [ADR-0007](./docs/adr/0007-serve-the-rooms-api-from-this-app-on-firestore.md) is the reasoning. The deployed app builds with `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote`. `.env.example` stays `local`, so a fresh checkout is playable with no database. A caller is identified by a bearer token, never by a player id: see [ADR-0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md).
+**The rooms API is part of this app.** Route handlers in `app/api/v1/` call `services/room-store.ts`, which stores each room as one Firestore document in a named database in `asia-south1`. [`docs/rooms-api.md`](./docs/rooms-api.md) is the contract; [ADR-0008](./docs/adr/0008-serve-the-rooms-api-from-this-app-on-firestore.md) is the reasoning. The deployed app builds with `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote`. `.env.example` stays `local`, so a fresh checkout is playable with no database. A caller is identified by a bearer token, never by a player id: see [ADR-0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md).
 
 **The rules exist once.** `lib/room-engine.ts` decides every rule for both transports. The server adds only transactions, tokens, the turn clock, host promotion, idempotency and the event log. Never re-implement a rule in `services/`.
 
@@ -447,7 +447,7 @@ Two pnpm safety nets will stop you, and both are deliberate:
 
 Full model in [`SECURITY.md`](./SECURITY.md).
 
-- **No long-lived credentials exist.** CI authenticates via Workload Identity Federation with a short-lived OIDC token bound to this repository by an attribute condition.
+- **No long-lived credentials exist.** CI authenticates via Workload Identity Federation with a short-lived OIDC token. The provider's attribute condition names your GitHub **owner**. The deployer's `principalSet://` binding names this **repository**, and it is what authorises a deploy. Every repository in the project shares the provider. Never pin it to one repository, or the next repository you bootstrap silently revokes this one. See [ADR-0007](./docs/adr/0007-scope-workload-identity-to-the-github-owner.md).
 - **Two identities, deliberately separate.** The deployer service account can push images and deploy; it cannot read application data. The runtime service account can read its own secrets; it cannot deploy.
 - **The container is hardened:** non-root uid 1001, no source/dev-deps/package manager in the final image, pinned base image, read-only root filesystem, `no-new-privileges`.
 - **Workflows are least-privilege:** `contents: read` by default, `id-token: write` only where OIDC is needed, `persist-credentials: false` on checkout. PR validation needs **no** cloud credentials, keep it that way so fork PRs work.
@@ -460,15 +460,16 @@ Full model in [`SECURITY.md`](./SECURITY.md).
 
 Recorded in [`docs/adr/`](./docs/adr/). Read before proposing a change to any of them.
 
-| ADR                                                                       | Decision                                                         |
-| ------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)                      | Cloud Run for hosting, over Vercel, GKE, App Engine, a VM        |
-| [0002](./docs/adr/0002-use-workload-identity-federation.md)               | Workload Identity Federation, no service account keys, ever      |
-| [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md)         | Room state behind a transport interface, with a browser fallback |
-| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)               | Turn-based Bingo on a 1-25 board, no host caller, no daubing     |
-| [0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md)      | The player id is public; the credential is a separate token      |
-| [0006](./docs/adr/0006-adopt-the-mochi-design-language.md)                | The Mochi design language, from the template, replaces Airtable  |
-| [0007](./docs/adr/0007-serve-the-rooms-api-from-this-app-on-firestore.md) | The rooms API runs in this app, on Firestore in asia-south1      |
+| ADR                                                                       | Decision                                                                             |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [0001](./docs/adr/0001-use-cloud-run-for-hosting.md)                      | Cloud Run for hosting, over Vercel, GKE, App Engine, a VM                            |
+| [0002](./docs/adr/0002-use-workload-identity-federation.md)               | Workload Identity Federation, no service account keys, ever                          |
+| [0003](./docs/adr/0003-abstract-room-state-behind-a-transport.md)         | Room state behind a transport interface, with a browser fallback                     |
+| [0004](./docs/adr/0004-turn-based-bingo-on-a-1-25-board.md)               | Turn-based Bingo on a 1-25 board, no host caller, no daubing                         |
+| [0005](./docs/adr/0005-split-the-player-id-from-the-player-token.md)      | The player id is public; the credential is a separate token                          |
+| [0006](./docs/adr/0006-adopt-the-mochi-design-language.md)                | The Mochi design language, from the template, replaces Airtable                      |
+| [0007](./docs/adr/0007-scope-workload-identity-to-the-github-owner.md)    | WIF provider scoped to the GitHub owner; the repository pin lives in the IAM binding |
+| [0008](./docs/adr/0008-serve-the-rooms-api-from-this-app-on-firestore.md) | The rooms API runs in this app, on Firestore in asia-south1                          |
 
 Add an ADR when a decision is expensive to reverse, affects how everyone works, or rejects an obvious alternative. Never edit an accepted ADR to change its decision, write a new one that supersedes it, and link both ways.
 

@@ -35,7 +35,7 @@
 #   --main-only               only refs/heads/main of this repository may deploy
 #   --pool / --provider       use a non-default pool or provider id
 #   --force-provider-update   overwrite a provider condition set by another
-#                             owner (this revokes their deploys, read ADR-0003)
+#                             owner (this revokes their deploys, read ADR-0007)
 #   --database                override the derived database name
 #   --skip-data               no Firestore
 #
@@ -451,7 +451,7 @@ step "Workload Identity provider"
 # The condition names the OWNER, not one repository. The pool and the provider
 # are shared by every repository in this project, so a per-repository condition
 # would be overwritten each time you bootstrap the next repository, silently
-# breaking the deploy of the previous one. See ADR-0003.
+# breaking the deploy of the previous one. See ADR-0007.
 #
 # Scoping to the owner is safe because the condition is not what authorises a
 # deploy. The `principalSet://` binding below is: it names this repository
@@ -484,7 +484,7 @@ if gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
   if [[ -n "$CURRENT_CONDITION" && "$CURRENT_CONDITION" != "$ATTRIBUTE_CONDITION" ]]; then
 
     # One difference is provably safe, and every project bootstrapped before
-    # ADR-0003 hits it: an earlier version of THIS script pinned the provider
+    # ADR-0007 hits it: an earlier version of THIS script pinned the provider
     # to one repository. Widening `repository == 'OWNER/repo'` to
     # `repository_owner == 'OWNER'` is a strict superset, every token the old
     # condition accepted, the new one accepts too. Nothing can stop deploying.
@@ -498,7 +498,7 @@ if gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
       warn "  current: ${CURRENT_CONDITION}"
       warn "  new:     ${ATTRIBUTE_CONDITION}"
       warn "Same owner, and the new condition accepts everything the old one did,"
-      warn "so no repository loses access. Widening it. See ADR-0003."
+      warn "so no repository loses access. Widening it. See ADR-0007."
 
       # The old --main-only lived in the provider condition. The new one puts it
       # in the per-repository binding, so it has to be asked for again.
@@ -550,7 +550,7 @@ step "Allowing the repository to impersonate the deployer"
 #
 # It is additive, so bootstrapping a sibling repository adds its own binding and
 # leaves this one alone. That is the whole reason the per-repository pin lives
-# here and not in the provider condition. See ADR-0003.
+# here and not in the provider condition. See ADR-0007.
 POOL_PRINCIPAL="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}"
 
 if [[ "$RESTRICT_TO_MAIN" == "true" ]]; then

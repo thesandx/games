@@ -161,7 +161,7 @@ The pipeline tags each image with the commit SHA and deploys it by that immutabl
 
 The template stops at the point where choices become project-specific.
 
-Persistent state is already here: the rooms API stores rooms in Firestore, through `services/room-store.ts`. See [`docs/rooms-api.md`](../../docs/rooms-api.md) and ADR-0007.
+Persistent state is already here: the rooms API stores rooms in Firestore, through `services/room-store.ts`. See [`docs/rooms-api.md`](../../docs/rooms-api.md) and ADR-0008.
 
 | Not included    | Add it when                          | Suggested approach                                                      |
 | --------------- | ------------------------------------ | ----------------------------------------------------------------------- |

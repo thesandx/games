@@ -6,7 +6,7 @@ This document specifies the rooms API: how it stores a room, how it keeps play f
 - **Where it stores data:** Firestore in Native mode, in a named database, in `asia-south1`. That is the same region as the Cloud Run service.
 - **The client:** `services/playroom-api.ts`, with `NEXT_PUBLIC_PLAYROOM_TRANSPORT=remote`. The base URL is `/api/v1` on the same origin, so there is no CORS.
 
-The API used to be a separate FastAPI service on Neon Postgres. [ADR-0007](./adr/0007-serve-the-rooms-api-from-this-app-on-firestore.md) records why it moved here. The wire contract did not change, so no screen changed.
+The API used to be a separate FastAPI service on Neon Postgres. [ADR-0008](./adr/0008-serve-the-rooms-api-from-this-app-on-firestore.md) records why it moved here. The wire contract did not change, so no screen changed.
 
 ---
 

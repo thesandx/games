@@ -1,4 +1,4 @@
-# ADR-0007: Serve the rooms API from this app, on Firestore in asia-south1
+# ADR-0008: Serve the rooms API from this app, on Firestore in asia-south1
 
 - **Status:** Accepted
 - **Date:** 2026-09-23

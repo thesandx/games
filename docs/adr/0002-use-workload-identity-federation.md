@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-07-21
 - **Deciders:** Platform engineering
+- **Refined by:** [ADR-0007](./0007-scope-workload-identity-to-the-github-owner.md). The decision below stands. ADR-0007 changes only how the provider is scoped.
 
 ## Context
 
